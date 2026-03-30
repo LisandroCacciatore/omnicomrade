@@ -10,6 +10,12 @@
  * - Timer con vibración
  */
 
+const getStudentHomeUrl = () => {
+  const role = localStorage.getItem('tf_role') || 'alumno';
+  const routes = { 'gim_admin': 'admin-dashboard.html', 'profesor': 'profesor-dashboard.html', 'alumno': 'student-profile.html' };
+  return routes[role] || 'student-profile.html';
+};
+
 (async () => {
   const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
   if (!session) return;
@@ -19,7 +25,7 @@
 
   /* ─── Resolver student_id ─────────────────────────────── */
   const workoutDataRaw = sessionStorage.getItem('activeWorkout');
-  if (!workoutDataRaw) { window.location.href = 'student-profile.html'; return; }
+  if (!workoutDataRaw) { window.location.href = getStudentHomeUrl(); return; }
   const workoutData = JSON.parse(workoutDataRaw);
 
   let studentId = workoutData.studentId || null;
@@ -44,7 +50,7 @@
   // weight_kg se modifica en tiempo real cuando el usuario ajusta
   const sets = (workoutData.exercises || []).map(s => ({ ...s, weight_kg: parseFloat(s.weight_kg) || 0 }));
   const totalSets = sets.length;
-  if (!totalSets) { window.location.href = 'student-profile.html'; return; }
+  if (!totalSets) { window.location.href = getStudentHomeUrl(); return; }
 
   /* ─── Historial: último peso por ejercicio ──────────── */
   const lastWeightByEx = {};
@@ -442,7 +448,7 @@
       </div>`;
 
       if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
-      setTimeout(() => { window.location.href = 'student-profile.html'; }, 2000);
+      setTimeout(() => { window.location.href = getStudentHomeUrl(); }, 2000);
 
     } catch (err) {
       console.error(err);
@@ -459,7 +465,7 @@
   document.getElementById('btn-cancel-workout').addEventListener('click', () => {
     if (confirm('¿Cancelar entrenamiento? No se guardará el progreso.')) {
       sessionStorage.removeItem('activeWorkout');
-      window.location.href = 'student-profile.html';
+      window.location.href = getStudentHomeUrl();
     }
   });
 

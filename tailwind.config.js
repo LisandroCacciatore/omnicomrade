@@ -1,5 +1,26 @@
-module.exports = {
-  content: ["./*.html", "./js/**/*.js"],
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./login.html",
+    "./admin-dashboard.html",
+    "./student-list.html",
+    "./student-profile.html",
+    "./student-dashboard.html",
+    "./membership-list.html",
+    "./routine-list.html",
+    "./routine-programs.html",
+    "./routine-builder.html",
+    "./exercise-list.html",
+    "./attendance.html",
+    "./progress.html",
+    "./workout-session.html",
+    "./wellbeing-check.html",
+    "./profesor-dashboard.html",
+    "./gym-setting.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./js/**/*.js"
+  ],
   theme: {
     extend: {
       colors: {
@@ -15,9 +36,11 @@ module.exports = {
         'border-muted':     '#334155',
         'background-light': '#f1f5f9'
       },
-      fontFamily: { sans: ['Space Grotesk', 'sans-serif'] },
+      fontFamily: { 
+        sans: ['Space Grotesk', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'monospace']
+      }
     }
   },
-  plugins: [],
+  plugins: []
 }
-

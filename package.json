@@ -1,5 +1,19 @@
 {
+  "name": "omnicomrade",
+  "version": "1.0.0",
+  "description": "TechFitness - Sistema de gestión de gimnasio",
+  "type": "module",
   "scripts": {
-    "build": "printf \"// Configuración de Supabase\\nconst SUPABASE_URL = '%s'\\nconst SUPABASE_ANON_KEY = '%s'\\n\\ntry { if (!window.supabase) throw new Error('SDK de Supabase no cargó'); const { createClient } = window.supabase; window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); console.log('✅ Supabase inicializado correctamente'); } catch (e) { console.error('❌ Error inicializando Supabase:', e.message); }\" \"$SUPABASE_URL\" \"$SUPABASE_ANON_KEY\" > js/supabase.js"
+    "dev": "vite",
+    "build": "vite build && printf \"const SUPABASE_URL = '%s'\\nconst SUPABASE_ANON_KEY = '%s'\\n\\nconst { createClient } = window.supabase; window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);\" \"$SUPABASE_URL\" \"$SUPABASE_ANON_KEY\" > dist/js/supabase.js",
+    "preview": "vite preview",
+    "lint": "eslint js/",
+    "lint:fix": "eslint js/ --fix",
+    "format": "prettier --write \"js/**/*.js\""
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0"
   }
 }

@@ -3,6 +3,12 @@
  * TechFitness — Check de bienestar pre-entrenamiento
  */
 
+const getStudentHomeUrl = () => {
+  const role = localStorage.getItem('tf_role') || 'alumno';
+  const routes = { 'gim_admin': 'admin-dashboard.html', 'profesor': 'profesor-dashboard.html', 'alumno': 'student-profile.html' };
+  return routes[role] || 'student-profile.html';
+};
+
 (async () => {
   const session = await window.authGuard(['alumno', 'gim_admin', 'profesor'])
   if (!session) return
@@ -24,7 +30,7 @@
   /* ─── Recuperar workout pendiente ─────────────────────── */
   const pendingRaw = sessionStorage.getItem('pendingWorkout')
   if (!pendingRaw) {
-    window.location.href = 'student-profile.html'
+    window.location.href = getStudentHomeUrl()
     return
   }
 
@@ -203,7 +209,7 @@
   /* ─── Navegación ───────────────────────────────────────── */
   document.getElementById('btn-back').addEventListener('click', () => {
     sessionStorage.removeItem('pendingWorkout')
-    window.location.href = 'student-profile.html'
+    window.location.href = getStudentHomeUrl()
   })
 
   document.getElementById('btn-skip').addEventListener('click', skipAndRedirect)

@@ -42,15 +42,11 @@ async function handleLogin(e) {
             return;
         }
 
-        // Dashboard Mapping
-        const pathByRole = {
-            'gim_admin': 'admin-dashboard.html',
-            'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html',
-            'coach': 'profesor-dashboard.html'
-        };
-
-        const redirectUrl = pathByRole[role] || 'index.html';
+        const getUrl = window.AppRoutes?.getDashboardUrl || RoutesFallback?.getDashboardUrl || ((role) => {
+            const routes = { 'gim_admin': 'admin-dashboard.html', 'profesor': 'profesor-dashboard.html', 'coach': 'profesor-dashboard.html', 'alumno': 'student-profile.html' };
+            return routes[role] || 'index.html';
+        });
+        const redirectUrl = getUrl(role);
         
         // Guardar rol para el sidebar
         if (window.TFSidebar) {
@@ -117,13 +113,11 @@ async function checkCurrentSession() {
         const role = session.user.app_metadata.role;
         const normalizedRole = (role === 'coach') ? 'profesor' : role;
         
-        const dashboards = {
-            'gim_admin': 'admin-dashboard.html',
-            'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html'
-        };
-
-        const target = dashboards[role] || dashboards[normalizedRole];
+        const getUrl = window.AppRoutes?.getDashboardUrl || RoutesFallback?.getDashboardUrl || ((r) => {
+            const routes = { 'gim_admin': 'admin-dashboard.html', 'profesor': 'profesor-dashboard.html', 'coach': 'profesor-dashboard.html', 'alumno': 'student-profile.html' };
+            return routes[r] || 'index.html';
+        });
+        const target = getUrl(role) || getUrl(normalizedRole);
         if (target) window.location.href = target;
     }
 }

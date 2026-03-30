@@ -106,7 +106,7 @@ async function loadRecentStudents() {
                     ${new Date(s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })}
                 </td>
                 <td class="px-6 py-4">
-                    <a href="student-dashboard.html?id=${s.id}"
+                    <a href="student-profile.html?id=${s.id}"
                         class="size-8 rounded-lg border border-border-dark flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors"
                         title="Ver perfil">
                         <span class="material-symbols-rounded text-[16px]">visibility</span>
