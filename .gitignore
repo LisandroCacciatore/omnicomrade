@@ -1,24 +1,10 @@
-# Supabase credentials
-js/supabase.js
-
-# Assets locales (se suben al repo para despliegue)
-# assets/
-
-# Variables de entorno
-*.env
+node_modules
+dist
 .env
-.env.local
-.env.*.local
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Logs
 *.log
+.vercel
+node_modules/
+dist/
+.env*
+! .env.example
