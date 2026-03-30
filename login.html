@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Login | TechFitness</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233B82F6'/><text y='.75em' x='50%' text-anchor='middle' font-size='60' fill='white' font-family='sans-serif' font-weight='black'>TF</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="js/tailwind-config.js"></script>
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #161E26 0%, #0B1218 100%);
+        }
+        .material-symbols-rounded {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(22, 30, 38, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 overflow-hidden">
+    <!-- Fondo decorativo -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-success/10 rounded-full blur-[120px]"></div>
+    </div>
+
+    <div class="w-full max-w-[400px] glass-panel rounded-2xl p-8 shadow-2xl z-10 transition-all duration-500 hover:shadow-primary/5">
+        <!-- Logo -->
+        <div class="flex flex-col items-center gap-4 mb-8">
+            <div class="size-20 bg-slate-900/50 rounded-2xl flex items-center justify-center p-2 shadow-lg hover:scale-105 transition-transform">
+                <img src="assets/img/logo.png" alt="TechFitness Logo" class="w-full h-full object-contain" />
+            </div>
+            <div class="text-center">
+                <h1 class="text-3xl font-black tracking-tight">Tech<span class="text-primary">Fitness</span></h1>
+                <p class="text-slate-400 text-sm font-medium mt-1">Gestión Inteligente de Gimnasios</p>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <form id="login-form" class="flex flex-col gap-5">
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Email</label>
+                <div class="relative group">
+                    <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-[20px]">mail</span>
+                    <input type="email" id="email" required autocomplete="email"
+                        class="w-full bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 pl-12 pr-4 transition-all placeholder:text-slate-600 valid:border-success/50 invalid:border-danger/50"
+                        placeholder="tu@email.com" />
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">Contraseña</label>
+                <div class="relative group">
+                    <span class="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors text-[20px]">lock</span>
+                    <input type="password" id="password" required autocomplete="current-password"
+                        class="w-full bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 pl-12 pr-4 transition-all placeholder:text-slate-600"
+                        placeholder="••••••••" />
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="error-message" class="hidden flex items-center gap-2 text-danger text-sm font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
+                <span class="material-symbols-rounded text-[18px]">error</span>
+                <span id="error-text">Credenciales incorrectas</span>
+            </div>
+
+            <button type="submit" id="login-btn"
+                class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-4 px-6 transition-all shadow-lg shadow-primary/20 mt-2 group">
+                <span id="btn-text">Iniciar Sesión</span>
+                <span id="btn-spinner" class="hidden animate-spin size-5 border-2 border-white/30 border-t-white rounded-full"></span>
+                <span class="material-symbols-rounded group-hover:translate-x-1 transition-transform text-[20px]">arrow_forward</span>
+            </button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center">
+            <p class="text-slate-500 text-xs"> TechFitness SaaS &copy; 2024 </p>
+        </div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- App Logic -->
+    <script src="js/supabase.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        document.getElementById('email').focus();
+        document.getElementById('email').addEventListener('blur', function() {
+            this.classList.add('was-validated');
+        });
+    </script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Asistencia — TechFitness</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind-config.js"></script>
+
+    <style>
+        * { font-family: 'Space Grotesk', sans-serif; }
+        body { background-color: #0B1218; color: #E2E8F0; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: #64748B; font-size: 14px; font-weight: 500; transition: all .18s; }
+        .nav-link:hover { background: rgba(59, 130, 246, .08); color: #93C5FD; }
+        .nav-link.active { background: rgba(59, 130, 246, .14); color: #3B82F6; }
+
+        .search-wrap { position: relative; }
+        .search-wrap .material-symbols-rounded { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748B; font-size: 22px; pointer-events: none; }
+        
+        .student-result { padding: 12px 16px; border-radius: 12px; border: 1px solid #1E293B; background: #0B1218; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;}
+        .student-result:hover { border-color: #3B82F6; background: rgba(59, 130, 246, .05); }
+        .student-result.selected { border-color: #3B82F6; background: rgba(59, 130, 246, .1); }
+
+        .log-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #1E293B; }
+        .log-item:last-child { border-bottom: none; }
+
+        /* Toast */
+        #toast { position: fixed; bottom: 28px; right: 28px; z-index: 100; background: #161E26; border: 1px solid #1E293B; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 9px; transform: translateY(20px); opacity: 0; transition: all .28s; pointer-events: none; box-shadow: 0 8px 32px rgba(0, 0, 0, .5); }
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.success { border-color: #10B981; }
+        #toast.error { border-color: #EF4444; }
+    </style>
+</head>
+<body class="min-h-screen flex">
+
+    <aside id="app-sidebar"></aside>
+
+    <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B] flex items-center px-6">
+            <button id="hamburger-btn" class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2">
+                <span class="material-symbols-rounded text-slate-400">menu</span>
+            </button><div>
+                <h1 class="text-lg font-bold text-white leading-none">Control de Acceso</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Registrá el ingreso de los alumnos en tiempo real</p>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 flex flex-col lg:flex-row gap-6 items-start">
+            
+            <div class="w-full lg:w-3/5 bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col h-[calc(100vh-112px)]">
+                <div class="search-wrap mb-4 shrink-0">
+                    <span class="material-symbols-rounded">search</span>
+                    <input id="search-student" type="text" class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl pl-12 pr-4 py-4 text-base font-semibold text-white focus:border-[#3B82F6] outline-none transition-colors" placeholder="Buscar alumno por nombre..." autocomplete="off" autofocus />
+                </div>
+                
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 shrink-0">Resultados de búsqueda</p>
+                
+                <div id="search-results" class="flex-1 overflow-y-auto pr-2">
+                    <div class="text-center py-10 text-slate-500 text-sm">Empezá a escribir para buscar un alumno...</div>
+                </div>
+
+                <form id="form-checkin" class="mt-4 pt-4 border-t border-[#1E293B] shrink-0 hidden">
+                    <input type="hidden" id="selected-student-id" />
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-sm text-slate-400">Alumno seleccionado:</p>
+                            <p id="selected-student-name" class="text-lg font-bold text-white"></p>
+                        </div>
+                        <div id="selected-student-status"></div>
+                    </div>
+                    <button type="submit" id="btn-submit-checkin" class="w-full py-4 rounded-xl text-base font-bold text-white transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-rounded">how_to_reg</span>
+                        Registrar Ingreso
+                    </button>
+                </form>
+            </div>
+
+            <div class="w-full lg:w-2/5 bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col h-[calc(100vh-112px)]">
+                <div class="flex items-center justify-between mb-6 shrink-0">
+                    <div>
+                        <h2 class="text-base font-bold text-white">Ingresos de hoy</h2>
+                        <p id="today-date" class="text-xs text-slate-500 mt-0.5"></p>
+                    </div>
+                    <div class="bg-[#3B82F6]/10 border border-[#3B82F6]/20 px-3 py-1 rounded-lg">
+                        <span id="today-count" class="text-lg font-bold text-[#3B82F6]">0</span>
+                    </div>
+                </div>
+
+                <div id="today-logs" class="flex-1 overflow-y-auto pr-2">
+                    <div class="text-center py-10 text-slate-500 text-sm">Todavía no hay ingresos registrados hoy.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon" class="material-symbols-rounded text-[18px]">check_circle</span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/attendance.js"></script>
+</body>
+</html>
+
+

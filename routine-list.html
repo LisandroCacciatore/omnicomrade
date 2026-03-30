@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rutinas — TechFitness</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind-config.js"></script>
+
+    <style>
+        * {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        body {
+            background-color: #0B1218;
+            color: #E2E8F0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0B1218;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1E293B;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3B82F6;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            color: #64748B;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all .18s;
+        }
+
+        .nav-link:hover {
+            background: rgba(59, 130, 246, .08);
+            color: #93C5FD;
+        }
+
+        .nav-link.active {
+            background: rgba(59, 130, 246, .14);
+            color: #3B82F6;
+        }
+
+        .nav-link .material-symbols-rounded {
+            font-size: 20px;
+        }
+
+        .routine-card {
+            background: #161E26;
+            border: 1px solid #1E293B;
+            border-radius: 16px;
+            padding: 20px;
+            transition: border-color .2s, transform .2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .routine-card:hover {
+            border-color: rgba(59, 130, 246, .45);
+            transform: translateY(-2px);
+        }
+
+        .routine-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 16px 16px 0 0;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .routine-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-fuerza::before {
+            background: linear-gradient(90deg, #EF4444, #F97316);
+        }
+
+        .card-estetica::before {
+            background: linear-gradient(90deg, #EC4899, #8B5CF6);
+        }
+
+        .card-rendimiento::before {
+            background: linear-gradient(90deg, #3B82F6, #06B6D4);
+        }
+
+        .card-rehabilitacion::before {
+            background: linear-gradient(90deg, #10B981, #84CC16);
+        }
+
+        .card-general::before {
+            background: linear-gradient(90deg, #64748B, #94A3B8);
+        }
+
+        .objetivo-btn.active {
+            border-color: #3B82F6;
+            background: rgba(59, 130, 246, .12);
+            color: #60A5FA;
+        }
+
+        .diff-btn.active-principiante {
+            border-color: #10B981;
+            background: rgba(16, 185, 129, .12);
+            color: #34D399;
+        }
+
+        .diff-btn.active-intermedio {
+            border-color: #F59E0B;
+            background: rgba(245, 158, 11, .12);
+            color: #FCD34D;
+        }
+
+        .diff-btn.active-avanzado {
+            border-color: #EF4444;
+            background: rgba(239, 68, 68, .12);
+            color: #F87171;
+        }
+
+        .filter-chip {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #1E293B;
+            background: #161E26;
+            color: #64748B;
+            cursor: pointer;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .filter-chip.active {
+            border-color: #3B82F6;
+            background: rgba(59, 130, 246, .12);
+            color: #60A5FA;
+        }
+
+        .filter-chip:hover:not(.active) {
+            border-color: #334155;
+            color: #94A3B8;
+        }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(7, 11, 16, .8);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-box {
+            background: #161E26;
+            border: 1px solid #1E293B;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(.96) translateY(12px);
+            transition: transform .2s;
+        }
+
+        .modal-backdrop.open .modal-box {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 100;
+            background: #161E26;
+            border: 1px solid #1E293B;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all .28s;
+            pointer-events: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
+        }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        #toast.success {
+            border-color: #10B981;
+        }
+
+        #toast.error {
+            border-color: #EF4444;
+        }
+
+        .skeleton {
+            background: #1E293B;
+            border-radius: 8px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .4
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-background-dark text-slate-100 min-h-screen flex">
+
+    <!-- Sidebar -->
+    <aside id="app-sidebar"></aside>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Header -->
+        <header
+            class="h-16 sticky top-0 z-30 bg-background-dark/90 backdrop-blur-md border-b border-border-dark flex items-center justify-between px-6">
+            <div>
+                <h1 class="text-lg font-bold text-white">Rutinas</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="routine-builder.html"
+                    class="flex items-center gap-2 border border-border-dark hover:bg-slate-800 transition text-slate-400 text-sm font-semibold px-3 py-2 rounded-xl">
+                    <span class="material-symbols-rounded text-[17px]">edit_note</span>
+                    Crear desde cero
+                </a>
+                <button id="btn-nueva-rutina"
+                    class="flex items-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-semibold px-4 py-2 rounded-xl">
+                    <span class="material-symbols-rounded text-[18px]">add</span>Nueva rutina
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 p-6 space-y-6 overflow-y-auto">
+
+                <!-- KPIs -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</span>
+                            <span class="material-symbols-rounded text-slate-600 text-[20px]"
+                                style="font-variation-settings:'FILL' 1">fitness_center</span>
+                        </div>
+                        <div id="kpi-total" class="text-3xl font-bold text-white">
+                            <div class="skeleton h-8 w-16"></div>
+                        </div>
+                    </div>
+                    <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Fuerza</span>
+                            <span class="material-symbols-rounded text-[20px]"
+                                style="color:#F87171;font-variation-settings:'FILL' 1">exercise</span>
+                        </div>
+                        <div id="kpi-fuerza" class="text-3xl font-bold text-white">
+                            <div class="skeleton h-8 w-12"></div>
+                        </div>
+                    </div>
+                    <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Estética</span>
+                            <span class="material-symbols-rounded text-[20px]"
+                                style="color:#F472B6;font-variation-settings:'FILL' 1">self_improvement</span>
+                        </div>
+                        <div id="kpi-estetica" class="text-3xl font-bold text-white">
+                            <div class="skeleton h-8 w-12"></div>
+                        </div>
+                    </div>
+                    <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <span
+                                class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Rendimiento</span>
+                            <span class="material-symbols-rounded text-[20px]"
+                                style="color:#60A5FA;font-variation-settings:'FILL' 1">speed</span>
+                        </div>
+                        <div id="kpi-rendimiento" class="text-3xl font-bold text-white">
+                            <div class="skeleton h-8 w-12"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div class="relative flex-1 max-w-xs">
+                        <span
+                            class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">search</span>
+                        <input id="search-input" type="text" placeholder="Buscar rutina…"
+                            class="w-full bg-bg-dark border border-border-dark rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:border-primary outline-none transition-colors" />
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="filter-chip active" data-objetivo="all">Todos</button>
+                        <button class="filter-chip" data-objetivo="fuerza">Fuerza</button>
+                        <button class="filter-chip" data-objetivo="estetica">Estética</button>
+                        <button class="filter-chip" data-objetivo="rendimiento">Rendimiento</button>
+                        <button class="filter-chip" data-objetivo="rehabilitacion">Rehab.</button>
+                        <button class="filter-chip" data-objetivo="general">General</button>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="filter-chip active" data-diff="all">Todos</button>
+                        <button class="filter-chip" data-diff="principiante">Principiante</button>
+                        <button class="filter-chip" data-diff="intermedio">Intermedio</button>
+                        <button class="filter-chip" data-diff="avanzado">Avanzado</button>
+                    </div>
+                </div>
+
+                <!-- Grid rutinas -->
+                <div id="routines-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="skeleton h-48 rounded-2xl"></div>
+                    <div class="skeleton h-48 rounded-2xl"></div>
+                    <div class="skeleton h-48 rounded-2xl"></div>
+                    <div class="skeleton h-48 rounded-2xl"></div>
+                </div>
+
+                <!-- Empty state -->
+                <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                    <div
+                        class="w-16 h-16 rounded-2xl bg-surface-dark border border-border-dark flex items-center justify-center mb-4">
+                        <span class="material-symbols-rounded text-slate-600 text-[32px]"
+                            style="font-variation-settings:'FILL' 1">fitness_center</span>
+                    </div>
+                    <p class="text-white font-semibold mb-1">No hay rutinas</p>
+                    <p class="text-sm text-slate-500 mb-5">Creá la primera rutina del gimnasio</p>
+                    <div class="flex gap-3">
+                        <a href="routine-builder.html"
+                            class="flex items-center gap-2 border border-border-dark hover:bg-surface-2 transition text-slate-400 text-sm font-semibold px-4 py-2 rounded-xl">
+                            <span class="material-symbols-rounded text-[17px]">edit_note</span>Crear desde cero
+                        </a>
+                        <button id="btn-empty-nueva"
+                            class="flex items-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-semibold px-4 py-2 rounded-xl">
+                            <span class="material-symbols-rounded text-[18px]">add</span>Nueva rutina rápida
+                        </button>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+
+    <!-- MODAL NUEVA/EDITAR RUTINA -->
+    <div id="modal-rutina" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="flex items-center justify-between p-5 border-b border-border-dark">
+                <h2 id="modal-rutina-title" class="text-base font-bold text-white">Nueva rutina</h2>
+                <button type="button" id="close-modal-rutina"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-surface-2 hover:text-white transition-colors">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+
+            <form id="form-rutina">
+                <div class="p-5 space-y-4">
+                    <input type="hidden" id="rutina-id" />
+
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Nombre
+                            *</label>
+                        <input id="rutina-nombre" type="text" required
+                            class="w-full bg-bg-dark border border-border-dark rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-primary outline-none transition-colors"
+                            placeholder="Ej: Fullbody 3x semana" maxlength="80" />
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Descripción</label>
+                        <textarea id="rutina-descripcion" rows="3"
+                            class="w-full bg-bg-dark border border-border-dark rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-primary outline-none resize-none transition-colors"
+                            placeholder="Descripción breve de la rutina…" maxlength="300"></textarea>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Objetivo
+                            *</label>
+                        <div class="flex gap-2 flex-wrap">
+                            <button type="button"
+                                class="objetivo-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="fuerza">Fuerza</button>
+                            <button type="button"
+                                class="objetivo-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="estetica">Estética</button>
+                            <button type="button"
+                                class="objetivo-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="rendimiento">Rendimiento</button>
+                            <button type="button"
+                                class="objetivo-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="rehabilitacion">Rehab.</button>
+                            <button type="button"
+                                class="objetivo-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="general">General</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Dificultad</label>
+                        <div class="flex gap-2">
+                            <button type="button"
+                                class="diff-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="principiante">Principiante</button>
+                            <button type="button"
+                                class="diff-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="intermedio">Intermedio</button>
+                            <button type="button"
+                                class="diff-btn flex-1 py-2 rounded-xl text-xs font-semibold border border-border-dark bg-bg-dark text-slate-400"
+                                data-val="avanzado">Avanzado</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Duración
+                                (sem.)</label>
+                            <input id="rutina-semanas" type="number"
+                                class="w-full bg-bg-dark border border-border-dark rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-primary outline-none"
+                                placeholder="4" min="1" max="52" />
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1.5">Días/semana</label>
+                            <input id="rutina-dias" type="number"
+                                class="w-full bg-bg-dark border border-border-dark rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-primary outline-none"
+                                placeholder="3" min="1" max="7" />
+                        </div>
+                    </div>
+
+                    <p id="modal-error"
+                        class="hidden text-xs text-danger font-bold bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                    </p>
+                </div>
+
+                <div class="flex gap-3 p-5 border-t border-border-dark">
+                    <button type="button" id="cancel-modal-rutina"
+                        class="flex-1 py-2.5 rounded-xl border border-border-dark text-sm font-semibold text-slate-400 hover:bg-surface-2 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="save-rutina"
+                        class="flex-1 py-2.5 rounded-xl bg-primary hover:bg-blue-500 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                        <span id="save-rutina-text">Guardar</span>
+                        <span id="save-rutina-spinner"
+                            class="hidden animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ELIMINAR -->
+    <div id="modal-eliminar" class="modal-backdrop">
+        <div class="modal-box" style="max-width:380px">
+            <div class="p-6 text-center">
+                <div class="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-rounded text-danger text-[28px]"
+                        style="font-variation-settings:'FILL' 1">delete</span>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2">¿Eliminar rutina?</h3>
+                <p class="text-sm text-slate-400 mb-5">
+                    ¿Confirmás que querés eliminar <span id="delete-rutina-nombre" class="font-bold text-white"></span>?
+                    Esta acción no se puede deshacer.
+                </p>
+                <div class="flex gap-3">
+                    <button id="cancel-delete"
+                        class="flex-1 py-2.5 rounded-xl border border-border-dark text-sm font-semibold text-slate-400 hover:bg-surface-2 transition-colors">
+                        Cancelar
+                    </button>
+                    <button id="confirm-delete"
+                        class="flex-1 py-2.5 rounded-xl bg-danger hover:bg-red-600 text-white text-sm font-semibold transition-colors">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast">
+        <span id="toast-icon" class="material-symbols-rounded text-[18px]">check_circle</span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/routine-list.js"></script>
+</body>
+
+</html>
+
+

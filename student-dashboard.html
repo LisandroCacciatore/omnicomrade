@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Dashboard — TechFitness</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/tailwind-config.js"></script>
+
+  <style>
+    * { font-family: 'Space Grotesk', sans-serif; box-sizing: border-box; }
+    .font-mono { font-family: 'IBM Plex Mono', monospace !important; }
+    body { background: #0B1218; color: #E2E8F0; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+
+    .card { background: #161E26; border: 1px solid #1E293B; border-radius: 18px; padding: 18px; }
+    .zone-label { font-size: 9px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px; }
+
+    .skeleton { background: #1E293B; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
+
+    .btn-logout { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; border: 1px solid #1E293B; background: transparent; color: #64748B; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .btn-logout:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #EF4444; }
+
+    /* Day dots (consistency) */
+    .day-dot-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .day-dot { width: 100%; aspect-ratio: 1; border-radius: 6px; border: 1px solid #1E293B; background: #0F1922; transition: all .2s; }
+    .day-dot.trained { background: #10B981; border-color: #10B981; box-shadow: 0 0 8px rgba(16,185,129,.3); }
+    .day-dot.is-today { border-color: #3B82F6; }
+    .day-dot.is-today:not(.trained) { background: #0B1218; }
+    .day-dot-label { font-size: 8px; font-weight: 700; color: #334155; }
+    .day-dot-col.is-today .day-dot-label { color: #60A5FA; }
+    .day-dot-col.trained-today .day-dot-label { color: #34D399; }
+
+    /* Wellbeing metric bar */
+    .metric-bar { height: 8px; background: #1E293B; border-radius: 4px; overflow: hidden; }
+    .metric-bar-fill { height: 100%; border-radius: 4px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+
+    /* Consistency ring */
+    .consistency-ring { transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+
+    /* Session row */
+    .session-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #0F1922; }
+    .session-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B]">
+    <div class="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+      <div id="gym-logo" class="w-8 h-8 rounded-lg bg-[#3B82F6] flex items-center justify-center shrink-0">
+        <span class="material-symbols-rounded text-white text-[18px]" style="font-variation-settings:'FILL' 1">bolt</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div id="gym-name" class="text-[10px] font-bold text-slate-500 leading-none truncate">Cargando...</div>
+        <div id="student-name" class="text-sm font-bold text-white leading-tight mt-0.5">Mi Dashboard</div>
+      </div>
+      <button type="button" id="logout-btn" class="btn-logout">
+        <span class="material-symbols-rounded text-[17px]">logout</span>
+        <span class="hidden sm:inline">Salir</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-5 space-y-4 pb-28" id="main-content">
+
+    <!-- Skeleton -->
+    <div id="loading-skeleton" class="space-y-4">
+      <div class="skeleton h-24 rounded-2xl"></div>
+      <div class="skeleton h-20 rounded-2xl"></div>
+      <div class="skeleton h-40 rounded-2xl"></div>
+      <div class="skeleton h-36 rounded-2xl"></div>
+    </div>
+
+    <!-- Content -->
+    <div id="dashboard-content" class="hidden space-y-4">
+
+      <!-- ── ZONA 1: CTA ENTRENAR ── -->
+      <a id="btn-entrenar" href="student-profile.html"
+        class="flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] text-black shadow-[0_0_30px_rgba(16,185,129,0.18)] active:scale-[.98] transition-transform block">
+        <div>
+          <p class="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Listo para entrenar</p>
+          <p class="text-xl font-black leading-tight" id="cta-routine-name">Mi Rutina</p>
+          <p class="text-xs font-bold opacity-60 mt-1" id="cta-day-info">—</p>
+        </div>
+        <span class="material-symbols-rounded text-[52px] opacity-90" style="font-variation-settings:'FILL' 1">play_circle</span>
+      </a>
+
+      <!-- ── ZONA 2: ESTADO DEL ATLETA (score widget) ── -->
+      <div id="athlete-score-widget"></div>
+
+      <!-- ── ZONA 3: CONSISTENCIA ── -->
+      <section class="card">
+        <p class="zone-label">📅 Consistencia semanal</p>
+
+        <div class="flex items-center gap-4 mb-4">
+          <!-- Ring SVG -->
+          <div id="consistency-ring-wrap" class="shrink-0">
+            <!-- filled by JS -->
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-black text-white" id="consistency-label">— sesiones esta semana</p>
+            <p class="text-[10px] text-slate-500 mt-0.5" id="plan-meta">—</p>
+            <p class="text-[10px] text-slate-600 mt-0.5" id="plan-name"></p>
+          </div>
+        </div>
+
+        <!-- 7-day dots -->
+        <div id="week-days-chips" class="flex gap-1.5">
+          <!-- filled by JS -->
+        </div>
+
+        <!-- Last sessions -->
+        <div id="last-sessions-list" class="mt-4"><!-- filled by JS --></div>
+      </section>
+
+      <!-- ── ZONA 4: BIENESTAR ── -->
+      <section class="card">
+        <p class="zone-label">😴 Bienestar · últimos 7 días</p>
+
+        <div id="wellbeing-empty" class="text-center py-4 hidden">
+          <span class="material-symbols-rounded text-slate-700 text-3xl">sentiment_neutral</span>
+          <p class="text-xs text-slate-500 mt-2">Sin registros esta semana</p>
+          <a href="wellbeing-check.html" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-[#3B82F6]">
+            Registrar bienestar <span class="material-symbols-rounded text-[13px]">arrow_forward</span>
+          </a>
+        </div>
+
+        <div id="wellbeing-metrics" class="space-y-3">
+          <!-- Sleep -->
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">😴 Sueño</span>
+              <div class="flex items-center gap-2">
+                <span id="wb-sleep-trend" class="text-xs font-black font-mono" style="color:#64748B">→</span>
+                <span id="wb-sleep-val" class="text-xs font-black font-mono text-white">—</span>
+              </div>
+            </div>
+            <div class="metric-bar"><div id="wb-sleep-bar" class="metric-bar-fill bg-[#3B82F6]" style="width:0%"></div></div>
+          </div>
+          <!-- Pain -->
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">💪 Dolor <span class="text-[9px] text-slate-600">(1=sin dolor)</span></span>
+              <div class="flex items-center gap-2">
+                <span id="wb-pain-trend" class="text-xs font-black font-mono" style="color:#64748B">→</span>
+                <span id="wb-pain-val" class="text-xs font-black font-mono text-white">—</span>
+              </div>
+            </div>
+            <div class="metric-bar"><div id="wb-pain-bar" class="metric-bar-fill bg-[#EF4444]" style="width:0%"></div></div>
+          </div>
+          <!-- Energy -->
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="text-xs font-bold text-slate-400 flex items-center gap-1.5">⚡ Energía</span>
+              <div class="flex items-center gap-2">
+                <span id="wb-energy-trend" class="text-xs font-black font-mono" style="color:#64748B">→</span>
+                <span id="wb-energy-val" class="text-xs font-black font-mono text-white">—</span>
+              </div>
+            </div>
+            <div class="metric-bar"><div id="wb-energy-bar" class="metric-bar-fill bg-[#10B981]" style="width:0%"></div></div>
+          </div>
+          <div class="flex items-center justify-between mt-1">
+            <p id="wb-registros" class="text-[10px] text-slate-600">— registros</p>
+            <a href="wellbeing-check.html" class="text-[10px] font-bold text-[#3B82F6] flex items-center gap-0.5">
+              Registrar <span class="material-symbols-rounded text-[12px]">add</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── ZONA 5: VER PROGRESO (link card) ── -->
+      <a href="progress.html"
+        class="flex items-center justify-between px-5 py-4 rounded-2xl bg-[#161E26] border border-[#1E293B] hover:border-[#3B82F6] transition-colors block">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center shrink-0">
+            <span class="material-symbols-rounded text-[#3B82F6] text-[22px]" style="font-variation-settings:'FILL' 1">trending_up</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-white">Mi progreso</p>
+            <p class="text-xs text-slate-500">PRs, evolución de pesos y alertas</p>
+          </div>
+        </div>
+        <span class="material-symbols-rounded text-slate-600">chevron_right</span>
+      </a>
+
+      <!-- ── ZONA 6: MEMBRESÍA + ENTRENADOR ── -->
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Membresía -->
+        <div class="card">
+          <p class="zone-label mb-2">Membresía</p>
+          <p id="memb-plan" class="text-sm font-black text-white capitalize mb-1">—</p>
+          <p id="memb-vence" class="text-[10px] text-slate-500 mb-2">—</p>
+          <div id="memb-status"></div>
+        </div>
+        <!-- Entrenador -->
+        <div class="card">
+          <p class="zone-label mb-2">Entrenador</p>
+          <div class="flex items-center gap-2 mt-1">
+            <div id="coach-avatar"
+              class="w-9 h-9 rounded-full bg-[#3B82F6]/10 border-2 border-[#3B82F6]/30 flex items-center justify-center text-sm font-black text-[#60A5FA] shrink-0">?</div>
+            <div>
+              <p id="coach-name" class="text-xs font-bold text-white leading-tight">—</p>
+              <p class="text-[9px] text-slate-500">Profesor</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ZONA 7: CERTIFICADO MÉDICO ── -->
+      <section class="card">
+        <div class="flex items-center justify-between mb-3">
+          <p class="zone-label mb-0">Certificado médico</p>
+          <span id="cert-status-badge"></span>
+        </div>
+        <div id="cert-current" class="hidden flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-rounded text-[#10B981] text-2xl" style="font-variation-settings:'FILL' 1">verified</span>
+            <div>
+              <p class="text-sm font-bold text-white">Certificado cargado</p>
+              <p class="text-[10px] text-slate-500">Hacé clic en Ver para abrirlo</p>
+            </div>
+          </div>
+          <a id="cert-link" href="#" target="_blank" class="text-xs font-bold text-[#3B82F6] flex items-center gap-1">
+            Ver <span class="material-symbols-rounded text-[14px]">open_in_new</span>
+          </a>
+        </div>
+        <div id="cert-empty" class="hidden text-center py-2 mb-3">
+          <span class="material-symbols-rounded text-slate-600 text-3xl">upload_file</span>
+          <p class="text-xs text-slate-500 mt-1">Sin certificado cargado</p>
+        </div>
+        <label class="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-dashed border-[#1E293B] hover:border-[#3B82F6] text-slate-500 hover:text-[#60A5FA] text-xs font-bold cursor-pointer transition-colors">
+          <span class="material-symbols-rounded text-[18px]">cloud_upload</span>
+          Subir / reemplazar certificado
+          <input type="file" id="cert-file-input" accept=".pdf,image/*" class="hidden" />
+        </label>
+        <div id="cert-upload-status" class="hidden mt-2 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+          <span class="animate-spin size-3 border-2 border-[#3B82F6]/30 border-t-[#3B82F6] rounded-full"></span>
+          Subiendo...
+        </div>
+        <p id="cert-upload-error" class="hidden mt-2 text-xs text-[#EF4444] font-bold text-center"></p>
+      </section>
+
+    </div><!-- /dashboard-content -->
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40">
+    <a href="student-dashboard.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10">
+      <span class="material-symbols-rounded text-[#3B82F6] text-[22px]" style="font-variation-settings:'FILL' 1">home</span>
+      <span class="text-[9px] font-bold text-[#3B82F6]">Inicio</span>
+    </a>
+    <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+      <span class="material-symbols-rounded text-slate-500 text-[22px]">fitness_center</span>
+      <span class="text-[9px] font-bold text-slate-500">Entrenar</span>
+    </a>
+    <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+      <span class="material-symbols-rounded text-slate-500 text-[22px]">trending_up</span>
+      <span class="text-[9px] font-bold text-slate-500">Progreso</span>
+    </a>
+    <a href="wellbeing-check.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+      <span class="material-symbols-rounded text-slate-500 text-[22px]">self_improvement</span>
+      <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
+    </a>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/athlete-insights.js"></script>
+  <script src="js/student-dashboard.js"></script>
+</body>
+</html>

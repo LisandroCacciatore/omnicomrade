@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear Rutina — TechFitness</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind-config.js"></script>
+
+    <style>
+        * { font-family: 'Space Grotesk', sans-serif; box-sizing: border-box; }
+        .font-mono { font-family: 'IBM Plex Mono', monospace !important; }
+        body { background: #0B1218; color: #E2E8F0; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; color: #64748B; font-size: 14px; font-weight: 500; transition: all .18s; }
+        .nav-link:hover { background: rgba(59, 130, 246, .08); color: #93C5FD; }
+        .nav-link.active { background: rgba(59, 130, 246, .14); color: #3B82F6; }
+
+        /* Mode selector */
+        .mode-card { flex: 1; padding: 20px; border-radius: 16px; border: 1px solid #1E293B; background: #161E26; cursor: pointer; transition: all .18s; text-align: left; }
+        .mode-card:hover { border-color: rgba(59, 130, 246, .4); }
+        .mode-card.active { border-color: #3B82F6; background: rgba(59, 130, 246, .06); }
+        .mode-card.active .mode-icon { background: rgba(59, 130, 246, .15); color: #3B82F6; }
+
+        /* Form elements */
+        .form-label { display: block; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 5px; }
+        .form-input { width: 100%; background: #0B1218; border: 1px solid #1E293B; border-radius: 10px; padding: 9px 13px; font-size: 14px; color: #E2E8F0; outline: none; transition: border-color .15s; }
+        .form-input:focus { border-color: #3B82F6; }
+        .form-input::placeholder { color: #334155; }
+
+        /* Day columns layout */
+        #days-canvas { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+        #days-canvas::-webkit-scrollbar { height: 4px; }
+        .day-col { min-width: 340px; width: 340px; flex-shrink: 0; background: #161E26; border: 1px solid #1E293B; border-radius: 16px; overflow: hidden; transition: border-color .18s; }
+        .day-header { padding: 12px 14px; border-bottom: 1px solid #1E293B; display: flex; align-items: center; gap: 8px; background: #1A2330; }
+        .collapse-toggle { background: none; border: none; padding: 2px; cursor: pointer; display: flex; align-items: center; }
+        .collapse-toggle span { transition: transform .2s ease; display: inline-block; }
+        .day-name-input { flex: 1; background: transparent; border: none; outline: none; font-size: 13px; font-weight: 700; color: #E2E8F0; padding: 0; }
+        
+        /* Exercise block in day */
+        .ex-block { margin: 8px; border-radius: 10px; border: 1px solid #1E293B; background: #0B1218; overflow: hidden; transition: border-color .15s; }
+        .ex-block:hover { border-color: #334155; }
+        .ex-block-header { padding: 8px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #0F1922; }
+        .ex-block-name { flex: 1; font-size: 12px; font-weight: 700; color: #E2E8F0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ex-block-muscle { font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px; text-transform: uppercase; flex-shrink: 0; }
+        
+        /* Sets table — replaces old ex-block-params */
+        .ex-sets-header { display: grid; grid-template-columns: 20px 1fr 1fr 40px 40px 52px 24px 20px; gap: 0; padding: 3px 8px; background: #060A0E; border-bottom: 1px solid #0F1922; }
+        .ex-sets-header span { font-size: 8px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: .05em; text-align: center; padding: 2px 0; }
+        .ex-set-row { display: grid; grid-template-columns: 20px 1fr 1fr 40px 40px 52px 24px 20px; gap: 0; padding: 3px 8px; border-bottom: 1px solid #060A0E; align-items: center; }
+        .ex-set-row:last-of-type { border-bottom: none; }
+        .set-num { font-size: 10px; font-weight: 800; color: #334155; font-family: 'IBM Plex Mono', monospace; text-align: center; }
+        .set-input { background: transparent; border: none; outline: none; font-size: 12px; font-weight: 700; color: #E2E8F0; font-family: 'IBM Plex Mono', monospace; width: 100%; text-align: center; padding: 2px 2px; }
+        .set-input:focus { color: #60A5FA; background: rgba(59,130,246,.06); border-radius: 4px; }
+        .set-input::placeholder { color: #1E293B; }
+        .tempo-input { font-size: 10px; }
+        .amrap-toggle { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .amrap-toggle input[type="checkbox"] { display: none; }
+        .amrap-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; border: 1px solid #1E293B; color: #334155; transition: all .12s; cursor: pointer; }
+        .amrap-toggle input:checked + .amrap-label { background: rgba(245,158,11,.15); border-color: #F59E0B; color: #F59E0B; }
+        .btn-remove-set { width: 18px; height: 18px; border-radius: 4px; border: 1px solid transparent; background: transparent; color: #1E293B; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s; }
+        .btn-remove-set:hover { background: rgba(239,68,68,.12); color: #EF4444; border-color: rgba(239,68,68,.2); }
+        .ex-footer { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: #060A0E; border-top: 1px solid #0F1922; }
+        .ex-footer-rest { display: flex; align-items: center; gap: 4px; }
+        .btn-add-set { display: flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 6px; border: 1px solid #1E293B; background: transparent; color: #334155; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .12s; }
+        .btn-add-set:hover { border-color: #3B82F6; color: #60A5FA; background: rgba(59,130,246,.06); }
+        .ex-param-label { font-size: 8px; font-weight: 700; color: #334155; text-transform: uppercase; }
+
+        /* Action buttons inside Canvas */
+        .btn-add-ex { margin: 8px; width: calc(100% - 16px); padding: 8px; border-radius: 8px; border: 1px dashed #1E293B; background: transparent; color: #334155; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-add-ex:hover { border-color: #3B82F6; color: #60A5FA; background: rgba(59, 130, 246, .05); }
+        .btn-add-day { min-width: 200px; width: 200px; flex-shrink: 0; padding: 20px; border-radius: 16px; border: 1px dashed #1E293B; background: transparent; color: #334155; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 13px; font-weight: 600; align-self: stretch; min-height: 120px; }
+        .btn-add-day:hover { border-color: #3B82F6; color: #60A5FA; }
+
+        /* Modals & Drawers */
+        .modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(7, 11, 16, .82); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+        .modal-backdrop.open { opacity: 1; pointer-events: all; }
+        .modal-box { background: #161E26; border: 1px solid #1E293B; border-radius: 20px; width: 100%; max-width: 480px; max-height: 86vh; overflow-y: auto; transform: scale(.96) translateY(12px); transition: transform .2s; }
+        .modal-backdrop.open .modal-box { transform: scale(1) translateY(0); }
+
+        #ex-picker-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(7, 11, 16, .7); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .22s; }
+        #ex-picker-backdrop.open { opacity: 1; pointer-events: all; }
+        #ex-picker { position: fixed; top: 0; right: 0; bottom: 0; z-index: 41; width: 380px; max-width: 95vw; background: #161E26; border-left: 1px solid #1E293B; display: flex; flex-direction: column; transform: translateX(100%); transition: transform .28s cubic-bezier(.16, 1, .3, 1); }
+        #ex-picker.open { transform: translateX(0); }
+
+        /* Generic buttons & chips */
+        .sel-btn { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; border: 1px solid #1E293B; background: #0B1218; color: #475569; cursor: pointer; transition: all .13s; white-space: nowrap; }
+        .sel-btn.active { border-color: #3B82F6; background: rgba(59, 130, 246, .12); color: #60A5FA; }
+        .obj-btn { flex: 1; padding: 8px 4px; border-radius: 10px; font-size: 11px; font-weight: 700; border: 1px solid #1E293B; background: #0B1218; color: #475569; cursor: pointer; transition: all .13s; text-align: center; }
+        .obj-btn.active { border-color: #3B82F6; background: rgba(59, 130, 246, .12); color: #60A5FA; }
+
+        .action-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: #334155; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all .12s; flex-shrink: 0; }
+        .action-btn:hover { background: #1E293B; color: #94A3B8; border-color: #1E293B; }
+        .action-btn.danger:hover { background: rgba(239, 68, 68, .12); color: #EF4444; border-color: rgba(239, 68, 68, .3); }
+
+        /* Others */
+        .ex-pick-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; transition: background .12s; border-bottom: 1px solid #111820; }
+        .ex-pick-item:hover { background: #1A2330; }
+        .prog-pick-card { padding: 12px 14px; border-radius: 12px; border: 1px solid #1E293B; background: #0B1218; cursor: pointer; transition: all .14s; display: flex; align-items: center; gap: 12px; }
+        .prog-pick-card:hover { border-color: rgba(59, 130, 246, .4); }
+        .prog-pick-card.selected { border-color: #3B82F6; background: rgba(59, 130, 246, .06); }
+        .rm-input-wrap { position: relative; }
+        .rm-input-wrap .unit { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-size: 10px; font-weight: 700; color: #334155; font-family: 'IBM Plex Mono', monospace; pointer-events: none; }
+        .rm-input { width: 100%; background: #0B1218; border: 1px solid #1E293B; border-radius: 10px; padding: 9px 36px 9px 12px; font-size: 15px; font-weight: 700; color: #E2E8F0; font-family: 'IBM Plex Mono', monospace; outline: none; }
+        .search-wrap { position: relative; }
+        .search-wrap .material-symbols-rounded { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #334155; font-size: 17px; pointer-events: none; }
+        .search-wrap input { padding-left: 34px; }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    
+    <div id="toast" class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
+        <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
+            <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]">check_circle</span>
+            <span id="toast-msg" class="text-sm font-medium text-white"></span>
+        </div>
+    </div>
+
+    <div class="flex min-h-screen">
+        <aside id="app-sidebar"></aside>
+
+        <form id="form-routine" class="flex-1 flex flex-col min-w-0 min-h-screen">
+            <header class="h-16 sticky top-0 z-30 bg-bg-dark/90 backdrop-blur-md border-b border-border-dark flex items-center px-6 gap-3">
+                <button id="hamburger-btn" class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2">
+                <span class="material-symbols-rounded text-slate-400">menu</span>
+            </button><div class="flex-1">
+                    <h1 class="text-lg font-700 text-white leading-none" id="header-title">Nueva rutina</h1>
+                    <p class="text-xs text-slate-500 mt-0.5" id="header-subtitle">Diseñá un plan personalizado</p>
+                </div>
+                <button type="submit" id="btn-save-routine" class="flex items-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-600 px-5 py-2 rounded-xl disabled:opacity-50" disabled>
+                    <span class="material-symbols-rounded text-[17px]">save</span>
+                    <span id="save-routine-text">Guardar rutina</span>
+                </button>
+            </header>
+
+            <main class="flex-1 p-6 space-y-5">
+                <div id="mode-section">
+                    <p class="text-xs font-700 text-slate-500 uppercase tracking-widest mb-3">Modo de creación</p>
+                    <div class="flex gap-3">
+                        <button type="button" class="mode-card active" id="mode-libre">
+                            <div class="mode-icon w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center mb-3 transition">
+                                <span class="material-symbols-rounded text-slate-400 text-[20px]">edit_note</span>
+                            </div>
+                            <div class="text-sm font-700 text-white mb-1">Rutina libre</div>
+                            <div class="text-xs text-slate-500">Creá días y ejercicios desde cero, a tu medida.</div>
+                        </button>
+                        <button type="button" class="mode-card" id="mode-programa">
+                            <div class="mode-icon w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center mb-3 transition">
+                                <span class="material-symbols-rounded text-slate-400 text-[20px]">auto_awesome</span>
+                            </div>
+                            <div class="text-sm font-700 text-white mb-1">Desde programa</div>
+                            <div class="text-xs text-slate-500">Partí de un programa pre-armado y ajustá lo que necesites.</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="program-source-config" class="hidden">
+                    <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <p class="text-sm font-700 text-white">Programa base</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Se generarán los días y ejercicios automáticamente con los pesos calculados.</p>
+                            </div>
+                            <button type="button" id="btn-pick-program" class="flex items-center gap-2 border border-border-dark hover:bg-surface-2 transition text-slate-400 text-sm font-600 px-3 py-2 rounded-xl">
+                                <span class="material-symbols-rounded text-[16px]">swap_horiz</span>
+                                <span id="btn-pick-program-label">Elegir programa</span>
+                            </button>
+                        </div>
+
+                        <div id="selected-program-preview" class="hidden">
+                            <div class="flex items-center gap-3 p-3 rounded-xl bg-bg-dark border border-border-dark mb-4">
+                                <span id="sp-icon" class="text-xl">—</span>
+                                <div class="flex-1">
+                                    <div id="sp-name" class="text-sm font-700 text-white"></div>
+                                    <div id="sp-meta" class="text-xs text-slate-500 mt-0.5"></div>
+                                </div>
+                                <span id="sp-level" class="text-[9px] font-800 px-2 py-1 rounded-lg bg-surface-2 text-slate-500"></span>
+                            </div>
+                            <p class="text-[10px] font-700 text-slate-600 uppercase tracking-widest mb-2">1RM del alumno</p>
+                            <div id="rm-inputs-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4"></div>
+                            <button type="button" id="btn-generate-from-program" class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-600 py-2.5 rounded-xl">
+                                <span class="material-symbols-rounded text-[17px]">auto_awesome</span>
+                                Generar días desde el programa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-surface-dark border border-border-dark rounded-2xl p-5">
+                    <p class="text-xs font-700 text-slate-500 uppercase tracking-widest mb-3">Información de la rutina</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="form-label">Nombre *</label>
+                            <input id="routine-name" type="text" required class="form-input" placeholder="Ej: Fullbody 3x semana" maxlength="80" />
+                        </div>
+                        <div>
+                            <label class="form-label">Objetivo</label>
+                            <div class="flex gap-2 flex-wrap" id="obj-picker">
+                                <button type="button" class="obj-btn" data-val="fuerza">Fuerza</button>
+                                <button type="button" class="obj-btn" data-val="estetica">Estética</button>
+                                <button type="button" class="obj-btn" data-val="rendimiento">Rendimiento</button>
+                                <button type="button" class="obj-btn" data-val="rehabilitacion">Rehab.</button>
+                                <button type="button" class="obj-btn" data-val="general">General</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Duración (semanas)</label>
+                            <input id="routine-weeks" type="number" class="form-input" placeholder="8" min="1" max="52" />
+                        </div>
+                        <div>
+                            <label class="form-label">Días por semana</label>
+                            <input id="routine-days-per-week" type="number" class="form-input" placeholder="3" min="1" max="7" />
+                        </div>
+                        <div>
+                            <label class="form-label">Descripción</label>
+                            <input id="routine-desc" type="text" class="form-input" placeholder="Descripción breve…" maxlength="200" />
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-700 text-slate-500 uppercase tracking-widest">
+                            Días de entrenamiento
+                            <span id="days-count" class="ml-2 text-slate-700">0</span>
+                            <span id="days-limit-badge" class="ml-1 hidden text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-500"></span>
+                        </p>
+                        <p id="days-limit-hint" class="text-xs text-slate-600">Hacé click en el día para agregar ejercicios</p>
+                    </div>
+                    <div id="days-canvas">
+                        <button type="button" class="btn-add-day" id="btn-add-day-main">
+                            <span class="material-symbols-rounded text-[28px] text-slate-600">add_circle</span>
+                            Agregar día
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </form>
+    </div>
+
+    <div id="ex-picker-backdrop"></div>
+    <div id="ex-picker">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-border-dark shrink-0">
+            <div>
+                <p class="text-sm font-700 text-white">Agregar ejercicio</p>
+                <p id="ex-picker-day-label" class="text-xs text-slate-500 mt-0.5"></p>
+            </div>
+            <button type="button" id="close-ex-picker" class="action-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+
+        <div class="px-4 pt-3 pb-2 space-y-2 shrink-0 border-b border-border-dark">
+            <div class="search-wrap">
+                <span class="material-symbols-rounded">search</span>
+                <input id="ex-picker-search" type="text" class="form-input py-2 text-sm" placeholder="Buscar ejercicio…" />
+            </div>
+            <div class="flex gap-1.5 flex-wrap" id="ex-picker-muscle-filter">
+                <button type="button" class="sel-btn active" data-muscle="all">Todos</button>
+                <button type="button" class="sel-btn" data-muscle="pecho">Pecho</button>
+                <button type="button" class="sel-btn" data-muscle="espalda">Espalda</button>
+                <button type="button" class="sel-btn" data-muscle="hombros">Hombros</button>
+                <button type="button" class="sel-btn" data-muscle="biceps">Bíceps</button>
+                <button type="button" class="sel-btn" data-muscle="triceps">Tríceps</button>
+                <button type="button" class="sel-btn" data-muscle="core">Core</button>
+                <button type="button" class="sel-btn" data-muscle="piernas">Piernas</button>
+                <button type="button" class="sel-btn" data-muscle="gluteos">Glúteos</button>
+            </div>
+        </div>
+
+        <div id="ex-picker-list" class="flex-1 overflow-y-auto">
+            </div>
+    </div>
+
+    <div id="modal-program-pick" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="flex items-center justify-between p-5 border-b border-border-dark">
+                <h3 class="text-base font-700 text-white">Elegir programa base</h3>
+                <button type="button" id="close-prog-modal" class="action-btn"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div class="p-5 space-y-3" id="modal-program-list">
+                </div>
+            <div class="p-5 border-t border-border-dark">
+                <button type="button" id="confirm-prog-pick" class="w-full py-2.5 rounded-xl bg-primary hover:bg-blue-500 transition text-sm font-600 text-white disabled:opacity-40" disabled>
+                    Seleccionar programa →
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/utils.js"></script>
+	<script src="js/sidebar.js"></script>
+	<script src="js/routine-builder.js"></script>
+</body>
+</html>

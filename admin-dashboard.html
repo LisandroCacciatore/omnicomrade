@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Dashboard Admin | TechFitness</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233B82F6'/><text y='.75em' x='50%' text-anchor='middle' font-size='60' fill='white' font-family='sans-serif' font-weight='black'>TF</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="js/tailwind-config.js"></script>
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .material-symbols-rounded {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .active-nav {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+            font-weight: 700;
+        }
+
+        /* US-07: Modal Transitions */
+        .modal-active {
+            opacity: 1 !important;
+            transform: scale(1) !important;
+            transition: opacity 200ms ease-out, transform 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+        .modal-hidden {
+            opacity: 0 !important;
+            transform: scale(0.95) !important;
+            pointer-events: none;
+            transition: opacity 150ms ease-in, transform 150ms ease-in !important;
+        }
+
+        .modal-backdrop {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-box {
+            opacity: 0;
+            transform: scale(0.95) translateY(8px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .modal-backdrop.open .modal-box {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* US-08: Skeleton Animation delays */
+        .sk-delay-1 { animation-delay: 50ms; }
+        .sk-delay-2 { animation-delay: 150ms; }
+        .sk-delay-3 { animation-delay: 250ms; }
+        .sk-delay-4 { animation-delay: 350ms; }
+
+        /* US-09: Button processing */
+        button:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            filter: grayscale(0.5);
+        }
+
+        /* US-11: Form Validation */
+        .input-error {
+            border-color: #EF4444 !important;
+            box-shadow: 0 0 0 1px #EF4444 !important;
+        }
+        .error-label {
+            color: #EF4444;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 4px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="bg-background-dark text-slate-100 h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR (inyectado por sidebar.js) -->
+    <aside id="app-sidebar"></aside>
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- Header -->
+        <header
+            class="sticky top-0 h-16 border-b border-border-dark bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-6 z-30">
+            <div class="flex items-center gap-4">
+                <button id="hamburger-btn" class="lg:hidden flex items-center justify-center size-9 rounded-lg hover:bg-slate-800 transition-colors mr-2">
+                    <span class="material-symbols-rounded text-slate-400">menu</span>
+                </button>
+                <div class="size-8 bg-primary rounded flex items-center justify-center">
+                    <span class="material-symbols-rounded text-white text-[20px]">fitness_center</span>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Tech<span class="text-primary">Fitness</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button
+                    class="relative size-10 flex items-center justify-center rounded-full hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-rounded text-slate-400">notifications</span>
+                    <span
+                        class="absolute top-2 right-2 size-2 bg-danger rounded-full border-2 border-background-dark"></span>
+                </button>
+                <div class="h-8 w-px bg-border-dark mx-2"></div>
+                <div class="flex items-center gap-3 ml-2">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-white" id="user-name">Admin Name</p>
+                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Gimnasio Admin</p>
+                    </div>
+                    <button id="logout-btn"
+                        class="size-10 rounded-full border border-border-dark flex items-center justify-center hover:bg-slate-800 transition-colors">
+                        <span class="material-symbols-rounded text-slate-400">logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto">
+
+            <!-- Welcome Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-black">Admin <span class="text-primary">Dashboard</span></h2>
+                    <p class="text-slate-500 text-sm mt-1">Acá está el resumen del gimnasio por hoy.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="btn-nuevo-alumno"
+                        class="flex items-center gap-2 bg-primary hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">
+                        <span class="material-symbols-rounded text-[18px]">add</span>
+                        <span>Nuevo Alumno</span>
+                    </button>
+                    <button
+                        class="flex items-center gap-2 border border-border-dark bg-surface-dark px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">
+                        <span class="material-symbols-rounded text-[18px]">file_download</span>
+                        <span>Reporte</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- KPI Card -->
+                <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-rounded">group</span>
+                        </div>
+                    </div>
+                    <p class="text-2xl font-black mt-2" id="kpi-total-students">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Alumnos Totales</p>
+                </div>
+                <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-success/10 text-success rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-rounded">check_circle</span>
+                        </div>
+                        <span id="pct-active-memberships" class="text-[10px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">--%</span>
+                    </div>
+                    <p class="text-2xl font-black mt-2" id="kpi-active-memberships">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Membresías Activas</p>
+                </div>
+                <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-warning/10 text-warning rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-rounded">event_busy</span>
+                        </div>
+                        <span id="pct-expiring-soon" class="text-[10px] font-bold text-warning bg-warning/10 px-2 py-0.5 rounded-full">--%</span>
+                    </div>
+                    <p class="text-2xl font-black mt-2" id="kpi-expiring-soon">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">A Vencer (7 días)</p>
+                </div>
+                <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <div class="size-10 bg-danger/10 text-danger rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-rounded">warning</span>
+                        </div>
+                        <span id="pct-expired" class="text-[10px] font-bold text-danger bg-danger/10 px-2 py-0.5 rounded-full">--%</span>
+                    </div>
+                    <p class="text-2xl font-black mt-2" id="kpi-expired">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Membresías Vencidas</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Sections Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- Recent Students List -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between px-2">
+                        <h3 class="text-lg font-bold">Alumnos Recientes</h3>
+                        <a href="student-list.html" class="text-xs text-primary font-bold hover:underline">Ver todos</a>
+                    </div>
+                    <div
+                        class="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
+                        <table class="w-full text-left">
+                            <thead
+                                class="bg-border-dark/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+                                <tr>
+                                    <th class="px-6 py-4">Alumno</th>
+                                    <th class="px-6 py-4">Estado</th>
+                                    <th class="px-6 py-4">F. Ingreso</th>
+                                    <th class="px-6 py-4">Cuentas</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border-dark" id="recent-students-table">
+                                <!-- Skeleton rows -->
+                                <tr class="animate-pulse">
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-32 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-8 bg-slate-800 rounded"></div>
+                                    </td>
+                                </tr>
+                                <tr class="animate-pulse">
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-24 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="h-4 w-8 bg-slate-800 rounded"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Fast Actions / Stats Aside -->
+                <div class="space-y-6">
+                    <h3 class="text-lg font-bold">Acciones Rápidas</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button data-action="asignar-programa"
+                            class="bg-surface-dark border border-border-dark p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-slate-800 hover:border-primary transition-all group">
+                            <span
+                                class="material-symbols-rounded text-primary group-hover:scale-110 transition-transform">add_task</span>
+                            <span class="text-xs font-bold">Asignar Programa</span>
+                        </button>
+                        <button data-action="nueva-membresia"
+                            class="bg-surface-dark border border-border-dark p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-slate-800 hover:border-primary transition-all group">
+                            <span
+                                class="material-symbols-rounded text-success group-hover:scale-110 transition-transform">sell</span>
+                            <span class="text-xs font-bold">Nueva Membresía</span>
+                        </button>
+                        <button id="btn-enviar-alerta"
+                            class="bg-surface-dark border border-border-dark p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-slate-800 hover:border-primary transition-all group col-span-2">
+                            <span
+                                class="material-symbols-rounded text-warning group-hover:scale-110 transition-transform">send</span>
+                            <span class="text-xs font-bold">Enviar Aviso Masivo</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal Nuevo Alumno -->
+    <div id="modal-nuevo-alumno" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Fondo oscuro -->
+        <div id="modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+        <!-- Panel del modal -->
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-alumno-title" class="modal-box relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="modal-alumno-title" class="text-xl font-black">Nuevo <span class="text-primary">Alumno</span></h3>
+                <button id="modal-close-btn"
+                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-rounded text-slate-400">close</span>
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Nombre completo *</label>
+                    <input type="text" id="input-full-name"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                        placeholder="Ej: Juan Pérez" />
+                    <div id="error-input-name" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
+                    <input type="email" id="input-email"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                        placeholder="juan@email.com" />
+                    <div id="error-input-email" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Teléfono</label>
+                    <input type="tel" id="input-phone"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                        placeholder="+54 11 1234-5678" />
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Fecha de nacimiento</label>
+                    <input type="date" id="input-birth-date"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all" />
+                    <div id="error-input-birth" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
+                </div>
+
+                <!-- Error -->
+                <div id="modal-error"
+                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
+                </div>
+
+                <button id="modal-submit-btn"
+                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-primary/20 mt-2">
+                    <span id="modal-btn-text">Guardar Alumno</span>
+                    <span id="modal-btn-spinner"
+                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Membresía -->
+    <div id="modal-nueva-membresia" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="modal-membresia-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-membresia-title" class="modal-box relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10 focus:outline-none" tabindex="-1">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="modal-membresia-title" class="text-xl font-black">Nueva <span class="text-success">Membresía</span></h3>
+                <button id="modal-membresia-close"
+                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-rounded text-slate-400">close</span>
+                </button>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <!-- Alumno -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Alumno *</label>
+                    <select id="membresia-student-id"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
+                        <option value="">Seleccioná un alumno...</option>
+                    </select>
+                </div>
+
+                <!-- Plan -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Plan *</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button data-plan="mensual"
+                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+                            Mensual<br><span class="text-slate-500 font-normal">30 días</span>
+                        </button>
+                        <button data-plan="trimestral"
+                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+                            Trimestral<br><span class="text-slate-500 font-normal">90 días</span>
+                        </button>
+                        <button data-plan="anual"
+                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+                            Anual<br><span class="text-slate-500 font-normal">365 días</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="membresia-plan" value="" />
+                </div>
+
+                <!-- Fecha inicio -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Fecha de inicio *</label>
+                    <input type="date" id="membresia-start-date"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all" />
+                </div>
+
+                <!-- Monto y método de pago -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Monto *</label>
+                        <input type="number" id="membresia-amount" min="0" step="0.01"
+                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                            placeholder="0.00" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Método</label>
+                        <select id="membresia-payment-method"
+                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Notas</label>
+                    <textarea id="membresia-notes" rows="2"
+                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none"
+                        placeholder="Observaciones opcionales..."></textarea>
+                </div>
+
+                <!-- Error -->
+                <div id="modal-membresia-error"
+                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
+                </div>
+
+                <button id="modal-membresia-submit"
+                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-success hover:bg-emerald-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-success/20 mt-2">
+                    <span id="membresia-btn-text">Registrar Membresía</span>
+                    <span id="membresia-btn-spinner"
+                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/auth-guard.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/program-assign.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/admin-dashboard.js"></script>
+
+</body>
+
+</html>

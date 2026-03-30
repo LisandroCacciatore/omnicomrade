@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Progreso — TechFitness</title>
+  <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/tailwind-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    * { font-family: 'Space Grotesk', sans-serif; box-sizing: border-box; }
+    .font-mono { font-family: 'IBM Plex Mono', monospace !important; }
+    body { background: #0B1218; color: #E2E8F0; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+
+    .nav-link { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; color:#64748B; font-size:14px; font-weight:500; transition:all .18s; }
+    .nav-link:hover { background:rgba(59,130,246,.08); color:#93C5FD; }
+    .nav-link.active { background:rgba(59,130,246,.14); color:#3B82F6; }
+    .nav-link .material-symbols-rounded { font-size:20px; }
+
+    .analytics-card {
+      background: #161E26; border: 1px solid #1E293B; border-radius: 18px; padding: 20px;
+    }
+
+    .gauge-card {
+      background: #161E26; border: 1px solid #1E293B; border-radius: 18px;
+      padding: 16px 12px 12px; transition: border-color .2s, transform .2s;
+      cursor: default;
+    }
+    .gauge-card.is-pr {
+      border-color: rgba(245,158,11,.35);
+      box-shadow: 0 0 20px rgba(245,158,11,.08);
+    }
+    .gauge-card.is-pr .gauge-name { color: #F59E0B; }
+
+    .ex-row {
+      background: #161E26; border: 1px solid #1E293B; border-radius: 14px;
+      padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .ex-row:hover { border-color: #334155; background: #1a2535; }
+    .ex-row.active { border-color: #3B82F6; background: rgba(59,130,246,.06); }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    .skeleton { background: #1E293B; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .student-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid #1E293B;
+      background: #0B1218; cursor: pointer; transition: all .14s;
+      font-size: 13px; font-weight: 600; color: #94A3B8;
+    }
+    .student-btn:hover { border-color: #3B82F6; color: #E2E8F0; }
+
+    .kpi-mini {
+      background: #0B1218; border: 1px solid #1E293B; border-radius: 12px;
+      padding: 14px 16px; flex: 1;
+    }
+
+    #toast {
+      position:fixed; bottom:28px; right:28px; z-index:100;
+      background:#161E26; border:1px solid #1E293B; border-radius:12px;
+      padding:12px 16px; font-size:13px; font-weight:500;
+      display:flex; align-items:center; gap:9px;
+      transform:translateY(20px); opacity:0; transition:all .28s; pointer-events:none;
+    }
+    #toast.show { transform:translateY(0); opacity:1; }
+
+    @keyframes pr-glow {
+      0%,100% { opacity: 1; }
+      50% { opacity: .6; }
+    }
+    .pr-badge { animation: pr-glow 1.4s ease-in-out infinite; }
+
+    .zone-label {
+      font-size: 10px; font-weight: 700; color: #475569;
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px;
+    }
+
+    /* Consistency ring color */
+    .consistency-ring { transition: stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+  </style>
+</head>
+<body class="min-h-screen">
+<div class="flex min-h-screen">
+
+  <aside id="app-sidebar"></aside>
+
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- HEADER -->
+    <header class="h-16 sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B] flex items-center gap-4 px-6">
+      <button id="hamburger-btn" class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
+        <span class="material-symbols-rounded text-slate-400">menu</span>
+      </button>
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <h1 class="text-lg font-bold text-white leading-none shrink-0">Progreso</h1>
+        <span class="text-slate-700 mx-1">/</span>
+        <button id="btn-empty-picker" class="flex items-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-bold px-5 py-2.5 rounded-xl">
+          <span class="material-symbols-rounded text-[17px]">person_search</span>
+          <span id="student-picker-label" class="truncate">Elegir alumno</span>
+        </button>
+      </div>
+      <!-- KPIs inline header -->
+      <div id="header-kpis" class="hidden lg:flex items-center gap-4">
+        <div class="text-right">
+          <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Sesiones</p>
+          <p id="kpi-sessions" class="text-lg font-black text-white font-mono leading-none">—</p>
+        </div>
+        <div class="w-px h-8 bg-[#1E293B]"></div>
+        <div class="text-right">
+          <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Consistencia</p>
+          <p id="kpi-consistency" class="text-lg font-black text-white font-mono leading-none">—</p>
+        </div>
+        <div class="w-px h-8 bg-[#1E293B]"></div>
+        <div class="text-right">
+          <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Estancados</p>
+          <p id="kpi-stag" class="text-lg font-black text-white font-mono leading-none">—</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="flex-1 p-5 space-y-5 pb-24 lg:pb-6" id="main-content">
+
+      <!-- Empty state -->
+      <div id="empty-state" class="flex flex-col items-center justify-center py-28 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-[#161E26] border border-[#1E293B] flex items-center justify-center mb-4">
+          <span class="material-symbols-rounded text-slate-600 text-[28px]" style="font-variation-settings:'FILL' 1">person_search</span>
+        </div>
+        <p class="text-white font-bold mb-1">Seleccioná un alumno</p>
+        <p class="text-xs text-slate-500 mb-5">Usá el botón "Elegir alumno" para ver su evolución.</p>
+      </div>
+
+      <!-- Analytics (hidden until student selected) -->
+      <div id="analytics-content" class="hidden space-y-6">
+
+        <!-- ── ZONA 1: EJERCICIOS CLAVE ── -->
+        <section>
+          <p class="zone-label">🏋️ Ejercicios Clave — Peso actual vs PR histórico</p>
+          <div id="gauges-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- filled by JS -->
+            <div class="skeleton rounded-[18px] h-52"></div>
+            <div class="skeleton rounded-[18px] h-52"></div>
+            <div class="skeleton rounded-[18px] h-52 hidden lg:block"></div>
+            <div class="skeleton rounded-[18px] h-52 hidden lg:block"></div>
+          </div>
+        </section>
+
+        <!-- ── ZONA 2: EVOLUCIÓN POR EJERCICIO ── -->
+        <section>
+          <p class="zone-label">📈 Evolución por Ejercicio</p>
+          <div id="exercise-list" class="space-y-2">
+            <div class="skeleton rounded-[14px] h-14"></div>
+            <div class="skeleton rounded-[14px] h-14"></div>
+            <div class="skeleton rounded-[14px] h-14"></div>
+          </div>
+          <!-- Expandable full chart -->
+          <div id="expand-chart-wrap" class="hidden analytics-card mt-3">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <h3 id="expand-chart-title" class="font-black text-white text-sm"></h3>
+                <p class="text-[10px] text-slate-500">Peso máximo por sesión</p>
+              </div>
+              <span id="expand-chart-pr" class="font-mono text-[11px] text-[#60A5FA] bg-[#1E293B] px-3 py-1 rounded-lg border border-[#334155]"></span>
+            </div>
+            <div style="position:relative;height:200px">
+              <canvas id="expand-chart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── ZONA 3: CONSISTENCIA + ALERTAS ── -->
+        <section>
+          <p class="zone-label">📊 Consistencia + Alertas</p>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+            <!-- Consistency card -->
+            <div class="analytics-card flex items-center gap-6">
+              <div id="consistency-ring-wrap" class="shrink-0">
+                <!-- filled by JS -->
+              </div>
+              <div>
+                <p class="text-sm font-black text-white" id="consistency-label">— sesiones esta semana</p>
+                <p class="text-xs text-slate-500 mt-1" id="consistency-sub">Cargando...</p>
+                <div id="consistency-dots" class="flex gap-1.5 mt-3">
+                  <!-- 7 dots for week days -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Stagnation + progression card -->
+            <div class="analytics-card">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-rounded text-amber-400 text-[18px]" style="font-variation-settings:'FILL' 1">warning</span>
+                <p class="text-sm font-black text-white">Alertas</p>
+              </div>
+              <div id="stagnation-list" class="space-y-2">
+                <div class="skeleton rounded-xl h-10"></div>
+                <div class="skeleton rounded-xl h-10"></div>
+              </div>
+              <div id="stagnation-ok" class="hidden text-center py-6">
+                <span class="text-3xl mb-2 block">💪</span>
+                <p class="text-xs font-bold text-emerald-400">¡Sin estancamientos!</p>
+              </div>
+              <div id="progression-list" class="space-y-2 mt-3"></div>
+            </div>
+
+          </div>
+        </section>
+
+      </div><!-- /analytics-content -->
+
+    </main>
+  </div>
+</div>
+
+<!-- Student Picker Dropdown -->
+<div id="student-picker-dropdown"
+  class="hidden fixed z-50 bg-[#161E26] border border-[#1E293B] rounded-2xl shadow-2xl w-72"
+  style="box-shadow:0 20px 60px rgba(0,0,0,.5)">
+  <div class="p-3 border-b border-[#1E293B]">
+    <div class="relative">
+      <span class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[16px]">search</span>
+      <input id="student-search-input" type="text"
+        class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl pl-8 pr-3 py-2 text-sm text-white focus:border-primary outline-none transition-colors"
+        placeholder="Buscar alumno…" autocomplete="off" />
+    </div>
+  </div>
+  <div id="student-picker-list" class="max-h-72 overflow-y-auto p-2"></div>
+</div>
+
+<div id="toast">
+  <span id="toast-icon" class="material-symbols-rounded text-[18px]">check_circle</span>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- Bottom nav (mobile, alumno) -->
+<nav class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40 lg:hidden">
+  <a href="student-dashboard.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+    <span class="material-symbols-rounded text-slate-500 text-[22px]">home</span>
+    <span class="text-[9px] font-bold text-slate-500">Inicio</span>
+  </a>
+  <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+    <span class="material-symbols-rounded text-slate-500 text-[22px]">fitness_center</span>
+    <span class="text-[9px] font-bold text-slate-500">Entrenar</span>
+  </a>
+  <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10">
+    <span class="material-symbols-rounded text-[#3B82F6] text-[22px]" style="font-variation-settings:'FILL' 1">trending_up</span>
+    <span class="text-[9px] font-bold text-[#3B82F6]">Progreso</span>
+  </a>
+  <a href="wellbeing-check.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+    <span class="material-symbols-rounded text-slate-500 text-[22px]">self_improvement</span>
+    <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
+  </a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/progress.js"></script>
+</body>
+</html>

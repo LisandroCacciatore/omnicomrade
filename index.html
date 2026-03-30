@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>TechFitness | Gestión Inteligente de Gimnasios</title>
+    <link rel="icon" type="image/png" href="assets/img/favicon.png" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233B82F6'/><text y='.75em' x='50%' text-anchor='middle' font-size='60' fill='white' font-family='sans-serif' font-weight='black'>TF</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="js/tailwind-config.js"></script>
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0B1218;
+            background-image: radial-gradient(circle at 50% 50%, #161E26 0%, #0B1218 100%);
+        }
+        .glass-panel {
+            background: rgba(22, 30, 38, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #3B82F6 0%, #10B981 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            background: rgba(30, 41, 59, 0.5);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="min-h-screen selection:bg-primary/30">
+    <!-- Redirection Script (Early execution) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script>
+        (async () => {
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+                const role = session.user.app_metadata.role;
+                const pathByRole = {
+                    'gim_admin': 'admin-dashboard.html',
+                    'profesor': 'profesor-dashboard.html',
+                    'alumno': 'student-profile.html',
+                    'coach': 'profesor-dashboard.html'
+                };
+                const target = pathByRole[role];
+                if (target) window.location.href = target;
+            }
+        })();
+    </script>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 px-6 py-4">
+        <nav class="max-w-7xl mx-auto flex items-center justify-between glass-panel px-6 py-3 rounded-2xl">
+            <div class="flex items-center gap-3">
+                <div class="size-10 bg-slate-900/50 rounded-xl flex items-center justify-center p-1.5 shadow-lg">
+                    <img src="assets/img/logo.png" alt="TechFitness Logo" class="w-full h-full object-contain" />
+                </div>
+                <h1 class="text-xl font-black tracking-tight hidden sm:block">Tech<span class="text-primary">Fitness</span></h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="login.html" class="text-sm font-bold text-slate-400 hover:text-white transition-colors">Iniciar Sesión</a>
+                <a href="login.html" class="btn-primary text-sm font-bold text-white px-5 py-2.5 rounded-xl transition-all">Acceso Demo</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="pt-32 pb-20 px-6">
+        <!-- Hero Section -->
+        <section class="max-w-7xl mx-auto text-center mb-24">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-6">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                SaaS Multitenant para Gimnasios
+            </div>
+            <h2 class="text-5xl md:text-7xl font-black mb-8 leading-tight">
+                La forma Inteligente de <br/>
+                <span class="hero-gradient">Gestionar tu Gimnasio</span>
+            </h2>
+            <p class="text-slate-400 text-lg md:text-xl max-w-3xl mx-auto mb-12 font-medium leading-relaxed">
+                TechFitness centraliza rutinas, seguimiento de alumnos y analítica de rendimiento en una plataforma premium diseñada para la era digital.
+            </p>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="login.html" class="btn-primary w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-5 rounded-2xl text-lg font-bold text-white transition-all group">
+                    Comenzar Ahora
+                    <span class="material-symbols-rounded group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </a>
+                <a href="#features" class="w-full sm:w-auto glass-panel px-10 py-5 rounded-2xl text-lg font-bold text-slate-300 hover:text-white transition-all">
+                    Ver Funciones
+                </a>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="feature-card p-8 rounded-3xl border border-white/5 bg-slate-900/30">
+                <div class="size-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary">
+                    <span class="material-symbols-rounded text-3xl">monitoring</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Analítica Avanzada</h3>
+                <p class="text-slate-400 leading-relaxed">
+                    Seguimiento automático de 1RM, volumen semanal y detección de estancamientos con gráficos dinámicos.
+                </p>
+            </div>
+            <div class="feature-card p-8 rounded-3xl border border-white/5 bg-slate-900/30">
+                <div class="size-14 bg-success/10 rounded-2xl flex items-center justify-center mb-6 text-success">
+                    <span class="material-symbols-rounded text-3xl">fitness_center</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Rutinas Adaptativas</h3>
+                <p class="text-slate-400 leading-relaxed">
+                    Constructor de rutinas profesional con 6 programas pre-armados (Stronglifts, Wendler, PPL) incluidos.
+                </p>
+            </div>
+            <div class="feature-card p-8 rounded-3xl border border-white/5 bg-slate-900/30">
+                <div class="size-14 bg-warning/10 rounded-2xl flex items-center justify-center mb-6 text-warning">
+                    <span class="material-symbols-rounded text-3xl">account_circle</span>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">Panel del Alumno</h3>
+                <p class="text-slate-400 leading-relaxed">
+                    Experiencia de sesión inmersiva con check-in de bienestar y log de ejercicios en tiempo real.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="max-w-7xl mx-auto py-12 px-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3 opacity-50">
+            <div class="size-8 bg-slate-800 rounded-lg flex items-center justify-center p-1.5">
+                <img src="assets/img/logo.png" alt="TechFitness Logo" class="w-full h-full grayscale opacity-50" />
+            </div>
+            <span class="text-sm font-bold">TechFitness SaaS &copy; 2024</span>
+        </div>
+        <div class="flex gap-8 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <a href="#" class="hover:text-primary transition-colors">Privacidad</a>
+            <a href="#" class="hover:text-primary transition-colors">Términos</a>
+            <a href="#" class="hover:text-primary transition-colors">Soporte</a>
+        </div>
+    </footer>
+
+    <!-- Background Orbs -->
+    <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div class="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[140px]"></div>
+        <div class="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-success/5 rounded-full blur-[140px]"></div>
+    </div>
+</body>
+</html>
