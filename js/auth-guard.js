@@ -47,7 +47,13 @@ async function authGuard(allowedRoles = []) {
         if (allowedRoles.length > 0 && !allowedRoles.includes(normalizedRole)) {
             console.warn(`🚫 authGuard: Rol [${normalizedRole}] no autorizado para esta página. Redirigiendo...`);
             
-            const redirectUrl = (window.AppRoutes?.getDashboardUrl || RoutesFallback.getDashboardUrl)(normalizedRole);
+            const dashboards = {
+                'gim_admin': 'admin-dashboard.html',
+                'profesor': 'profesor-dashboard.html',
+                'alumno': 'student-profile.html'
+            };
+
+            const redirectUrl = dashboards[normalizedRole] || 'login.html';
             window.location.href = redirectUrl;
             return null;
         }
@@ -62,4 +68,3 @@ async function authGuard(allowedRoles = []) {
 
 // Inyectar en el objeto global
 window.authGuard = authGuard;
-

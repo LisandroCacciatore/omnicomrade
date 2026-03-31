@@ -4,19 +4,6 @@
   "description": "TechFitness - Sistema de gestión de gimnasio",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && node js/generate-supabase-config.js",
-    "preview": "vite preview",
-    "lint": "eslint js/",
-    "lint:fix": "eslint js/ --fix",
-    "format": "prettier --write \"js/**/*.js\""
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.27",
-    "eslint": "^8.57.0",
-    "postcss": "^8.5.8",
-    "prettier": "^3.3.0",
-    "tailwindcss": "^3.4.19",
-    "vite": "^5.4.0"
+    "build": "node -e 'const fs=require(\"fs\");const u=process.env.SUPABASE_URL;const k=process.env.SUPABASE_ANON_KEY;if(!u||!k){console.error(\"❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY\");process.exit(1);}const out=`// Configuración de Supabase\nconst SUPABASE_URL = \"${u}\"\nconst SUPABASE_ANON_KEY = \"${k}\"\n\ntry { if (!window.supabase) throw new Error(\"SDK de Supabase no cargó\"); const { createClient } = window.supabase; window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); console.log(\"✅ Supabase inicializado correctamente\"); } catch (e) { console.error(\"❌ Error inicializando Supabase:\", e.message); }`;fs.writeFileSync(\"js/supabase.js\",out);'"
   }
 }
