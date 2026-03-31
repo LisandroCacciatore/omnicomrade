@@ -4,17 +4,17 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Membresías | TechFitness</title>
+    <title>Membresí­as | TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233B82F6'/><text y='.75em' x='50%' text-anchor='middle' font-size='60' fill='white' font-family='sans-serif' font-weight='black'>TF</text></svg>">
+    
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap"
         rel="stylesheet" />
-    <script src="js/tailwind-config.js"></script>
+    <script type="module" src="js/tailwind-config.js"></script>
     <style>
         body {
             font-family: 'Space Grotesk', sans-serif;
@@ -90,11 +90,11 @@
 
 <body class="bg-background-dark text-slate-100 min-h-screen flex">
 
-    <!-- Sidebar -->
+    
     <aside id="app-sidebar"></aside>
 
     <div class="flex-1 flex flex-col min-w-0">
-        <!-- Header -->
+        
         <header
             class="sticky top-0 h-16 border-b border-border-dark bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-6 z-30">
             <div class="flex items-center gap-4">
@@ -120,23 +120,23 @@
             </div>
         </header>
 
-        <!-- Main Content -->
+        
         <main class="flex-1 p-6 lg:p-8 space-y-6 overflow-y-auto">
 
-            <!-- Page Header -->
+            
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-3xl font-black">Pagos y <span class="text-primary">Membresías</span></h2>
-                    <p class="text-slate-500 text-sm mt-1">Historial completo de membresías del gimnasio.</p>
+                    <h2 class="text-3xl font-black">Pagos y <span class="text-primary">Membresí­as</span></h2>
+                    <p class="text-slate-500 text-sm mt-1">Historial completo de membresí­as del gimnasio.</p>
                 </div>
                 <button id="btn-nueva-membresia"
                     class="flex items-center gap-2 bg-success hover:bg-emerald-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-success/20 transition-all">
                     <span class="material-symbols-rounded text-[18px]">add</span>
-                    <span>Nueva Membresía</span>
+                    <span>Nueva Membresí­a</span>
                 </button>
             </div>
 
-            <!-- KPI Strip -->
+            
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-surface-dark border border-border-dark p-4 rounded-2xl flex items-center gap-4">
                     <div
@@ -179,7 +179,7 @@
                 </div>
             </div>
 
-            <!-- Filtros -->
+            
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
                     <span
@@ -191,7 +191,7 @@
                     class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all">
                     <option value="">Todos los estados</option>
                     <option value="activa">Activa</option>
-                    <option value="por_vencer">Por vencer (7 días)</option>
+                    <option value="por_vencer">Por vencer (7 dí­as)</option>
                     <option value="vencida">Vencida</option>
                 </select>
                 <select id="filter-plan"
@@ -203,7 +203,7 @@
                 </select>
             </div>
 
-            <!-- Tabla -->
+            
             <div
                 class="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
                 <table class="w-full text-left">
@@ -220,7 +220,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border-dark" id="memberships-table">
-                        <!-- Skeleton -->
+                        
                         <tr class="animate-pulse sk-delay-1">
                             <td class="px-6 py-4 sticky left-0 bg-[#0B1218] z-10">
                                 <div class="h-4 w-32 bg-slate-800 rounded"></div>
@@ -275,12 +275,12 @@
                         </tr>
                     </tbody>
                 </table>
-                <!-- Empty state -->
+                
                 <div id="empty-state" class="hidden py-16 text-center">
                     <span class="material-symbols-rounded text-slate-700 text-[48px]">payments</span>
-                    <p class="text-slate-500 text-sm mt-3">No hay membresías registradas todavía.</p>
+                    <p class="text-slate-500 text-sm mt-3">No hay membresí­as registradas todaví­a.</p>
                     <a href="membership-form.html" class="inline-flex items-center gap-2 mt-4 bg-primary hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-xl">
-                        <span class="material-symbols-rounded text-[18px]">add</span>Nueva Membresía
+                        <span class="material-symbols-rounded text-[18px]">add</span>Nueva Membresí­a
                     </a>
                 </div>
             </div>
@@ -288,12 +288,12 @@
         </main>
     </div>
 
-    <!-- Modal Nueva Membresía -->
+    
     <div id="modal-nueva-membresia" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div id="modal-membresia-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
         <div class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-black">Nueva <span class="text-success">Membresía</span></h3>
+                <h3 class="text-xl font-black">Nueva <span class="text-success">Membresí­a</span></h3>
                 <button id="modal-membresia-close"
                     class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
                     <span class="material-symbols-rounded text-slate-400">close</span>
@@ -312,15 +312,15 @@
                     <div class="grid grid-cols-3 gap-2">
                         <button data-plan="mensual"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Mensual<br><span class="text-slate-500 font-normal">30 días</span>
+                            Mensual<br><span class="text-slate-500 font-normal">30 dí­as</span>
                         </button>
                         <button data-plan="trimestral"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Trimestral<br><span class="text-slate-500 font-normal">90 días</span>
+                            Trimestral<br><span class="text-slate-500 font-normal">90 dí­as</span>
                         </button>
                         <button data-plan="anual"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Anual<br><span class="text-slate-500 font-normal">365 días</span>
+                            Anual<br><span class="text-slate-500 font-normal">365 dí­as</span>
                         </button>
                     </div>
                     <input type="hidden" id="membresia-plan" value="" />
@@ -357,7 +357,7 @@
                 </div>
                 <button id="modal-membresia-submit"
                     class="flex items-center justify-center gap-2 w-full rounded-xl bg-success hover:bg-emerald-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-success/20 mt-2">
-                    <span id="membresia-btn-text">Registrar Membresía</span>
+                    <span id="membresia-btn-text">Registrar Membresí­a</span>
                     <span id="membresia-btn-spinner"
                         class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
                 </button>
@@ -365,16 +365,32 @@
         </div>
     </div>
 
-    <!-- Scripts -->
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/auth-guard.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/membership-list.js"></script>
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/training-engine.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/sidebar.js"></script>
+    <script type="module" src="js/membership-list.js"></script>
 </body>
 
 </html>
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
