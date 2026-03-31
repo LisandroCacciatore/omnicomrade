@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuración — TechFitness</title>
+  <title>Configuración - TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,7 +16,7 @@
     rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <script type="module" src="js/tailwind-config.js"></script>
 
   <style>
     * {
@@ -370,7 +370,7 @@
 <body class="min-h-screen">
 
   <div id="toast"
-    class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
+    class="fixed bottom-7 right-7 z-[100] translate-y-full transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
     <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
       <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]">check_circle</span>
       <span id="toast-msg" class="text-sm font-medium text-white"></span>
@@ -404,7 +404,7 @@
                 <div class="flex items-center justify-between mb-5">
                   <div>
                     <h2 class="text-sm font-bold text-white">Información del gimnasio</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Nombre público y datos de identificación</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Nombre píºblico y datos de identificación</p>
                   </div>
                   <span id="dot-gym" class="unsaved-dot"></span>
                 </div>
@@ -439,7 +439,7 @@
               <div class="settings-card">
                 <div class="mb-5">
                   <h2 class="text-sm font-bold text-white">Logo del gimnasio</h2>
-                  <p class="text-xs text-slate-500 mt-0.5">PNG o JPG · Máximo 2 MB · Recomendado 400×400</p>
+                  <p class="text-xs text-slate-500 mt-0.5">PNG o JPG · Máximo 2 MB · Recomendado 400í—400</p>
                 </div>
                 <div class="flex items-start gap-5">
                   <div id="logo-preview-container"
@@ -473,7 +473,7 @@
                 <div class="flex flex-wrap gap-2.5 mb-4">
                   <div class="color-swatch selected" data-color="#3B82F6" style="background:#3B82F6" title="Azul"></div>
                   <div class="color-swatch" data-color="#10B981" style="background:#10B981" title="Verde"></div>
-                  <div class="color-swatch" data-color="#F59E0B" style="background:#F59E0B" title="Ámbar"></div>
+                  <div class="color-swatch" data-color="#F59E0B" style="background:#F59E0B" title="ímbar"></div>
                   <div class="color-swatch" data-color="#EF4444" style="background:#EF4444" title="Rojo"></div>
                   <div class="color-swatch" data-color="#8B5CF6" style="background:#8B5CF6" title="Violeta"></div>
                   <div class="color-swatch" data-color="#EC4899" style="background:#EC4899" title="Rosa"></div>
@@ -513,15 +513,15 @@
                 <div class="flex items-start gap-5 mb-5">
                   <div class="avatar-upload" id="avatar-upload" title="Cambiar foto">
                     <img id="avatar-img" src="" alt="Avatar" class="hidden" />
-                    <span id="avatar-initials" class="text-lg font-bold text-slate-400 relative z-10">—</span>
+                    <span id="avatar-initials" class="text-lg font-bold text-slate-400 relative z-10">-</span>
                     <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp" />
                     <div class="avatar-overlay">
                       <span class="material-symbols-rounded text-white text-[20px]">photo_camera</span>
                     </div>
                   </div>
                   <div class="flex-1 space-y-1">
-                    <p class="text-sm font-semibold text-white" id="profile-name-display">—</p>
-                    <p class="text-xs text-slate-500" id="profile-email-display">—</p>
+                    <p class="text-sm font-semibold text-white" id="profile-name-display">-</p>
+                    <p class="text-xs text-slate-500" id="profile-email-display">-</p>
                     <p class="text-[11px] text-slate-600 mt-2">Hacé clic en el avatar para cambiar la foto</p>
                   </div>
                 </div>
@@ -547,7 +547,7 @@
                     <div class="flex items-center gap-2 h-[42px] px-4 bg-[#0B1218] border border-[#1E293B] rounded-xl">
                       <span class="material-symbols-rounded text-[16px] text-slate-500"
                         style="font-variation-settings:'FILL' 1">shield_person</span>
-                      <span id="profile-role" class="text-sm text-slate-400 capitalize">—</span>
+                      <span id="profile-role" class="text-sm text-slate-400 capitalize">-</span>
                     </div>
                   </div>
                 </div>
@@ -608,7 +608,7 @@
                     <div class="flex items-center gap-2.5"><span
                         class="material-symbols-rounded text-[#10B981] text-[18px]"
                         style="font-variation-settings:'FILL' 1">check_circle</span><span
-                        class="text-sm text-slate-300">Gestión de membresías</span></div><span
+                        class="text-sm text-slate-300">Gestión de membresí­as</span></div><span
                       class="text-xs text-slate-500">Free</span>
                   </div>
                   <div class="feature-row">
@@ -636,7 +636,7 @@
                   <div class="flex items-center justify-between p-4 rounded-xl border border-[#1E293B] bg-[#0B1218]">
                     <div>
                       <p class="text-sm font-semibold text-white">Exportar todos los datos</p>
-                      <p class="text-xs text-slate-500 mt-0.5">Descargá alumnos y membresías en CSV</p>
+                      <p class="text-xs text-slate-500 mt-0.5">Descargá alumnos y membresí­as en CSV</p>
                     </div>
                     <button type="button" class="btn-secondary text-sm opacity-60 cursor-not-allowed"
                       disabled>Exportar</button>
@@ -651,13 +651,29 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/auth-guard.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/sidebar.js"></script>
-  <script src="js/gym-setting.js"></script>
+  <script type="module" src="js/supabase.js"></script>
+  <script type="module" src="js/auth-guard.js"></script>
+  <script type="module" src="js/training-engine.js"></script>
+  <script type="module" src="js/utils.js"></script>
+  <script type="module" src="js/sidebar.js"></script>
+  <script type="module" src="js/gym-setting.js"></script>
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

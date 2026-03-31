@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: 'Space Grotesk', sans-serif;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-background-dark text-slate-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors;
+  }
+
+  .btn-danger {
+    @apply bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors;
+  }
+
+  .card {
+    @apply bg-surface-dark border border-border-dark rounded-xl p-4;
+  }
+
+  .input-field {
+    @apply w-full bg-surface-2 border border-border-dark rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors;
+  }
+}
