@@ -16,6 +16,13 @@
   let expandChart       = null;
   let activeExRow       = null;
 
+  const urlStudentId = new URLSearchParams(window.location.search).get('student');
+
+  function normalizeStudentRow(row) {
+    const fullName = row.full_name || row.name || row.display_name || row.email || 'Alumno';
+    return { ...row, full_name: fullName };
+  }
+
   /* ── MOCK DATA (DB vacía) ─────────────────────────────────── */
   const MOCK_EXERCISES = [
     { name: 'Sentadilla',     muscle: 'piernas', allTimePR: 100,
@@ -279,42 +286,55 @@
     const monthCutoff = new Date();
     monthCutoff.setDate(monthCutoff.getDate() - 30);
 
+    let sessData = [];
+    let logsData = [];
+    let stagData = [];
+    let queryFailed = false;
+
     /* ─── Fetch en paralelo ─────────────────────────────── */
-    const sessionIds = await db.from('workout_sessions').select('id')
-      .eq('student_id', studentId).not('completed_at', 'is', null)
-      .then(r => (r.data || []).map(s => s.id));
+    try {
+      const { data: sessionIdsRaw, error: sessionIdsError } = await db.from('workout_sessions').select('id')
+        .eq('student_id', studentId).not('completed_at', 'is', null);
+      if (sessionIdsError) throw sessionIdsError;
+      const sessionIds = (sessionIdsRaw || []).map(s => s.id);
 
-    const [
-      { data: sessions },
-      { data: rawLogs },
-      { data: stagnation },
-    ] = await Promise.all([
-      db.from('workout_sessions')
-        .select('id, completed_at')
-        .eq('student_id', studentId)
-        .not('completed_at', 'is', null)
-        .order('completed_at', { ascending: false }),
+      const results = await Promise.allSettled([
+        db.from('workout_sessions')
+          .select('id, completed_at')
+          .eq('student_id', studentId)
+          .not('completed_at', 'is', null)
+          .order('completed_at', { ascending: false }),
 
-      sessionIds.length
-        ? db.from('v_exercise_progress')
-            .select('exercise_name, muscle_group, session_date, max_weight, session_id')
-            .eq('student_id', studentId)
-            .eq('gym_id', gymId)
-            .order('session_date', { ascending: true })
-        : Promise.resolve({ data: [] }),
+        sessionIds.length
+          ? db.from('v_exercise_progress')
+              .select('exercise_name, muscle_group, session_date, max_weight, session_id')
+              .eq('student_id', studentId)
+              .eq('gym_id', gymId)
+              .order('session_date', { ascending: true })
+          : Promise.resolve({ data: [] }),
 
-      db.from('v_stagnation_check')
-        .select('exercise_name, muscle_group, is_stagnant, progress_pct, sessions_tracked')
-        .eq('student_id', studentId)
-        .eq('gym_id', gymId),
-    ]);
+        db.from('v_stagnation_check')
+          .select('exercise_name, muscle_group, is_stagnant, progress_pct, sessions_tracked')
+          .eq('student_id', studentId)
+          .eq('gym_id', gymId),
+      ]);
 
-    const sessData = sessions || [];
-    const logsData = rawLogs || [];
-    const stagData = stagnation || [];
+      const [sessionsRes, logsRes, stagRes] = results;
+      if (sessionsRes.status === 'fulfilled' && !sessionsRes.value.error) sessData = sessionsRes.value.data || [];
+      else queryFailed = true;
+
+      if (logsRes.status === 'fulfilled' && !logsRes.value.error) logsData = logsRes.value.data || [];
+      else queryFailed = true;
+
+      if (stagRes.status === 'fulfilled' && !stagRes.value.error) stagData = stagRes.value.data || [];
+      else queryFailed = true;
+    } catch (error) {
+      console.error('❌ Error cargando progreso:', error.message || error);
+      queryFailed = true;
+    }
 
     /* ─── Decidir si usar mock ──────────────────────────── */
-    const useMock  = sessData.length === 0;
+    const useMock  = queryFailed || sessData.length === 0;
     const exercises = useMock ? MOCK_EXERCISES : buildExerciseData(logsData);
     const totalSessions = useMock ? MOCK_SESSIONS : sessData.length;
     const weekDone = useMock ? MOCK_WEEK_DONE : sessData.filter(s =>
@@ -323,7 +343,10 @@
     const weekGoal = 4; // target semanal
 
     if (useMock) {
-      toast('Mostrando datos de ejemplo — completá sesiones para ver datos reales', 'info');
+      const msg = queryFailed
+        ? 'No pudimos cargar datos reales. Mostrando ejemplo para que puedas visualizar progreso.'
+        : 'Mostrando datos de ejemplo — completá sesiones para ver datos reales';
+      toast(msg, 'info');
     }
 
     /* ─── KPIs en header ────────────────────────────────── */
@@ -495,9 +518,23 @@
       await loadAnalytics(student.id);
     }
   } else {
-    const { data } = await db.from('students').select('id, full_name, membership_status')
+    const { data, error } = await db.from('students').select('id, full_name, membership_status')
       .eq('gym_id', gymId).is('deleted_at', null).order('full_name');
-    allStudents = data || [];
+    allStudents = (data || []).map(normalizeStudentRow);
+
+    if (error || allStudents.length === 0) {
+      const fallback = await db.from('profiles').select('id, full_name, email')
+        .eq('gym_id', gymId).eq('role', 'alumno').is('deleted_at', null).order('full_name');
+      allStudents = (fallback.data || []).map(normalizeStudentRow);
+    }
+
+    if (urlStudentId) {
+      const preselected = allStudents.find((s) => String(s.id) === String(urlStudentId));
+      if (preselected) {
+        document.getElementById('student-picker-label').textContent = preselected.full_name;
+        await loadAnalytics(preselected.id);
+      }
+    }
   }
 
   function openPicker(e) {
@@ -523,6 +560,13 @@
 
   function renderPickerList(students) {
     if (!listEl) return;
+    if (!students.length) {
+      listEl.innerHTML = `
+        <div class="px-3 py-6 text-center text-xs text-slate-500">
+          No hay alumnos disponibles para seleccionar.
+        </div>`;
+      return;
+    }
     listEl.innerHTML = students.map(s => `
       <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[#1E293B] transition-colors" data-id="${s.id}" data-name="${escHtml(s.full_name)}">
         <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0">
@@ -541,4 +585,3 @@
   }
 
 })();
-
