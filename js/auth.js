@@ -124,3 +124,4 @@ async function checkCurrentSession() {
 
 loginForm.addEventListener('submit', handleLogin);
 window.addEventListener('load', checkCurrentSession);
+

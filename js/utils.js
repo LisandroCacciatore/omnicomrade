@@ -61,3 +61,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const knownModals = [{ id: 'modal-nuevo-alumno', close: 'modal-close-btn' }, { id: 'modal-nueva-membresia', close: 'modal-membresia-close' }, { id: 'modal-alumno', close: 'modal-alumno-close' }, { id: 'modal-eliminar', close: 'btn-cancelar-eliminar' }];
     knownModals.forEach(m => { if (document.getElementById(m.id)) window.tfUtils.initModalAccessibility(m.id, m.close); });
 });
+
+

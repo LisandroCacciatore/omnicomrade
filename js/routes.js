@@ -38,3 +38,5 @@ const AppRoutes = {
 };
 
 window.AppRoutes = AppRoutes;
+
+

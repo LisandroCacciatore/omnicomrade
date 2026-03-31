@@ -314,3 +314,4 @@ document.getElementById('modal-membresia-submit')?.addEventListener('click', sav
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initDashboard);
+

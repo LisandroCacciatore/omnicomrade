@@ -62,3 +62,4 @@ async function authGuard(allowedRoles = []) {
 
 // Inyectar en el objeto global
 window.authGuard = authGuard;
+

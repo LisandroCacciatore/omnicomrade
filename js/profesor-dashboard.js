@@ -420,3 +420,4 @@ function buildWellbeingPanel(student) {
         </div>
     </div>`;
 }
+

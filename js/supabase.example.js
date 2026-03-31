@@ -10,3 +10,5 @@ try {
 } catch (e) {
     console.error('❌ Error inicializando Supabase:', e.message)
 }
+
+

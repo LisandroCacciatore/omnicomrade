@@ -38,3 +38,5 @@ console.log(`🚀 Configuración de Supabase generada en ${outputPath}`);
 if (!url || !key) {
     console.warn('⚠️ ADVERTENCIA: SUPABASE_URL o SUPABASE_ANON_KEY están vacíos.');
 }
+
+

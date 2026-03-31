@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Entrenando — TechFitness</title>
+    <title>Entrenando - TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <script type="module" src="js/tailwind-config.js"></script>
     <style>
         * { font-family: 'Space Grotesk', sans-serif; touch-action: manipulation; }
         .font-mono { font-family: 'IBM Plex Mono', monospace; }
@@ -37,12 +37,12 @@
     </header>
 
     <div class="h-1.5 w-full bg-[#1E293B] shrink-0">
-        <div id="workout-progress" class="h-full bg-[#3B82F6] transition-all duration-300" style="width: 0%;"></div>
+        <div id="workout-progress" class="h-full bg-[#3B82F6] transition-all duration-300" style="width: 0%25;"></div>
     </div>
 
-    <!-- Wellbeing banner -->
+    
     <div id="wellbeing-banner" style="display:none;margin:12px 16px 0"></div>
-    <!-- Load suggestion -->
+    
     <div id="load-suggestion" style="display:none;margin:0 16px"></div>
 
     <main class="flex-1 relative overflow-hidden p-5" id="exercise-deck">
@@ -55,10 +55,24 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/auth-guard.js"></script>
-    <script src="js/training-engine.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/workout-session.js"></script>
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/training-engine.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/workout-session.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
