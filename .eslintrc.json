@@ -1,0 +1,25 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "rules": {
+    "no-unused-vars": "off",
+    "no-console": "off",
+    "no-empty": "off",
+    "no-undef": "off",
+    "no-useless-escape": "off",
+    "no-extra-semi": "off",
+    "semi": "off",
+    "quotes": "off",
+    "indent": "off",
+    "eol-last": "off"
+  }
+}
+
+

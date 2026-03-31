@@ -783,3 +783,4 @@ function setupModalEliminar() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudentList);
+
