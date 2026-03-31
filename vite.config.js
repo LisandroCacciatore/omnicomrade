@@ -1,38 +1,21 @@
-import { defineConfig } from 'vite';
+const { defineConfig } = require('vite');
+const { resolve } = require('path');
+const fs = require('fs');
 
-export default defineConfig({
-  root: '.',
-  publicDir: 'public',
+const htmlEntries = fs
+  .readdirSync(process.cwd())
+  .filter((name) => name.endsWith('.html'))
+  .reduce((acc, file) => {
+    acc[file.replace('.html', '')] = resolve(process.cwd(), file);
+    return acc;
+  }, {});
+
+module.exports = defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    copyPublicDir: true,
     rollupOptions: {
-      input: {
-        main: 'index.html',
-        login: 'login.html',
-        admin: 'admin-dashboard.html',
-        profesor: 'profesor-dashboard.html',
-        student: 'student-dashboard.html',
-        attendance: 'attendance.html',
-        exercise: 'exercise-list.html',
-        membership: 'membership-list.html',
-        progress: 'progress.html',
-        routine_builder: 'routine-builder.html',
-        routine_list: 'routine-list.html',
-        routine_programs: 'routine-programs.html',
-        student_list: 'student-list.html',
-        student_profile: 'student-profile.html',
-        wellbeing: 'wellbeing-check.html',
-        workout: 'workout-session.html',
-        gym_setting: 'gym-setting.html'
-      }
+      input: htmlEntries
     }
-  },
-  server: {
-    port: 3000,
-    open: false
   }
 });
-
-

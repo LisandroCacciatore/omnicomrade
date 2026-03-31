@@ -7,7 +7,9 @@
   const session = await window.authGuard(['gim_admin', 'profesor']);
   if (!session) return;
 
-  const db    = window.supabaseClient;
+  const dbClient = window.supabaseClient;
+  const db = dbClient;
+  const dbApi = window.tfDb?.createDB ? window.tfDb.createDB(dbClient) : null;
   const gymId = session.user.app_metadata.gym_id;
   const { PROGRAMS, toast, escHtml, debounce } = window.tfUtils;
 
@@ -58,11 +60,40 @@
     }];
   }
 
+  function defaultSet(n, weightKg, reps) {
+    if (window.tfRoutineBuilderUtils?.defaultSet) {
+      return window.tfRoutineBuilderUtils.defaultSet(n, weightKg, reps, newSetId);
+    }
+
+    return {
+      _sid:       newSetId(),
+      set_number: n,
+      weight_kg:  weightKg || null,
+      weight_pct: null,
+      rpe_target: null,
+      rir_target: null,
+      reps:       reps || '',
+      is_amrap:   false,
+      notes:      '',
+    };
+  }
+
   /* ─── Load DB ────────────────────────────────────────── */
   async function loadExercises() {
+    if (dbApi?.exercises?.getGlobalAndGym) {
+      const { data, error } = await dbApi.exercises.getGlobalAndGym(gymId);
+      if (error) {
+        console.error('❌ Error cargando ejercicios via dbApi:', error.message || error);
+        exercises = [];
+        return;
+      }
+      exercises = data || [];
+      return;
+    }
+
     const [{ data: g }, { data: c }] = await Promise.all([
-      db.from('exercises').select('id,name,muscle_group,category').eq('is_global', true).is('deleted_at', null).order('name'),
-      db.from('exercises').select('id,name,muscle_group,category').eq('gym_id', gymId).is('deleted_at', null).order('name'),
+      dbClient.from('exercises').select('id,name,muscle_group,category').eq('is_global', true).is('deleted_at', null).order('name'),
+      dbClient.from('exercises').select('id,name,muscle_group,category').eq('gym_id', gymId).is('deleted_at', null).order('name'),
     ]);
     exercises = [...(g || []), ...(c || [])];
   }
@@ -725,4 +756,3 @@
   }
 
 })();
-
