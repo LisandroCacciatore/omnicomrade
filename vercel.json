@@ -1,7 +1,7 @@
 {
     "cleanUrls": true,
     "trailingSlash": false,
-    "outputDirectory": ".",
+    "outputDirectory": "dist",
     "redirects": [
         {
             "source": "/",
@@ -16,3 +16,4 @@
         }
     ]
 }
+

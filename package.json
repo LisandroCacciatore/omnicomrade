@@ -1,4 +1,8 @@
 {
+  "name": "omnicomrade",
+  "version": "1.0.0",
+  "description": "TechFitness - Sistema de gestión de gimnasio",
+  "type": "module",
   "scripts": {
     "build": "node -e 'const fs=require(\"fs\");const u=process.env.SUPABASE_URL;const k=process.env.SUPABASE_ANON_KEY;if(!u||!k){console.error(\"❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY\");process.exit(1);}const out=`// Configuración de Supabase\nconst SUPABASE_URL = \"${u}\"\nconst SUPABASE_ANON_KEY = \"${k}\"\n\ntry { if (!window.supabase) throw new Error(\"SDK de Supabase no cargó\"); const { createClient } = window.supabase; window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); console.log(\"✅ Supabase inicializado correctamente\"); } catch (e) { console.error(\"❌ Error inicializando Supabase:\", e.message); }`;fs.writeFileSync(\"js/supabase.js\",out);'"
   }

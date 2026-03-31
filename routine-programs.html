@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" class="dark">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Programas — TechFitness</title>
+    <title>Programas - TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,7 +17,7 @@
         rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <script type="module" src="js/tailwind-config.js"></script>
 
     <style>
         * {
@@ -307,7 +307,7 @@
 <body class="min-h-screen">
 
     <div id="toast"
-        class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
+        class="fixed bottom-7 right-7 z-[100] translate-y-full transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
         <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
             <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]">check_circle</span>
             <span id="toast-msg" class="text-sm font-medium text-white"></span>
@@ -323,7 +323,7 @@
                 class="h-16 sticky top-0 z-30 bg-bg-dark/90 backdrop-blur-md border-b border-border-dark flex items-center px-6">
                 <div>
                     <h1 class="text-lg font-700 text-white leading-none">Programas de entrenamiento</h1>
-                    <p class="text-xs text-slate-500 mt-0.5">Metodologías pre-armadas listas para usar con cualquier
+                    <p class="text-xs text-slate-500 mt-0.5">MetodologÃ­Â­as pre-armadas listas para usar con cualquier
                         alumno</p>
                 </div>
             </header>
@@ -335,9 +335,9 @@
                             style="font-variation-settings:'FILL' 1">auto_awesome</span>
                     </div>
                     <div>
-                        <p class="text-sm font-700 text-white mb-0.5">¿Cómo funciona?</p>
-                        <p class="text-xs text-slate-500">Seleccioná un programa, ingresá los 1RM del alumno y el
-                            sistema calcula automáticamente todas las cargas. Después podés asignarlo directamente desde
+                        <p class="text-sm font-700 text-white mb-0.5">Â¿CÃ³mo funciona?</p>
+                        <p class="text-xs text-slate-500">SeleccionÃ¡ un programa, ingresÃ¡ los 1RM del alumno y el
+                            sistema calcula automÃ¡ticamente todas las cargas. DespuÃ©s podÃ©s asignarlo directamente desde
                             el perfil del alumno.</p>
                     </div>
                 </div>
@@ -354,7 +354,7 @@
 
         <div class="flex items-start justify-between px-6 pt-5 pb-4 border-b border-border-dark shrink-0">
             <div class="flex items-center gap-3">
-                <div id="drawer-icon" class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl">🏋️
+                <div id="drawer-icon" class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xl"></div>Ã°Å¸Â€¹Ã¯Â¸Â
                 </div>
                 <div>
                     <h2 id="drawer-title" class="text-base font-700 text-white leading-tight"></h2>
@@ -376,8 +376,8 @@
             <div id="drawer-inputs-section" class="px-6 py-5 border-b border-border-dark">
                 <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-3">Cargas de referencia</p>
                 <div id="rm-inputs-grid" class="grid grid-cols-2 gap-3"></div>
-                <p class="text-[10px] text-slate-600 mt-3">Ingresá el 1RM real del alumno. El programa calcula los
-                    porcentajes automáticamente.</p>
+                <p class="text-[10px] text-slate-600 mt-3">IngresÃ¡ el 1RM real del alumno. El programa calcula los
+                    porcentajes automÃ¡ticamente.</p>
             </div>
 
             <div id="drawer-output" class="px-6 py-5">
@@ -400,14 +400,31 @@
     </form>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/auth-guard.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/program-assign.js"></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/routine-programs.js"></script>
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/training-engine.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/program-assign.js"></script>
+    <script type="module" src="js/sidebar.js"></script>
+    <script type="module" src="js/routine-programs.js"></script>
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
