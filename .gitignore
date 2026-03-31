@@ -1,3 +1,4 @@
 node_modules/
 js/supabase.js
 npm-debug.log*
+dist/
