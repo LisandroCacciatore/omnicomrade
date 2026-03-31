@@ -191,8 +191,12 @@ window.tfUtils = {
     /**
      * Catálogo de programas pre-armados y sus generadores
      */
-    round: (v, s = 2.5) => Math.round(v / s) * s,
-    pct: (b, p) => window.tfUtils.round(b * p),
+    round: (v, s = 2.5) => (window.tfTrainingMath?.roundWeight
+        ? window.tfTrainingMath.roundWeight(v, s)
+        : Math.round(v / s) * s),
+    pct: (b, p) => (window.tfTrainingMath?.pct
+        ? window.tfTrainingMath.pct(b, p)
+        : window.tfUtils.round(b * p)),
 
     PROGRAMS: [
         {
@@ -749,4 +753,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
