@@ -7,47 +7,50 @@ window.tfUtils = {
     /**
      * Muestra un toast de notificación
      */
-    toast: (msg, type = 'success') => {
-        const el = document.getElementById('toast');
-        if (!el) return;
-        
-        const icon = document.getElementById('toast-icon');
-        const text = document.getElementById('toast-msg');
-        
-        if (icon) {
-            icon.textContent = type === 'success' ? 'check_circle' : 'error';
-            icon.style.color = type === 'success' ? '#10B981' : '#EF4444';
-        }
-        if (text) text.textContent = msg;
-        
-        el.className = `show ${type}`;
-        setTimeout(() => el.className = '', 3200);
-    },
+    toast: (msg, type = 'success') => (window.tfUiUtils?.toast
+        ? window.tfUiUtils.toast(msg, type)
+        : (() => {
+            const el = document.getElementById('toast');
+            if (!el) return;
+
+            const icon = document.getElementById('toast-icon');
+            const text = document.getElementById('toast-msg');
+
+            if (icon) {
+                icon.textContent = type === 'success' ? 'check_circle' : 'error';
+                icon.style.color = type === 'success' ? '#10B981' : '#EF4444';
+            }
+            if (text) text.textContent = msg;
+
+            el.className = `show ${type}`;
+            setTimeout(() => { el.className = ''; }, 3200);
+        })()),
 
     /**
      * Escapa HTML para prevenir XSS
      */
-    escHtml: (str) => {
-        if (!str) return '';
-        return String(str).replace(/[&<>"']/g, m => ({
+    escHtml: (str) => (window.tfUiUtils?.escHtml
+        ? window.tfUiUtils.escHtml(str)
+        : (!str ? '' : String(str).replace(/[&<>"']/g, m => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-        }[m]));
-    },
+        }[m])))),
 
     /**
      * Debounce para búsquedas
      */
-    debounce: (func, wait) => {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
+    debounce: (func, wait) => (window.tfUiUtils?.debounce
+        ? window.tfUiUtils.debounce(func, wait)
+        : (() => {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
                 clearTimeout(timeout);
-                func(...args);
+                timeout = setTimeout(later, wait);
             };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    },
+        })()),
 
     /**
      * Manejo centralizado de Logout
@@ -191,8 +194,16 @@ window.tfUtils = {
     /**
      * Catálogo de programas pre-armados y sus generadores
      */
-    round: (v, s = 2.5) => Math.round(v / s) * s,
-    pct: (b, p) => window.tfUtils.round(b * p),
+    round: (v, s = 2.5) => (window.tfTrainingEngine?.round
+        ? window.tfTrainingEngine.round(v, s)
+        : (window.tfTrainingMath?.roundWeight
+            ? window.tfTrainingMath.roundWeight(v, s)
+            : Math.round(v / s) * s)),
+    pct: (b, p) => (window.tfTrainingEngine?.pct
+        ? window.tfTrainingEngine.pct(b, p)
+        : (window.tfTrainingMath?.pct
+            ? window.tfTrainingMath.pct(b, p)
+            : window.tfUtils.round(b * p))),
 
     PROGRAMS: [
         {
@@ -223,6 +234,10 @@ window.tfUtils = {
                 { id: 'pc', label: 'Power Clean (inicial)', default: 30 },
             ],
             generate(rms) {
+                if (window.tfTrainingEngine?.generateProgram) {
+                    return window.tfTrainingEngine.generateProgram('starting-strength', rms);
+                }
+
                 const { pct } = window.tfUtils;
                 const sqW_start = pct(rms.sq, .55), dlW_start = pct(rms.dl, .55), bpW_start = pct(rms.bp, .55), ohpW_start = pct(rms.ohp, .55), pcW_start = pct(rms.pc, .65);
                 const weeks = [];
@@ -275,6 +290,10 @@ window.tfUtils = {
                 { id: 'ohp', label: 'Press Militar 1RM', default: 35 },
             ],
             generate(rms) {
+                if (window.tfTrainingEngine?.generateProgram) {
+                    return window.tfTrainingEngine.generateProgram('stronglifts-5x5', rms);
+                }
+
                 const { pct } = window.tfUtils;
                 const sq_start = pct(rms.sq, .5), dl_start = pct(rms.dl, .5), bp_start = pct(rms.bp, .5), row_start = pct(rms.row, .5), ohp_start = pct(rms.ohp, .5);
                 const weeks = [];
@@ -555,24 +574,26 @@ window.tfUtils = {
     /**
      * Feedback visual en botones (US-09)
      */
-    setBtnLoading: (btnId, isLoading, loadingText = 'Procesando...') => {
-        const btn = typeof btnId === 'string' ? document.getElementById(btnId) : btnId;
-        if (!btn) return;
-        
-        const textEl = btn.querySelector('[id$="-text"]') || btn;
-        const spinner = btn.querySelector('[id$="-spinner"]');
-        
-        if (isLoading) {
-            btn.disabled = true;
-            if (!btn._originalText) btn._originalText = textEl.textContent;
-            textEl.textContent = loadingText;
-            if (spinner) spinner.classList.remove('hidden');
-        } else {
-            btn.disabled = false;
-            if (btn._originalText) textEl.textContent = btn._originalText;
-            if (spinner) spinner.classList.add('hidden');
-        }
-    },
+    setBtnLoading: (btnId, isLoading, loadingText = 'Procesando...') => (window.tfUiUtils?.setBtnLoading
+        ? window.tfUiUtils.setBtnLoading(btnId, isLoading, loadingText)
+        : (() => {
+            const btn = typeof btnId === 'string' ? document.getElementById(btnId) : btnId;
+            if (!btn) return;
+
+            const textEl = btn.querySelector('[id$="-text"]') || btn;
+            const spinner = btn.querySelector('[id$="-spinner"]');
+
+            if (isLoading) {
+                btn.disabled = true;
+                if (!btn._originalText) btn._originalText = textEl.textContent;
+                textEl.textContent = loadingText;
+                if (spinner) spinner.classList.remove('hidden');
+            } else {
+                btn.disabled = false;
+                if (btn._originalText) textEl.textContent = btn._originalText;
+                if (spinner) spinner.classList.add('hidden');
+            }
+        })()),
 
     /**
      * Validación en tiempo real (US-11)
@@ -749,4 +770,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
