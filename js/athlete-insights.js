@@ -352,3 +352,4 @@ window.AthleteInsights = (() => {
   return { calcAthleteScore, getScoreLevel, predictSessionQuality, calcRisks, calcAutoProgression };
 
 })();
+

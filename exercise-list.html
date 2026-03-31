@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ejercicios — TechFitness</title>
+    <title>Ejercicios - TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,7 +16,7 @@
         rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="js/tailwind-config.js"></script>
+    <script type="module" src="js/tailwind-config.js"></script>
 
     <style>
         body {
@@ -612,7 +612,7 @@
 <body class="min-h-screen">
 
     <div id="toast"
-        class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
+        class="fixed bottom-7 right-7 z-[100] translate-y-full transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
         <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
             <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]">check_circle</span>
             <span id="toast-msg" class="text-sm font-medium text-white"></span>
@@ -627,12 +627,12 @@
                 class="h-16 sticky top-0 z-30 bg-bg-dark/90 backdrop-blur-md border-b border-border-dark flex items-center gap-3 px-6">
                 <div class="flex-1">
                     <h1 class="text-lg font-700 text-white leading-none">Biblioteca de ejercicios</h1>
-                    <p class="text-xs text-slate-500 mt-0.5">Construí el repertorio de movimientos del gimnasio</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Construí­ el repertorio de movimientos del gimnasio</p>
                 </div>
                 <div class="search-wrap w-64 hidden lg:block">
                     <span class="material-symbols-rounded">search</span>
                     <input id="search-header" type="text" class="form-input py-2 text-sm"
-                        placeholder="Buscar ejercicio…" />
+                        placeholder="Buscar ejercicio..." />
                 </div>
                 <div class="flex gap-1">
                     <button class="view-btn active" id="view-grid" title="Vista grilla"><span
@@ -650,11 +650,11 @@
                 <div id="filter-panel">
                     <div class="px-4 pt-4 pb-2 lg:hidden search-wrap">
                         <span class="material-symbols-rounded">search</span>
-                        <input id="search-mobile" type="text" class="form-input py-2 text-xs" placeholder="Buscar…" />
+                        <input id="search-mobile" type="text" class="form-input py-2 text-xs" placeholder="Buscar..." />
                     </div>
 
                     <div class="px-4 pt-4 pb-2 flex items-center justify-between">
-                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest">Músculo</p>
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest">Míºsculo</p>
                         <button id="clear-muscle"
                             class="text-[10px] font-700 text-primary hidden hover:underline">Limpiar</button>
                     </div>
@@ -713,7 +713,7 @@
 
                     <hr class="divider mx-4 my-3" />
                     <div class="px-4 mb-2">
-                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Categoría</p>
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Categorí­a</p>
                         <div class="flex flex-wrap gap-1.5" id="cat-filters">
                             <button class="cat-chip active" data-cat="all">Todos</button>
                             <button class="cat-chip" data-cat="fuerza">Fuerza</button>
@@ -737,11 +737,11 @@
 
                 <div class="flex-1 p-5 overflow-y-auto min-w-0">
                     <div class="flex items-center justify-between mb-4">
-                        <p id="result-count" class="text-xs font-600 text-slate-500">Cargando…</p>
+                        <p id="result-count" class="text-xs font-600 text-slate-500">Cargando...</p>
                         <div class="search-wrap w-52 lg:hidden">
                             <span class="material-symbols-rounded">search</span>
                             <input id="search-mobile2" type="text" class="form-input py-1.5 text-xs"
-                                placeholder="Buscar…" />
+                                placeholder="Buscar..." />
                         </div>
                     </div>
 
@@ -794,20 +794,20 @@
             <div>
                 <label class="form-label">Descripción / Instrucciones</label>
                 <textarea id="ex-description" rows="3" class="form-input"
-                    placeholder="Ejecución, puntos técnicos clave…" maxlength="400"></textarea>
+                    placeholder="Ejecución, puntos técnicos clave..." maxlength="400"></textarea>
             </div>
 
             <hr class="divider" />
 
             <div>
-                <label class="form-label">Músculo principal *</label>
+                <label class="form-label">Míºsculo principal *</label>
                 <div id="muscle-picker" class="grid grid-cols-5 gap-2"></div>
             </div>
 
             <hr class="divider" />
 
             <div>
-                <label class="form-label">Categoría</label>
+                <label class="form-label">Categorí­a</label>
                 <div class="flex flex-wrap gap-2" id="cat-picker">
                     <button type="button" class="sel-btn" data-val="fuerza" data-color="red">Fuerza</button>
                     <button type="button" class="sel-btn" data-val="hipertrofia" data-color="blue">Hipertrofia</button>
@@ -849,7 +849,7 @@
                 <div class="relative">
                     <span
                         class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-[16px]">play_circle</span>
-                    <input id="ex-video-url" type="url" class="form-input pl-9" placeholder="https://youtube.com/…" />
+                    <input id="ex-video-url" type="url" class="form-input pl-9" placeholder="https://youtube.com/..." />
                 </div>
             </div>
 
@@ -890,13 +890,29 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
-    <script src="js/auth-guard.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/exercise-list.js"></script>
+    <script type="module" src="js/supabase.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/training-engine.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/sidebar.js"></script>
+    <script type="module" src="js/exercise-list.js"></script>
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

@@ -1,25 +1,43 @@
 /**
  * TechFitness Utils
- * Funciones compartidas y lógica core
+ * Funciones compartidas y lógica core.
+ * 
+ * IMPORTANTE: Este archivo actúa como adapter para compatibilidad hacia atrás.
+ * Las pantallas nuevas pueden importar directamente ui-utils.js o training-engine.js
+ * sin necesidad de cargar todo tfUtils.
  */
 
 window.tfUtils = {
-    /**
-     * Muestra un toast de notificación
-     */
-    toast: (msg, type = 'success') => {
+    getUI: () => window.UIUtils || window.tfUtils,
+
+    toast: (msg, type) => window.UIUtils?.toast?.(msg, type) ?? window.tfUtils._toast?.(msg, type),
+    escHtml: (str) => window.UIUtils?.escHtml?.(str) ?? (str ? String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) : ''),
+    debounce: (func, wait) => window.UIUtils?.debounce?.(func, wait) ?? (() => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => func(...a), wait); }; })(),
+    logout: async () => { const db = window.supabaseClient; if (db) { await db.auth.signOut(); window.location.href = 'login.html'; } },
+    initGlobalShortcuts: () => window.UIUtils?.initGlobalShortcuts?.() ?? window.tfUtils._initShortcuts?.(),
+    showCommandPalette: () => window.UIUtils?.showCommandPalette?.() ?? window.tfUtils._showCP?.(),
+    hideCommandPalette: () => window.UIUtils?.hideCommandPalette?.() ?? window.tfUtils._hideCP?.(),
+    filterCommandPalette: (q) => window.UIUtils?.filterCommandPalette?.(q) ?? window.tfUtils._filterCP?.(q),
+
+    round: (v, s) => window.trainingEngine?.round?.(v, s) ?? Math.round(v / s) * s,
+    pct: (b, p) => window.trainingEngine?.pct?.(b, p) ?? window.trainingEngine?.round?.(b * p) ?? Math.round(b * p / 2.5) * 2.5,
+    PROGRAMS: window.trainingEngine?.PROGRAMS ?? [],
+
+    showModal: (id) => window.UIUtils?.showModal?.(id) ?? window.tfUtils._showModal?.(id),
+    hideModal: (id) => window.UIUtils?.hideModal?.(id) ?? window.tfUtils._hideModal?.(id),
+    setBtnLoading: (btn, loading, text) => window.UIUtils?.setBtnLoading?.(btn, loading, text) ?? window.tfUtils._setLoading?.(btn, loading, text),
+    initModalAccessibility: (mid, cid, bid) => window.UIUtils?.initModalAccessibility?.(mid, cid) ?? window.tfUtils._initAcc?.(mid, cid, bid),
+    setupValidation: (inputEl, errorEl, validator) => window.tfUtils._setupVal?.(inputEl, errorEl, validator),
+    focusTrap: (modal) => window.tfUtils._focusTrap?.(modal),
+    setLoading: (btn, loading, text) => window.tfUtils._setLoad?.(btn, loading, text),
+
+    _toast: (msg, type) => {
         const el = document.getElementById('toast');
         if (!el) return;
-        
         const icon = document.getElementById('toast-icon');
         const text = document.getElementById('toast-msg');
-        
-        if (icon) {
-            icon.textContent = type === 'success' ? 'check_circle' : 'error';
-            icon.style.color = type === 'success' ? '#10B981' : '#EF4444';
-        }
+        if (icon) { icon.textContent = type === 'success' ? 'check_circle' : 'error'; icon.style.color = type === 'success' ? '#10B981' : '#EF4444'; }
         if (text) text.textContent = msg;
-        
         el.className = `show ${type}`;
         setTimeout(() => el.className = '', 3200);
     },
@@ -729,27 +747,10 @@ window.tfUtils = {
     }
 };
 
-// Auto-bind logout if exists
 document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', window.tfUtils.logout);
-    }
-    
-    // US-17: Atajos de teclado
+    if (logoutBtn) logoutBtn.addEventListener('click', window.tfUtils.logout);
     window.tfUtils.initGlobalShortcuts();
-    
-    // Auto-bind modal accessibility a los modales conocidos
-    const knownModals = [
-        { id: 'modal-nuevo-alumno', close: 'modal-close-btn' },
-        { id: 'modal-nueva-membresia', close: 'modal-membresia-close' },
-        { id: 'modal-alumno', close: 'modal-alumno-close' },
-        { id: 'modal-eliminar', close: 'btn-cancelar-eliminar' }
-    ];
-
-    knownModals.forEach(m => {
-        if (document.getElementById(m.id)) {
-            window.tfUtils.initModalAccessibility(m.id, m.close);
-        }
-    });
+    const knownModals = [{ id: 'modal-nuevo-alumno', close: 'modal-close-btn' }, { id: 'modal-nueva-membresia', close: 'modal-membresia-close' }, { id: 'modal-alumno', close: 'modal-alumno-close' }, { id: 'modal-eliminar', close: 'btn-cancelar-eliminar' }];
+    knownModals.forEach(m => { if (document.getElementById(m.id)) window.tfUtils.initModalAccessibility(m.id, m.close); });
 });

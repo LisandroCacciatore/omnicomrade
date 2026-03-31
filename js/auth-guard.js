@@ -2,6 +2,20 @@
  * TechFitness Auth Guard
  * Protege rutas requiriendo sesión y validando roles.
  */
+
+const RoutesFallback = {
+    ROLE_MAPPING: {
+        'gim_admin': 'admin-dashboard.html',
+        'profesor': 'profesor-dashboard.html',
+        'coach': 'profesor-dashboard.html',
+        'alumno': 'student-profile.html'
+    },
+    getDashboardUrl(role) {
+        const normalizedRole = (role === 'coach') ? 'profesor' : role;
+        return this.ROLE_MAPPING[normalizedRole] || 'login.html';
+    }
+};
+
 async function authGuard(allowedRoles = []) {
     const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
         || ((role, fallback = 'login.html') => {
