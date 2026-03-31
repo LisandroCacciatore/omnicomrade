@@ -304,3 +304,5 @@ function setupModal() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initMembershipList);
+
+
