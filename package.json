@@ -14,5 +14,13 @@
     "test:contract": "node --test tests/contract/*.test.js",
     "test:e2e": "node --test tests/e2e/*.test.js",
     "test:all": "npm run test:unit && npm run test:contract && npm run test:e2e"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "eslint": "^8.57.0",
+    "postcss": "^8.5.8",
+    "prettier": "^3.3.0",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.4.0"
   }
 }
