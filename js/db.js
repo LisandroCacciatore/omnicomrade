@@ -5,6 +5,11 @@
     return client;
   }
 
+  /**
+   * Normalizes Supabase responses to a typed result shape.
+   * @param {Promise<{data:any,error:any}>} queryPromise
+   * @returns {Promise<{data:any,error:any}>}
+   */
   async function run(queryPromise) {
     try {
       const { data, error } = await queryPromise;
@@ -15,6 +20,10 @@
     }
   }
 
+  /**
+   * DB wrapper facade to avoid direct UI coupling with Supabase queries.
+   * @param {any} clientOverride
+   */
   function createDB(clientOverride) {
     const client = getClient(clientOverride);
 

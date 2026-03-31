@@ -84,6 +84,12 @@
     return weeks;
   }
 
+  /**
+   * Program dispatcher that can delegate to extracted engines or legacy generators.
+   * @param {string} programId
+   * @param {Record<string, number>} rms
+   * @param {(rms: Record<string, number>) => any} legacyGenerate
+   */
   function generateProgram(programId, rms, legacyGenerate) {
     if (programId === 'starting-strength') return generateStartingStrength(rms);
     if (programId === 'stronglifts-5x5') return generateStrongLifts(rms);
