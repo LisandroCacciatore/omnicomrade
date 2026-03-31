@@ -41,29 +41,21 @@
 
   /** Parsea "3×5" → [{set_number,reps,is_amrap}, ...]  */
   function parseSetsStr(setsStr, weight) {
-    const m = (setsStr || '').match(/^(\d+)[×xX](.+)$/);
-    if (!m) return [defaultSet(1, weight, setsStr || '')];
-    const count = parseInt(m[1]);
-    const repsRaw = m[2].trim();
-    const isAmrapLast = repsRaw.endsWith('+');
-    const baseReps = isAmrapLast ? repsRaw.slice(0, -1).trim() : repsRaw;
-    return Array.from({ length: count }, (_, i) => ({
+    if (window.tfRoutineBuilderUtils?.parseSetsStr) {
+      return window.tfRoutineBuilderUtils.parseSetsStr(setsStr, weight, newSetId);
+    }
+
+    return [{
       _sid:       newSetId(),
-      set_number: i + 1,
+      set_number: 1,
       weight_kg:  weight || null,
       weight_pct: null,
       rpe_target: null,
       rir_target: null,
-      reps:       (i === count - 1 && isAmrapLast) ? baseReps + '+' : baseReps,
-      is_amrap:   i === count - 1 && isAmrapLast,
+      reps:       setsStr || '',
+      is_amrap:   false,
       notes:      '',
-    }));
-  }
-
-  function defaultSet(n, weight_kg, reps) {
-    return { _sid: newSetId(), set_number: n, weight_kg: weight_kg || null,
-             weight_pct: null, rpe_target: null, rir_target: null,
-             reps: reps || '', is_amrap: false, notes: '' };
+    }];
   }
 
   /* ─── Load DB ────────────────────────────────────────── */
@@ -733,4 +725,3 @@
   }
 
 })();
-
