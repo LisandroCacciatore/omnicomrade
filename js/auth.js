@@ -46,7 +46,7 @@ async function handleLogin(e) {
         const pathByRole = {
             'gim_admin': 'admin-dashboard.html',
             'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html',
+            'alumno': 'student-profile.html',
             'coach': 'profesor-dashboard.html'
         };
 
@@ -120,7 +120,7 @@ async function checkCurrentSession() {
         const dashboards = {
             'gim_admin': 'admin-dashboard.html',
             'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html'
+            'alumno': 'student-profile.html'
         };
 
         const target = dashboards[role] || dashboards[normalizedRole];

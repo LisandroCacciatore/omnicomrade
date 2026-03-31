@@ -36,7 +36,7 @@ async function authGuard(allowedRoles = []) {
             const dashboards = {
                 'gim_admin': 'admin-dashboard.html',
                 'profesor': 'profesor-dashboard.html',
-                'alumno': 'student-dashboard.html'
+                'alumno': 'student-profile.html'
             };
 
             const redirectUrl = dashboards[normalizedRole] || 'login.html';
