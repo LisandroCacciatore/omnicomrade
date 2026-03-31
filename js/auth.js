@@ -5,6 +5,17 @@ const btnSpinner = document.getElementById('btn-spinner');
 const btnText = document.getElementById('btn-text');
 const errorMessage = document.getElementById('error-message');
 const errorText = document.getElementById('error-text');
+const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
+    || ((role, fallback = 'login.html') => {
+        const map = {
+            gim_admin: 'admin-dashboard.html',
+            profesor: 'profesor-dashboard.html',
+            alumno: 'student-profile.html',
+            coach: 'profesor-dashboard.html'
+        };
+        const normalized = role === 'coach' ? 'profesor' : role;
+        return map[normalized] || map[role] || fallback;
+    });
 
 async function handleLogin(e) {
     e.preventDefault();
@@ -43,14 +54,7 @@ async function handleLogin(e) {
         }
 
         // Dashboard Mapping
-        const pathByRole = {
-            'gim_admin': 'admin-dashboard.html',
-            'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html',
-            'coach': 'profesor-dashboard.html'
-        };
-
-        const redirectUrl = pathByRole[role] || 'index.html';
+        const redirectUrl = getDashboardByRole(role, 'index.html');
         
         // Guardar rol para el sidebar
         if (window.TFSidebar) {
@@ -115,15 +119,7 @@ async function checkCurrentSession() {
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (session) {
         const role = session.user.app_metadata.role;
-        const normalizedRole = (role === 'coach') ? 'profesor' : role;
-        
-        const dashboards = {
-            'gim_admin': 'admin-dashboard.html',
-            'profesor': 'profesor-dashboard.html',
-            'alumno': 'student-dashboard.html'
-        };
-
-        const target = dashboards[role] || dashboards[normalizedRole];
+        const target = getDashboardByRole(role, null);
         if (target) window.location.href = target;
     }
 }

@@ -3,6 +3,18 @@
  * Protege rutas requiriendo sesión y validando roles.
  */
 async function authGuard(allowedRoles = []) {
+    const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
+        || ((role, fallback = 'login.html') => {
+            const map = {
+                gim_admin: 'admin-dashboard.html',
+                profesor: 'profesor-dashboard.html',
+                alumno: 'student-profile.html',
+                coach: 'profesor-dashboard.html'
+            };
+            const normalized = role === 'coach' ? 'profesor' : role;
+            return map[normalized] || map[role] || fallback;
+        });
+
     if (!window.supabaseClient) {
         console.error('❌ authGuard: Supabase no está inicializado.');
         window.location.href = 'login.html';
@@ -33,13 +45,7 @@ async function authGuard(allowedRoles = []) {
         if (allowedRoles.length > 0 && !allowedRoles.includes(normalizedRole)) {
             console.warn(`🚫 authGuard: Rol [${normalizedRole}] no autorizado para esta página. Redirigiendo...`);
             
-            const dashboards = {
-                'gim_admin': 'admin-dashboard.html',
-                'profesor': 'profesor-dashboard.html',
-                'alumno': 'student-dashboard.html'
-            };
-
-            const redirectUrl = dashboards[normalizedRole] || 'login.html';
+            const redirectUrl = getDashboardByRole(normalizedRole, 'login.html');
             window.location.href = redirectUrl;
             return null;
         }

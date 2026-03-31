@@ -1,5 +1,9 @@
 {
   "scripts": {
-    "build": "printf \"// Configuración de Supabase\\nconst SUPABASE_URL = '%s'\\nconst SUPABASE_ANON_KEY = '%s'\\n\\ntry { if (!window.supabase) throw new Error('SDK de Supabase no cargó'); const { createClient } = window.supabase; window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); console.log('✅ Supabase inicializado correctamente'); } catch (e) { console.error('❌ Error inicializando Supabase:', e.message); }\" \"$SUPABASE_URL\" \"$SUPABASE_ANON_KEY\" > js/supabase.js"
+    "build": "node scripts/generate-supabase-config.cjs",
+    "test:unit": "node --test tests/unit/*.test.js tests/unit/*/*.test.js",
+    "test:contract": "node --test tests/contract/*.test.js",
+    "test:e2e": "node --test tests/e2e/*.test.js",
+    "test:all": "npm run test:unit && npm run test:contract && npm run test:e2e"
   }
 }
