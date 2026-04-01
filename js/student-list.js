@@ -205,6 +205,7 @@ function setupTableEvents() {
 function getStatusInfo(status) {
     const map = {
         activa: { label: 'Activa', class: 'bg-success/10 text-success' },
+        por_vencer: { label: 'Por vencer', class: 'bg-warning/10 text-warning' },
         vencida: { label: 'Vencida', class: 'bg-danger/10 text-danger' },
         suspendida: { label: 'Suspendida', class: 'bg-warning/10 text-warning' },
         pendiente: { label: 'Pendiente', class: 'bg-slate-800 text-slate-400' },
@@ -245,6 +246,15 @@ function setupFilters() {
     document.getElementById('search-input')?.addEventListener('input', handleFilter);
     document.getElementById('filter-status')?.addEventListener('change', handleFilter);
     document.getElementById('filter-objetivo')?.addEventListener('change', handleFilter);
+    document.getElementById('clear-filters')?.addEventListener('click', async () => {
+        const searchEl = document.getElementById('search-input');
+        const statusEl = document.getElementById('filter-status');
+        const objEl = document.getElementById('filter-objetivo');
+        if (searchEl) searchEl.value = '';
+        if (statusEl) statusEl.value = '';
+        if (objEl) objEl.value = '';
+        await loadStudents();
+    });
 }
 
 // ─── TAB RUTINA ───────────────────────────────────────────────
@@ -783,4 +793,3 @@ function setupModalEliminar() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudentList);
-
