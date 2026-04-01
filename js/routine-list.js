@@ -313,22 +313,14 @@
     document.getElementById('cancel-delete').addEventListener('click', () => closeModal(modalEliminar));
 
     /* ─── Filtros (En Memoria) ───────────────────────────────── */
-    document.querySelectorAll('.filter-chip[data-objetivo]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-chip[data-objetivo]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            filterObjetivo = btn.dataset.objetivo;
-            renderGrid();
-        });
+    document.getElementById('filter-objetivo')?.addEventListener('change', (e) => {
+        filterObjetivo = e.target.value || 'all';
+        renderGrid();
     });
 
-    document.querySelectorAll('.filter-chip[data-diff]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-chip[data-diff]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            filterDiff = btn.dataset.diff;
-            renderGrid();
-        });
+    document.getElementById('filter-diff')?.addEventListener('change', (e) => {
+        filterDiff = e.target.value || 'all';
+        renderGrid();
     });
 
     // Usando el debounce de utils.js para no saturar el navegador si el usuario tipea rápido
@@ -339,11 +331,12 @@
     document.getElementById('search-input').addEventListener('input', handleSearch);
 
     /* ─── Triggers ───────────────────────────────────────────── */
-    document.getElementById('btn-nueva-rutina').addEventListener('click', openCreate);
+    document.getElementById('btn-nueva-rutina').addEventListener('click', () => {
+        window.location.href = 'routine-builder.html';
+    });
     document.getElementById('btn-empty-nueva').addEventListener('click', openCreate);
 
     /* ─── Init ───────────────────────────────────────────────── */
     await loadRoutines();
 
 })();
-

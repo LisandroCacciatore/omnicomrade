@@ -173,6 +173,8 @@
                     <p class="text-slate-500 text-sm mt-1" id="subtitle">Cargando alumnos...</p>
                 </div>
                 <button id="btn-nuevo-alumno"
+                    type="button"
+                    onclick="window.openNewAlumno && window.openNewAlumno()"
                     class="flex items-center gap-2 bg-primary hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">
                     <span class="material-symbols-rounded text-[18px]">add</span><span>Nuevo Alumno</span>
                 </button>
@@ -186,23 +188,35 @@
                     <input type="text" id="search-input" placeholder="Buscar por nombre o email..."
                         class="w-full bg-surface-dark border border-border-dark rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary focus:border-primary transition-all" />
                 </div>
-                <select id="filter-status"
-                    class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all">
-                    <option value="">Todos los estados</option>
-                    <option value="activa">Activa</option>
-                    <option value="vencida">Vencida</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="suspendida">Suspendida</option>
-                </select>
-                <select id="filter-objetivo"
-                    class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all">
-                    <option value="">Todos los objetivos</option>
-                    <option value="fuerza">Fuerza</option>
-                    <option value="estetica">Estética</option>
-                    <option value="rendimiento">Rendimiento</option>
-                    <option value="rehabilitacion">Rehabilitación</option>
-                    <option value="general">General</option>
-                </select>
+                <div class="relative min-w-[210px]">
+                    <span
+                        class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">flag</span>
+                    <select id="filter-status"
+                        class="w-full appearance-none bg-surface-dark border border-border-dark hover:border-primary/50 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                        <option value="">Todos los estados</option>
+                        <option value="activa">Activa</option>
+                        <option value="vencida">Vencida</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="suspendida">Suspendida</option>
+                    </select>
+                    <span
+                        class="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">expand_more</span>
+                </div>
+                <div class="relative min-w-[220px]">
+                    <span
+                        class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">trophy</span>
+                    <select id="filter-objetivo"
+                        class="w-full appearance-none bg-surface-dark border border-border-dark hover:border-primary/50 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                        <option value="">Todos los objetivos</option>
+                        <option value="fuerza">Fuerza</option>
+                        <option value="estetica">Estética</option>
+                        <option value="rendimiento">Rendimiento</option>
+                        <option value="rehabilitacion">Rehabilitación</option>
+                        <option value="general">General</option>
+                    </select>
+                    <span
+                        class="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">expand_more</span>
+                </div>
             </div>
 
             <!-- Tabla -->
@@ -629,7 +643,6 @@
 </body>
 
 </html>
-
 
 
 

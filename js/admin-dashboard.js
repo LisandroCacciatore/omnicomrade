@@ -14,6 +14,7 @@ const { escHtml, toast }  = window.tfUtils;
 
 let assignProgramModal = null;
 let gymId = null;
+let lastCreatedStudent = null;
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initDashboard() {
@@ -25,8 +26,8 @@ async function initDashboard() {
 
     // Skeleton
     recentStudentsTable.innerHTML = `
-        <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-32 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>
-        <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-24 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>`;
+        <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-32 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-28 bg-slate-800 rounded"></div></td></tr>
+        <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-24 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-28 bg-slate-800 rounded"></div></td></tr>`;
 
     await Promise.all([loadKPIs(), loadRecentStudents()]);
     setupQuickActions();
@@ -78,6 +79,7 @@ async function loadRecentStudents() {
         const { data: students, error } = await window.supabaseClient
             .from('students')
             .select('id, full_name, email, membership_status, created_at')
+            .eq('gym_id', gymId)
             .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(5);
@@ -88,6 +90,20 @@ async function loadRecentStudents() {
             recentStudentsTable.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">No hay alumnos registrados todavía.</td></tr>`;
             return;
         }
+
+        const studentIds = students.map(s => s.id);
+        const { data: programs } = await window.supabaseClient
+            .from('student_programs')
+            .select('student_id, program_templates(name)')
+            .eq('status', 'activo')
+            .in('student_id', studentIds);
+
+        const programByStudent = new Map();
+        (programs || []).forEach(p => {
+            if (!programByStudent.has(p.student_id)) {
+                programByStudent.set(p.student_id, p.program_templates?.name || null);
+            }
+        });
 
         recentStudentsTable.innerHTML = students.map(s => `
             <tr class="hover:bg-slate-800/30 transition-colors">
@@ -105,12 +121,8 @@ async function loadRecentStudents() {
                 <td class="px-6 py-4 text-xs text-slate-400">
                     ${new Date(s.created_at).toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' })}
                 </td>
-                <td class="px-6 py-4">
-                    <a href="student-profile.html?id=${s.id}"
-                        class="size-8 rounded-lg border border-border-dark flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors"
-                        title="Ver perfil">
-                        <span class="material-symbols-rounded text-[16px]">visibility</span>
-                    </a>
+                <td class="px-6 py-4 text-xs text-slate-400">
+                    ${escHtml(programByStudent.get(s.id) || 'Sin programa')}
                 </td>
             </tr>`).join('');
 
@@ -191,6 +203,14 @@ window.closeModalAlumno = () => {
         document.getElementById(id)?.classList.add('hidden'));
 };
 
+window.openPostAlumnoModal = () => {
+    document.getElementById('modal-post-alumno')?.classList.add('open');
+};
+
+window.closePostAlumnoModal = () => {
+    document.getElementById('modal-post-alumno')?.classList.remove('open');
+};
+
 async function saveNewStudent() {
     const isNameValid  = window._validateName?.() ?? true;
     const isEmailValid = window._validateEmail?.() ?? true;
@@ -207,19 +227,26 @@ async function saveNewStudent() {
     window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
 
     try {
-        const { error } = await window.supabaseClient.from('students').insert({
+        const payload = {
             gym_id:           gymId,
             full_name:        document.getElementById('input-full-name').value.trim(),
             email:            document.getElementById('input-email').value.trim() || null,
             phone:            document.getElementById('input-phone').value.trim() || null,
             birth_date:       document.getElementById('input-birth-date').value || null,
             membership_status: 'pendiente'
-        });
+        };
+        const { data: createdStudent, error } = await window.supabaseClient
+            .from('students')
+            .insert(payload)
+            .select('id, full_name, email')
+            .single();
 
         if (error) throw error;
 
+        lastCreatedStudent = createdStudent;
         toast('Alumno creado con éxito');
         window.closeModalAlumno();
+        window.openPostAlumnoModal();
         await Promise.all([loadKPIs(), loadRecentStudents()]);
 
     } catch (err) {
@@ -240,11 +267,10 @@ window.openModalMembresia = async () => {
     document.getElementById('modal-nueva-membresia').classList.add('open');
     document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
 
-    // Solo alumnos con membresía activa
+    // Alumnos del gimnasio (incluye pendientes para onboarding)
     const { data: students } = await window.supabaseClient
         .from('students').select('id, full_name')
         .eq('gym_id', gymId)
-        .eq('membership_status', 'activa')
         .is('deleted_at', null).order('full_name');
 
     const select = document.getElementById('membresia-student-id');
@@ -252,6 +278,9 @@ window.openModalMembresia = async () => {
     (students || []).forEach(s => {
         select.innerHTML += `<option value="${s.id}">${escHtml(s.full_name)}</option>`;
     });
+    if (lastCreatedStudent?.id) {
+        select.value = lastCreatedStudent.id;
+    }
 };
 
 window.closeModalMembresia = () => {
@@ -291,16 +320,33 @@ async function saveMembresia() {
 
     window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
     try {
+        const durationByPlan = { mensual: 30, trimestral: 90, anual: 365 };
+        const planDays = durationByPlan[plan] || 30;
+        const endDateObj = new Date(`${startDate}T00:00:00`);
+        endDateObj.setDate(endDateObj.getDate() + planDays - 1);
+        const endDate = endDateObj.toISOString().split('T')[0];
+
         const { error } = await window.supabaseClient.from('memberships').insert({
             gym_id: gymId, student_id: studentId, plan,
-            start_date: startDate, end_date: startDate,
+            start_date: startDate, end_date: endDate,
             amount: parseFloat(amount), payment_method: paymentMethod,
             notes: notes || null
         });
         if (error) throw error;
+
+        const { error: statusErr } = await window.supabaseClient
+            .from('students')
+            .update({ membership_status: 'activa' })
+            .eq('id', studentId);
+        if (statusErr) throw statusErr;
+
         toast('Membresía registrada');
         window.closeModalMembresia();
         await Promise.all([loadKPIs(), loadRecentStudents()]);
+        if (lastCreatedStudent?.id === studentId) {
+            toast('Ahora asigná el programa del alumno');
+            assignProgramModal?.open({ preStudent: lastCreatedStudent });
+        }
     } catch (err) {
         if (errorEl) { errorEl.textContent = 'Error: ' + err.message; errorEl.classList.remove('hidden'); }
     } finally {
@@ -311,7 +357,20 @@ async function saveMembresia() {
 document.getElementById('modal-membresia-backdrop')?.addEventListener('click', window.closeModalMembresia);
 document.getElementById('modal-membresia-close')?.addEventListener('click', window.closeModalMembresia);
 document.getElementById('modal-membresia-submit')?.addEventListener('click', saveMembresia);
+document.getElementById('modal-post-close')?.addEventListener('click', window.closePostAlumnoModal);
+document.getElementById('modal-post-backdrop')?.addEventListener('click', window.closePostAlumnoModal);
+document.getElementById('post-action-membresia')?.addEventListener('click', async () => {
+    window.closePostAlumnoModal();
+    await window.openModalMembresia();
+});
+document.getElementById('post-action-programa')?.addEventListener('click', () => {
+    window.closePostAlumnoModal();
+    if (!lastCreatedStudent?.id) {
+        toast('Primero creá un alumno para asignar programa', 'error');
+        return;
+    }
+    assignProgramModal?.open({ preStudent: lastCreatedStudent });
+});
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initDashboard);
-
