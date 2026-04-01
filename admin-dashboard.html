@@ -287,153 +287,13 @@
         </main>
     </div>
 
-    <!-- Modal Nuevo Alumno -->
-    <div id="modal-nuevo-alumno" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-        <!-- Fondo oscuro -->
-        <div id="modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-
-        <!-- Panel del modal -->
-        <div role="dialog" aria-modal="true" aria-labelledby="modal-alumno-title" class="modal-box relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10">
-            <div class="flex items-center justify-between mb-6">
-                <h3 id="modal-alumno-title" class="text-xl font-black">Nuevo <span class="text-primary">Alumno</span></h3>
-                <button id="modal-close-btn"
-                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-rounded text-slate-400">close</span>
-                </button>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Nombre completo *</label>
-                    <input type="text" id="input-full-name"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                        placeholder="Ej: Juan Pérez" />
-                    <div id="error-input-name" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
-                    <input type="email" id="input-email"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                        placeholder="juan@email.com" />
-                    <div id="error-input-email" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Teléfono</label>
-                    <input type="tel" id="input-phone"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                        placeholder="+54 11 1234-5678" />
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Fecha de nacimiento</label>
-                    <input type="date" id="input-birth-date"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-white py-3 px-4 transition-all" />
-                    <div id="error-input-birth" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                </div>
-
-                <!-- Error -->
-                <div id="modal-error"
-                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
-                </div>
-
-                <button id="modal-submit-btn"
-                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-primary/20 mt-2">
-                    <span id="modal-btn-text">Guardar Alumno</span>
-                    <span id="modal-btn-spinner"
-                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                </button>
-            </div>
-        </div>
+    <!-- Onboarding Wizard (US-03) -->
+    <div id="modal-nuevo-alumno" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
+        <!-- El wizard se renderiza dinámicamente via js/onboardingWizard.js -->
     </div>
 
-    <!-- Modal Nueva Membresía -->
-    <div id="modal-nueva-membresia" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div id="modal-membresia-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-        <div role="dialog" aria-modal="true" aria-labelledby="modal-membresia-title" class="modal-box relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10 focus:outline-none" tabindex="-1">
-            <div class="flex items-center justify-between mb-6">
-                <h3 id="modal-membresia-title" class="text-xl font-black">Nueva <span class="text-success">Membresía</span></h3>
-                <button id="modal-membresia-close"
-                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-rounded text-slate-400">close</span>
-                </button>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <!-- Alumno -->
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Alumno *</label>
-                    <select id="membresia-student-id"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
-                        <option value="">Seleccioná un alumno...</option>
-                    </select>
-                </div>
-
-                <!-- Plan -->
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Plan *</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button data-plan="mensual"
-                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Mensual<br><span class="text-slate-500 font-normal">30 días</span>
-                        </button>
-                        <button data-plan="trimestral"
-                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Trimestral<br><span class="text-slate-500 font-normal">90 días</span>
-                        </button>
-                        <button data-plan="anual"
-                            class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-                            Anual<br><span class="text-slate-500 font-normal">365 días</span>
-                        </button>
-                    </div>
-                    <input type="hidden" id="membresia-plan" value="" />
-                </div>
-
-                <!-- Fecha inicio -->
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Fecha de inicio *</label>
-                    <input type="date" id="membresia-start-date"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all" />
-                </div>
-
-                <!-- Monto y método de pago -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Monto *</label>
-                        <input type="number" id="membresia-amount" min="0" step="0.01"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                            placeholder="0.00" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Método</label>
-                        <select id="membresia-payment-method"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Notas -->
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Notas</label>
-                    <textarea id="membresia-notes" rows="2"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none"
-                        placeholder="Observaciones opcionales..."></textarea>
-                </div>
-
-                <!-- Error -->
-                <div id="modal-membresia-error"
-                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
-                </div>
-
-                <button id="modal-membresia-submit"
-                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-success hover:bg-emerald-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-success/20 mt-2">
-                    <span id="membresia-btn-text">Registrar Membresía</span>
-                    <span id="membresia-btn-spinner"
-                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- Modal Nueva Membresía (deprecated - usar wizard) -->
+    <div id="modal-nueva-membresia" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -441,6 +301,7 @@
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/training-engine.js"></script>
     <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/onboardingWizard.js"></script>
     <script type="module" src="js/program-assign.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/admin-dashboard.js"></script>
