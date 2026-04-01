@@ -261,27 +261,36 @@ class OnboardingWizard {
   _renderStepProgram() {
     const programs = window.tfUtils?.PROGRAMS || [];
     const d = this._data.program || {};
+    const meta = {
+      'starting-strength': { icon: '🚂', level: 'Principiante · 3 días/sem', color: '#10B981' },
+      'stronglifts-5x5': { icon: '🏗️', level: 'Principiante · 3 días/sem', color: '#F97316' },
+      gzclp: { icon: '⚡', level: 'Principiante / Intermedio · 4 días/sem', color: '#8B5CF6' },
+      'wendler-531': { icon: '📈', level: 'Intermedio · 4 días/sem', color: '#3B82F6' },
+      'cube-method': { icon: '🧊', level: 'Intermedio / Avanzado · 3 días/sem', color: '#06B6D4' },
+      ppl: { icon: '🔄', level: 'Intermedio · 6 días/sem', color: '#EC4899' }
+    };
 
     return `
       <div class="flex flex-col gap-4">
         <p class="text-sm text-slate-400">Asigná un programa de entrenamiento al nuevo alumno (opcional).</p>
         
-        <div class="flex flex-col gap-2">
+        <div id="ow-program-list" class="space-y-2">
           ${programs
             .map(
               (p) => `
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-800 hover:border-primary cursor-pointer transition-all
-              ${(d.template_id || '') === p.id ? 'border-primary bg-primary/10' : ''}">
-              <input type="radio" name="ow-program" value="${p.id}" class="hidden"
-                ${(d.template_id || '') === p.id ? 'checked' : ''} />
-              <div class="flex-1">
+            <div class="ow-program-card flex items-center gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218] cursor-pointer transition-colors hover:border-[#3B82F6]/50
+              ${(d.template_id || '') === p.id ? 'border-primary bg-primary/10' : ''}"
+              data-pid="${p.id}"
+              role="button"
+              tabindex="0"
+              aria-pressed="${(d.template_id || '') === p.id ? 'true' : 'false'}">
+              <span class="text-2xl w-9 text-center">${meta[p.id]?.icon || '🏋️'}</span>
+              <div class="flex-1 min-w-0">
                 <div class="font-bold text-white text-sm">${p.name}</div>
-                <div class="text-xs text-slate-500">${p.description}</div>
+                <div class="text-xs text-slate-500 mt-0.5">${meta[p.id]?.level || p.description || 'Programa disponible'}</div>
               </div>
-              <span class="material-symbols-rounded text-slate-600 ${(d.template_id || '') === p.id ? 'text-primary' : ''}">
-                ${(d.template_id || '') === p.id ? 'radio_button_checked' : 'radio_button_unchecked'}
-              </span>
-            </label>
+              <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${meta[p.id]?.color || '#64748B'};"></div>
+            </div>
           `
             )
             .join('')}
@@ -346,16 +355,28 @@ class OnboardingWizard {
   }
 
   _bindStepProgram() {
-    document.querySelectorAll('input[name="ow-program"]').forEach((input) => {
-      input.addEventListener('change', (e) => {
-        document
-          .querySelectorAll('label')
-          .forEach((l) => l.classList.remove('border-primary', 'bg-primary/10'));
-        e.target.closest('label').classList.add('border-primary', 'bg-primary/10');
+    document.querySelectorAll('.ow-program-card').forEach((card) => {
+      const selectCard = () => {
+        document.querySelectorAll('.ow-program-card').forEach((c) => {
+          c.classList.remove('border-primary', 'bg-primary/10');
+          c.setAttribute('aria-pressed', 'false');
+        });
+        card.classList.add('border-primary', 'bg-primary/10');
+        card.setAttribute('aria-pressed', 'true');
+        this._data.program = { template_id: card.dataset.pid };
+      };
+
+      card.addEventListener('click', selectCard);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectCard();
+        }
       });
     });
 
     document.getElementById('ow-skip-program')?.addEventListener('click', () => {
+      this._data.program = null;
       this._submit();
     });
   }
@@ -409,6 +430,12 @@ class OnboardingWizard {
       }
     }
 
+    if (this._currentStep === 3) {
+      if (!this._data.program?.template_id) {
+        this._data.program = null;
+      }
+    }
+
     if (errorEl) errorEl.classList.add('hidden');
 
     if (this._currentStep < 3) {
@@ -428,14 +455,19 @@ class OnboardingWizard {
 
   async _submit() {
     const btn = document.getElementById('ow-next');
+    const skipBtn = document.getElementById('ow-skip-program');
     const originalText = btn?.textContent || 'Completar';
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '<span class="animate-spin mr-2">⟳</span> Guardando...';
     }
+    if (skipBtn) skipBtn.disabled = true;
 
     try {
       const gymId = window.gymId || localStorage.getItem('gym_id');
+      if (!gymId) {
+        throw new Error('No se encontró gym_id para completar el onboarding');
+      }
       const requestId = crypto.randomUUID();
 
       const payload = {
@@ -464,6 +496,7 @@ class OnboardingWizard {
 
       if (typeof window.loadKPIs === 'function') window.loadKPIs();
       if (typeof window.loadRecentStudents === 'function') window.loadRecentStudents();
+      window.dispatchEvent(new CustomEvent('onboarding:completed', { detail: result }));
 
       this.close();
     } catch (err) {
@@ -472,6 +505,7 @@ class OnboardingWizard {
         btn.disabled = false;
         btn.textContent = originalText;
       }
+      if (skipBtn) skipBtn.disabled = false;
       window.tfUtils?.toast?.(err.message || 'Error al guardar', 'error');
     }
   }
