@@ -21,6 +21,7 @@ async function initDashboard() {
   if (!session) return;
 
   gymId = session.user.app_metadata.gym_id;
+  window.gymId = gymId;
   userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
 
   // Skeleton
