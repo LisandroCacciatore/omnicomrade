@@ -339,11 +339,10 @@
     document.getElementById('search-input').addEventListener('input', handleSearch);
 
     /* ─── Triggers ───────────────────────────────────────────── */
-    document.getElementById('btn-nueva-rutina').addEventListener('click', openCreate);
+    document.getElementById('btn-nueva-rutina')?.addEventListener('click', openCreate);
     document.getElementById('btn-empty-nueva').addEventListener('click', openCreate);
 
     /* ─── Init ───────────────────────────────────────────────── */
     await loadRoutines();
 
 })();
-

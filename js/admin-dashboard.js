@@ -29,9 +29,15 @@ async function initDashboard() {
         <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-24 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>`;
 
   await Promise.all([loadKPIs(), loadRecentStudents()]);
+  window.loadKPIs = loadKPIs;
+  window.loadRecentStudents = loadRecentStudents;
   setupQuickActions();
   setupModals();
 }
+
+window.addEventListener('onboarding:completed', async () => {
+  await Promise.all([loadKPIs(), loadRecentStudents()]);
+});
 
 // ─── KPIs ─────────────────────────────────────────────────
 async function loadKPIs() {
