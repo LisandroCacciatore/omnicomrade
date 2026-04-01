@@ -119,14 +119,18 @@ class OnboardingWizard {
 
       return `
         <div class="flex items-center flex-1 ${isLast ? '' : 'pr-2'}">
-          <div class="flex flex-col items-center flex-1">
+          <div class="flex flex-col items-center flex-1 min-w-0 text-center">
             <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
               ${isActive ? 'bg-primary text-white' : ''}
               ${isCompleted ? 'bg-success text-white' : ''}
               ${!isActive && !isCompleted ? 'bg-slate-800 text-slate-500' : ''}">
-              ${isCompleted ? '<span class="material-symbols-rounded text-[16px]">check</span>' : step.id}
+              ${
+                isCompleted
+                  ? '<span class="material-symbols-rounded text-[16px] leading-none">check</span>'
+                  : `<span class="leading-none">${step.id}</span>`
+              }
             </div>
-            <span class="text-[10px] mt-1 font-medium ${isActive ? 'text-primary' : 'text-slate-500'}">${step.title}</span>
+            <span class="text-[10px] mt-1 font-medium leading-none ${isActive ? 'text-primary' : 'text-slate-500'}">${step.title}</span>
           </div>
           ${!isLast ? `<div class="h-0.5 w-full mx-2 ${isCompleted ? 'bg-success' : 'bg-slate-800'}"></div>` : ''}
         </div>`;
@@ -480,17 +484,7 @@ class OnboardingWizard {
           : undefined
       };
 
-      const res = await fetch('/api/onboarding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        throw new Error(result.message || 'Error en el onboarding');
-      }
+      const result = await this._submitWithFallback(payload);
 
       window.tfUtils?.toast?.('Alumno creado exitosamente');
 
@@ -508,6 +502,123 @@ class OnboardingWizard {
       if (skipBtn) skipBtn.disabled = false;
       window.tfUtils?.toast?.(err.message || 'Error al guardar', 'error');
     }
+  }
+
+  async _submitWithFallback(payload) {
+    try {
+      return await this._submitViaApi(payload);
+    } catch (apiErr) {
+      const fallbackable =
+        apiErr?.status === 404 ||
+        apiErr?.code === 'INVALID_JSON_RESPONSE' ||
+        apiErr?.message?.includes('Failed to fetch');
+      if (!fallbackable) throw apiErr;
+      return this._submitViaSupabase(payload);
+    }
+  }
+
+  async _submitViaApi(payload) {
+    const res = await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      const err = new Error('El endpoint /api/onboarding no está disponible en este entorno');
+      err.code = 'INVALID_JSON_RESPONSE';
+      err.status = res.status;
+      err.raw = text?.slice(0, 120);
+      throw err;
+    }
+
+    const result = await res.json();
+    if (!res.ok) {
+      const err = new Error(result.message || 'Error en el onboarding');
+      err.status = res.status;
+      throw err;
+    }
+    return result;
+  }
+
+  async _submitViaSupabase(payload) {
+    const db = window.supabaseClient;
+    if (!db) throw new Error('No hay cliente de base de datos disponible para fallback');
+
+    const { data: studentRow, error: studentErr } = await db
+      .from('students')
+      .insert({
+        gym_id: payload.gym_id,
+        full_name: payload.student?.full_name,
+        email: payload.student?.email || null,
+        phone: payload.student?.phone || null,
+        birth_date: payload.student?.birth_date || null,
+        objetivo: payload.student?.objetivo || 'general',
+        membership_status: payload.membership ? 'activa' : 'pendiente'
+      })
+      .select('id')
+      .single();
+    if (studentErr) throw new Error(studentErr.message || 'No se pudo crear el alumno');
+
+    let membershipId = null;
+    if (payload.membership) {
+      const endDate = this._calculateEndDate(payload.membership.start_date, payload.membership.plan);
+      const { data: membershipRow, error: membershipErr } = await db
+        .from('memberships')
+        .insert({
+          gym_id: payload.gym_id,
+          student_id: studentRow.id,
+          plan: payload.membership.plan,
+          amount: payload.membership.amount,
+          payment_method: payload.membership.payment_method || 'efectivo',
+          start_date: payload.membership.start_date,
+          end_date: endDate,
+          notes: payload.membership.notes || null
+        })
+        .select('id')
+        .single();
+      if (membershipErr) throw new Error(membershipErr.message || 'No se pudo crear la membresía');
+      membershipId = membershipRow.id;
+    }
+
+    let programId = null;
+    if (payload.program?.template_id) {
+      const { data: programRow, error: programErr } = await db
+        .from('student_programs')
+        .insert({
+          gym_id: payload.gym_id,
+          student_id: studentRow.id,
+          template_id: payload.program.template_id,
+          rm_values: {},
+          started_at: new Date().toISOString().split('T')[0],
+          status: 'activo'
+        })
+        .select('id')
+        .single();
+      if (!programErr && programRow?.id) {
+        programId = programRow.id;
+      }
+    }
+
+    return {
+      success: true,
+      student_id: studentRow.id,
+      membership_id: membershipId,
+      program_id: programId,
+      source: 'supabase_fallback'
+    };
+  }
+
+  _calculateEndDate(startDate, plan) {
+    if (!startDate) return null;
+    const start = new Date(startDate);
+    if (Number.isNaN(start.getTime())) return null;
+    if (plan === 'trimestral') start.setMonth(start.getMonth() + 3);
+    else if (plan === 'anual') start.setFullYear(start.getFullYear() + 1);
+    else start.setMonth(start.getMonth() + 1);
+    return start.toISOString().split('T')[0];
   }
 }
 
