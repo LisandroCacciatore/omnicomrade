@@ -277,14 +277,9 @@
                 <h1 class="text-lg font-bold text-white">Rutinas</h1>
             </div>
             <div class="flex items-center gap-2">
-                <a href="routine-builder.html"
-                    class="flex items-center gap-2 border border-border-dark hover:bg-slate-800 transition text-slate-400 text-sm font-semibold px-3 py-2 rounded-xl">
-                    <span class="material-symbols-rounded text-[17px]">edit_note</span>
-                    Crear desde cero
-                </a>
                 <button id="btn-nueva-rutina"
                     class="flex items-center gap-2 bg-primary hover:bg-blue-500 transition text-white text-sm font-semibold px-4 py-2 rounded-xl">
-                    <span class="material-symbols-rounded text-[18px]">add</span>Nueva rutina
+                    <span class="material-symbols-rounded text-[18px]">edit_note</span>Crear desde cero
                 </button>
             </div>
         </header>
@@ -344,19 +339,33 @@
                         <input id="search-input" type="text" placeholder="Buscar rutina..."
                             class="w-full bg-bg-dark border border-border-dark rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:border-primary outline-none transition-colors" />
                     </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="filter-chip active" data-objetivo="all">Todos</button>
-                        <button class="filter-chip" data-objetivo="fuerza">Fuerza</button>
-                        <button class="filter-chip" data-objetivo="estetica">Estética</button>
-                        <button class="filter-chip" data-objetivo="rendimiento">Rendimiento</button>
-                        <button class="filter-chip" data-objetivo="rehabilitacion">Rehab.</button>
-                        <button class="filter-chip" data-objetivo="general">General</button>
+                    <div class="relative min-w-[220px]">
+                        <span
+                            class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">trophy</span>
+                        <select id="filter-objetivo"
+                            class="w-full appearance-none bg-bg-dark border border-border-dark hover:border-primary/50 rounded-xl py-2 pl-10 pr-10 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+                            <option value="all">Todos los objetivos</option>
+                            <option value="fuerza">Fuerza</option>
+                            <option value="estetica">Estética</option>
+                            <option value="rendimiento">Rendimiento</option>
+                            <option value="rehabilitacion">Rehabilitación</option>
+                            <option value="general">General</option>
+                        </select>
+                        <span
+                            class="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">expand_more</span>
                     </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="filter-chip active" data-diff="all">Todos</button>
-                        <button class="filter-chip" data-diff="principiante">Principiante</button>
-                        <button class="filter-chip" data-diff="intermedio">Intermedio</button>
-                        <button class="filter-chip" data-diff="avanzado">Avanzado</button>
+                    <div class="relative min-w-[220px]">
+                        <span
+                            class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">military_tech</span>
+                        <select id="filter-diff"
+                            class="w-full appearance-none bg-bg-dark border border-border-dark hover:border-primary/50 rounded-xl py-2 pl-10 pr-10 text-sm text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all">
+                            <option value="all">Todos los niveles</option>
+                            <option value="principiante">Principiante</option>
+                            <option value="intermedio">Intermedio</option>
+                            <option value="avanzado">Avanzado</option>
+                        </select>
+                        <span
+                            class="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px] pointer-events-none">expand_more</span>
                     </div>
                 </div>
 
@@ -547,7 +556,6 @@
 </body>
 
 </html>
-
 
 
 

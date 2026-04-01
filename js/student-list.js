@@ -672,7 +672,14 @@ function setupModalAlumno() {
         await loadStudents();
     }
 
-    document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAlumno);
+    const newStudentBtn = document.getElementById('btn-nuevo-alumno');
+    if (newStudentBtn && !newStudentBtn.dataset.boundNewAlumno) {
+        newStudentBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.openNewAlumno?.();
+        });
+        newStudentBtn.dataset.boundNewAlumno = '1';
+    }
     document.getElementById('modal-alumno-backdrop')?.addEventListener('click', closeModal);
     document.getElementById('modal-alumno-close')?.addEventListener('click', closeModal);
     document.getElementById('form-alumno')?.addEventListener('submit', handleSave);
@@ -783,4 +790,3 @@ function setupModalEliminar() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initStudentList);
-

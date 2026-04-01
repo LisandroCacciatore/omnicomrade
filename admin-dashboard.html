@@ -219,7 +219,7 @@
                                     <th class="px-6 py-4">Alumno</th>
                                     <th class="px-6 py-4">Estado</th>
                                     <th class="px-6 py-4">F. Ingreso</th>
-                                    <th class="px-6 py-4">Cuentas</th>
+                                    <th class="px-6 py-4">Programa asignado</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-border-dark" id="recent-students-table">
@@ -235,7 +235,7 @@
                                         <div class="h-4 w-20 bg-slate-800 rounded"></div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="h-4 w-8 bg-slate-800 rounded"></div>
+                                        <div class="h-4 w-28 bg-slate-800 rounded"></div>
                                     </td>
                                 </tr>
                                 <tr class="animate-pulse">
@@ -249,7 +249,7 @@
                                         <div class="h-4 w-20 bg-slate-800 rounded"></div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="h-4 w-8 bg-slate-800 rounded"></div>
+                                        <div class="h-4 w-28 bg-slate-800 rounded"></div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -345,6 +345,34 @@
         </div>
     </div>
 
+    <!-- Modal post alta alumno -->
+    <div id="modal-post-alumno" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="modal-post-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div role="dialog" aria-modal="true" aria-labelledby="modal-post-title"
+            class="modal-box relative bg-surface-dark border border-border-dark rounded-2xl p-6 w-full max-w-md shadow-2xl z-10">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="modal-post-title" class="text-lg font-black">Alumno creado ✅</h3>
+                <button id="modal-post-close" type="button"
+                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-rounded text-slate-400">close</span>
+                </button>
+            </div>
+            <p class="text-sm text-slate-400 mb-4">¿Qué querés hacer ahora con este alumno?</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button id="post-action-membresia" type="button"
+                    class="bg-surface-dark border border-border-dark p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-slate-800 hover:border-primary transition-all group">
+                    <span class="material-symbols-rounded text-success group-hover:scale-110 transition-transform">sell</span>
+                    <span class="text-xs font-bold">Nueva Membresía</span>
+                </button>
+                <button id="post-action-programa" type="button"
+                    class="bg-surface-dark border border-border-dark p-4 rounded-xl flex flex-col items-center gap-2 hover:bg-slate-800 hover:border-primary transition-all group">
+                    <span class="material-symbols-rounded text-primary group-hover:scale-110 transition-transform">add_task</span>
+                    <span class="text-xs font-bold">Asignar Programa</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Nueva Membresía -->
     <div id="modal-nueva-membresia" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
         <div id="modal-membresia-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -371,15 +399,15 @@
                 <div class="flex flex-col gap-1">
                     <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Plan *</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button data-plan="mensual"
+                        <button data-plan="mensual" type="button"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
                             Mensual<br><span class="text-slate-500 font-normal">30 días</span>
                         </button>
-                        <button data-plan="trimestral"
+                        <button data-plan="trimestral" type="button"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
                             Trimestral<br><span class="text-slate-500 font-normal">90 días</span>
                         </button>
-                        <button data-plan="anual"
+                        <button data-plan="anual" type="button"
                             class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
                             Anual<br><span class="text-slate-500 font-normal">365 días</span>
                         </button>
@@ -448,8 +476,6 @@
 </body>
 
 </html>
-
-
 
 
 
