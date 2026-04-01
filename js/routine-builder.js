@@ -575,8 +575,20 @@
     e.preventDefault();
 
     const name = document.getElementById('routine-name').value.trim();
-    if (!name) { toast('El nombre es obligatorio', 'error'); return; }
-    if (!days.length) { toast('Agregá al menos un día', 'error'); return; }
+    const validation = window.tfRoutineBuilderUtils?.validateRoutineDraft
+      ? window.tfRoutineBuilderUtils.validateRoutineDraft({ name, days })
+      : { valid: !!name && days.length > 0, errors: {} };
+    if (!validation.valid) {
+      if (validation.errors.name) {
+        toast(validation.errors.name[0], 'error');
+        document.getElementById('routine-name')?.focus();
+      } else if (validation.errors.days) {
+        toast(validation.errors.days[0], 'error');
+      } else if (validation.errors.exercises) {
+        toast(validation.errors.exercises[0], 'error');
+      }
+      return;
+    }
 
     const btn = document.getElementById('btn-save-routine');
     btn.disabled = true;

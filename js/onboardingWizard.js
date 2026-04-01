@@ -356,6 +356,7 @@ class OnboardingWizard {
     });
 
     document.getElementById('ow-skip-program')?.addEventListener('click', () => {
+      this._data.program = null;
       this._submit();
     });
   }
@@ -409,6 +410,11 @@ class OnboardingWizard {
       }
     }
 
+    if (this._currentStep === 3) {
+      const selectedProgram = document.querySelector('input[name="ow-program"]:checked');
+      this._data.program = selectedProgram ? { template_id: selectedProgram.value } : null;
+    }
+
     if (errorEl) errorEl.classList.add('hidden');
 
     if (this._currentStep < 3) {
@@ -428,11 +434,13 @@ class OnboardingWizard {
 
   async _submit() {
     const btn = document.getElementById('ow-next');
+    const skipBtn = document.getElementById('ow-skip-program');
     const originalText = btn?.textContent || 'Completar';
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '<span class="animate-spin mr-2">⟳</span> Guardando...';
     }
+    if (skipBtn) skipBtn.disabled = true;
 
     try {
       const gymId = window.gymId || localStorage.getItem('gym_id');
@@ -464,6 +472,7 @@ class OnboardingWizard {
 
       if (typeof window.loadKPIs === 'function') window.loadKPIs();
       if (typeof window.loadRecentStudents === 'function') window.loadRecentStudents();
+      window.dispatchEvent(new CustomEvent('onboarding:completed', { detail: result }));
 
       this.close();
     } catch (err) {
@@ -472,6 +481,7 @@ class OnboardingWizard {
         btn.disabled = false;
         btn.textContent = originalText;
       }
+      if (skipBtn) skipBtn.disabled = false;
       window.tfUtils?.toast?.(err.message || 'Error al guardar', 'error');
     }
   }
