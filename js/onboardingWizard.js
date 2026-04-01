@@ -585,21 +585,48 @@ class OnboardingWizard {
 
     let programId = null;
     if (payload.program?.template_id) {
+      const templateId = await this._resolveProgramTemplateId(db, payload.program.template_id);
+      if (!templateId) {
+        throw new Error('No se encontró el template del programa seleccionado');
+      }
+
+      const { data: activeProgram } = await db
+        .from('student_programs')
+        .select('id')
+        .eq('student_id', studentRow.id)
+        .eq('status', 'activo')
+        .maybeSingle();
+
+      if (activeProgram?.id) {
+        await db
+          .from('student_programs')
+          .update({ status: 'cancelado', updated_at: new Date().toISOString() })
+          .eq('id', activeProgram.id);
+      }
+
+      const selectedProgram = (window.tfUtils?.PROGRAMS || []).find(
+        (p) => p.id === payload.program.template_id
+      );
+      const rmValues = {};
+      (selectedProgram?.inputs || []).forEach((i) => {
+        rmValues[i.id] = i.default || null;
+      });
+
       const { data: programRow, error: programErr } = await db
         .from('student_programs')
         .insert({
           gym_id: payload.gym_id,
           student_id: studentRow.id,
-          template_id: payload.program.template_id,
-          rm_values: {},
+          template_id: templateId,
+          rm_values: rmValues,
           started_at: new Date().toISOString().split('T')[0],
+          current_week: 1,
           status: 'activo'
         })
         .select('id')
         .single();
-      if (!programErr && programRow?.id) {
-        programId = programRow.id;
-      }
+      if (programErr) throw new Error(programErr.message || 'No se pudo asignar el programa');
+      programId = programRow.id;
     }
 
     return {
@@ -619,6 +646,24 @@ class OnboardingWizard {
     else if (plan === 'anual') start.setFullYear(start.getFullYear() + 1);
     else start.setMonth(start.getMonth() + 1);
     return start.toISOString().split('T')[0];
+  }
+
+  async _resolveProgramTemplateId(db, templateOrSlug) {
+    if (!templateOrSlug) return null;
+
+    const byId = await db
+      .from('program_templates')
+      .select('id')
+      .eq('id', templateOrSlug)
+      .maybeSingle();
+    if (byId.data?.id) return byId.data.id;
+
+    const bySlug = await db
+      .from('program_templates')
+      .select('id')
+      .eq('slug', templateOrSlug)
+      .maybeSingle();
+    return bySlug.data?.id || null;
   }
 }
 
