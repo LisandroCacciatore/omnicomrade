@@ -1,7 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import '../../../js/routine-builder-utils.js';
 
-const { parseSetsStr } = require('../../../js/routine-builder-utils');
+const { parseSetsStr } = globalThis.tfRoutineBuilderUtils;
 
 function sidFactory() {
   let n = 0;

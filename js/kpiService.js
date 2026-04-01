@@ -130,9 +130,6 @@ function diffDays(date1, date2) {
   const oneDay = 24 * 60 * 60 * 1000;
   return Math.ceil((date1 - date2) / oneDay);
 }
-  const oneDay = 24 * 60 * 60 * 1000;
-  return Math.ceil((date1 - date2) / oneDay);
-}
 
 export const kpiService = {
   definitions: KPI_DEFINITIONS,

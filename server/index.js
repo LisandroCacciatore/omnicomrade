@@ -1,7 +1,7 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import onboardingRouter from './routes/onboarding.js';
-
+import membershipRouter from './routes/membership.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -15,8 +15,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-import onboardingRouter from './routes/onboarding.js';
-import membershipRouter from './routes/membership.js';
 
 app.use(express.json());
 

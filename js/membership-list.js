@@ -171,6 +171,7 @@ function setupFilters() {
     const searchInput = document.getElementById('search-input');
     const filterStatus = document.getElementById('filter-status');
     const filterPlan = document.getElementById('filter-plan');
+    const clearBtn = document.getElementById('clear-membership-filters');
 
     function applyFilters() {
         const search = searchInput.value.toLowerCase();
@@ -200,6 +201,12 @@ function setupFilters() {
     searchInput.addEventListener('input', applyFilters);
     filterStatus.addEventListener('change', applyFilters);
     filterPlan.addEventListener('change', applyFilters);
+    clearBtn?.addEventListener('click', () => {
+        searchInput.value = '';
+        filterStatus.value = '';
+        filterPlan.value = '';
+        applyFilters();
+    });
 }
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
@@ -304,5 +311,4 @@ function setupModal() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initMembershipList);
-
 

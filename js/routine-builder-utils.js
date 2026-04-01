@@ -42,7 +42,26 @@
     }));
   }
 
-  const api = { parseSetsStr, defaultSet };
+  function validateRoutineDraft(input) {
+    const name = String(input?.name || '').trim();
+    const days = Array.isArray(input?.days) ? input.days : [];
+    const exerciseCount = days.reduce((acc, d) => {
+      const list = Array.isArray(d?.exercises) ? d.exercises : [];
+      return acc + list.length;
+    }, 0);
+
+    const errors = {};
+    if (!name) errors.name = ['El nombre es obligatorio'];
+    if (!days.length) errors.days = ['Agregá al menos un día'];
+    if (days.length && exerciseCount < 1) errors.exercises = ['Agregá al menos un ejercicio'];
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+
+  const api = { parseSetsStr, defaultSet, validateRoutineDraft };
   global.tfRoutineBuilderUtils = api;
 
   if (typeof module !== 'undefined' && module.exports) {
