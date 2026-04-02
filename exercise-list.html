@@ -725,6 +725,37 @@
                     </div>
 
                     <hr class="divider mx-4 my-3" />
+                    <div class="px-4 mb-2">
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Objetivo</p>
+                        <div class="flex flex-wrap gap-1.5" id="goal-filters">
+                            <button class="cat-chip active" data-goal="all">Todos</button>
+                            <button class="cat-chip" data-goal="fuerza">Fuerza</button>
+                            <button class="cat-chip" data-goal="hipertrofia">Hipertrofia</button>
+                            <button class="cat-chip" data-goal="resistencia_muscular">Resistencia</button>
+                            <button class="cat-chip" data-goal="movilidad">Movilidad</button>
+                            <button class="cat-chip" data-goal="potencia">Potencia</button>
+                            <button class="cat-chip" data-goal="readaptacion">Readaptación</button>
+                        </div>
+                    </div>
+
+                    <hr class="divider mx-4 my-3" />
+                    <div class="px-4 mb-2">
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Patrón</p>
+                        <div class="flex flex-wrap gap-1.5" id="pattern-filters">
+                            <button class="cat-chip active" data-pattern="all">Todos</button>
+                            <button class="cat-chip" data-pattern="empuje_horizontal">Empuje H</button>
+                            <button class="cat-chip" data-pattern="empuje_vertical">Empuje V</button>
+                            <button class="cat-chip" data-pattern="traccion_horizontal">Tracción H</button>
+                            <button class="cat-chip" data-pattern="traccion_vertical">Tracción V</button>
+                            <button class="cat-chip" data-pattern="dominante_rodilla">Rodilla</button>
+                            <button class="cat-chip" data-pattern="dominante_cadera">Cadera</button>
+                            <button class="cat-chip" data-pattern="core_anti_extension">Core anti-ext</button>
+                            <button class="cat-chip" data-pattern="core_anti_rotacion">Core anti-rot</button>
+                            <button class="cat-chip" data-pattern="locomocion">Locomoción</button>
+                        </div>
+                    </div>
+
+                    <hr class="divider mx-4 my-3" />
                     <div class="px-4 mb-4">
                         <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Origen</p>
                         <div class="flex gap-1.5">
@@ -733,9 +764,44 @@
                             <button class="cat-chip" data-origin="custom">Propios</button>
                         </div>
                     </div>
+
+                    <hr class="divider mx-4 my-3" />
+                    <div class="px-4 mb-2">
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Preferencias</p>
+                        <div class="flex gap-1.5">
+                            <button class="cat-chip" data-favs-only="true">Solo favoritos</button>
+                        </div>
+                    </div>
+
+                    <hr class="divider mx-4 my-3" />
+                    <div class="px-4 mb-4">
+                        <p class="text-[10px] font-800 text-slate-600 uppercase tracking-widest mb-2">Equipamiento disponible</p>
+                        <div class="flex flex-wrap gap-1.5 mb-2" id="available-equipment-filters">
+                            <button class="cat-chip" data-avail-equip="barra">Barra</button>
+                            <button class="cat-chip" data-avail-equip="mancuernas">Mancuernas</button>
+                            <button class="cat-chip" data-avail-equip="maquina">Máquina</button>
+                            <button class="cat-chip" data-avail-equip="cable">Cable</button>
+                            <button class="cat-chip" data-avail-equip="peso_corporal">Peso corporal</button>
+                            <button class="cat-chip" data-avail-equip="banda">Banda</button>
+                            <button class="cat-chip" data-avail-equip="kettlebell">Kettlebell</button>
+                        </div>
+                        <button class="cat-chip" data-compatible-only="true">Mostrar solo compatibles</button>
+                    </div>
                 </div>
 
                 <div class="flex-1 p-5 overflow-y-auto min-w-0">
+                    <div class="bg-[#161E26] border border-[#1E293B] rounded-2xl p-3 mb-4">
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <p class="text-xs font-bold text-white">Asistente de recomendación (P2)</p>
+                            <button id="btn-generate-recs" type="button" class="cat-chip active">Sugerir 5</button>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mb-2">Usa objetivo/patrón/filtros activos + frecuencia de uso local.</p>
+                        <div id="recs-list" class="text-[11px] text-slate-400 space-y-1"></div>
+                        <hr class="divider my-2" />
+                        <p class="text-[11px] font-semibold text-slate-300 mb-1">Más usados (local)</p>
+                        <div id="usage-top-list" class="text-[11px] text-slate-400 space-y-1"></div>
+                    </div>
+
                     <div class="flex items-center justify-between mb-4">
                         <p id="result-count" class="text-xs font-600 text-slate-500">Cargando...</p>
                         <div class="search-wrap w-52 lg:hidden">
@@ -829,6 +895,71 @@
             </div>
 
             <div>
+                <label class="form-label">Objetivo principal *</label>
+                <div class="flex flex-wrap gap-2" id="goal-picker">
+                    <button type="button" class="sel-btn" data-val="fuerza" data-color="red">Fuerza</button>
+                    <button type="button" class="sel-btn" data-val="hipertrofia" data-color="blue">Hipertrofia</button>
+                    <button type="button" class="sel-btn" data-val="resistencia_muscular" data-color="green">Resistencia</button>
+                    <button type="button" class="sel-btn" data-val="movilidad" data-color="purple">Movilidad</button>
+                    <button type="button" class="sel-btn" data-val="potencia" data-color="amber">Potencia</button>
+                    <button type="button" class="sel-btn" data-val="readaptacion" data-color="slate">Readaptación</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">Patrón de movimiento *</label>
+                <div class="flex flex-wrap gap-2" id="pattern-picker">
+                    <button type="button" class="sel-btn" data-val="empuje_horizontal" data-color="blue">Empuje horizontal</button>
+                    <button type="button" class="sel-btn" data-val="empuje_vertical" data-color="blue">Empuje vertical</button>
+                    <button type="button" class="sel-btn" data-val="traccion_horizontal" data-color="green">Tracción horizontal</button>
+                    <button type="button" class="sel-btn" data-val="traccion_vertical" data-color="green">Tracción vertical</button>
+                    <button type="button" class="sel-btn" data-val="dominante_rodilla" data-color="amber">Dominante rodilla</button>
+                    <button type="button" class="sel-btn" data-val="dominante_cadera" data-color="amber">Dominante cadera</button>
+                    <button type="button" class="sel-btn" data-val="core_anti_extension" data-color="purple">Core anti-extensión</button>
+                    <button type="button" class="sel-btn" data-val="core_anti_rotacion" data-color="purple">Core anti-rotación</button>
+                    <button type="button" class="sel-btn" data-val="locomocion" data-color="slate">Locomoción</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">Nivel de seguridad *</label>
+                <div class="flex flex-wrap gap-2" id="safety-picker">
+                    <button type="button" class="sel-btn" data-val="sin_alerta" data-color="green">Sin alerta</button>
+                    <button type="button" class="sel-btn" data-val="precaucion" data-color="amber">Precaución</button>
+                    <button type="button" class="sel-btn" data-val="supervision_recomendada" data-color="blue">Supervisión recomendada</button>
+                    <button type="button" class="sel-btn" data-val="alerta_alta" data-color="red">Alerta alta</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">Cue técnico *</label>
+                <input id="ex-cue" type="text" class="form-input"
+                    placeholder="Ej: columna neutra durante todo el recorrido" maxlength="120" />
+            </div>
+
+            <div>
+                <label class="form-label">Complejidad técnica *</label>
+                <div class="flex gap-2" id="complexity-picker">
+                    <button type="button" class="sel-btn flex-1" data-val="1" data-color="green">1</button>
+                    <button type="button" class="sel-btn flex-1" data-val="2" data-color="green">2</button>
+                    <button type="button" class="sel-btn flex-1" data-val="3" data-color="amber">3</button>
+                    <button type="button" class="sel-btn flex-1" data-val="4" data-color="red">4</button>
+                    <button type="button" class="sel-btn flex-1" data-val="5" data-color="red">5</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label">Regresión (opcional)</label>
+                    <select id="ex-regression-id" class="form-input"></select>
+                </div>
+                <div>
+                    <label class="form-label">Progresión (opcional)</label>
+                    <select id="ex-progression-id" class="form-input"></select>
+                </div>
+            </div>
+
+            <div>
                 <label class="form-label">Equipamiento</label>
                 <div class="flex flex-wrap gap-2" id="equip-picker">
                     <button type="button" class="sel-btn" data-val="barra" data-color="slate">Barra</button>
@@ -899,8 +1030,6 @@
 </body>
 
 </html>
-
-
 
 
 
