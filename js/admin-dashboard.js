@@ -14,6 +14,10 @@ const { escHtml, toast } = window.tfUtils;
 
 let assignProgramModal = null;
 let gymId = null;
+let authUserId = null;
+let alertStudents = [];
+const alertSelectedStudentIds = new Set();
+let gymMembershipPlans = [];
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initDashboard() {
@@ -21,6 +25,7 @@ async function initDashboard() {
   if (!session) return;
 
   gymId = session.user.app_metadata.gym_id;
+  authUserId = session.user.id;
   window.gymId = gymId;
   userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
 
@@ -173,19 +178,211 @@ function setupQuickActions() {
 
   document
     .querySelector('[data-action="nueva-membresia"]')
-    ?.addEventListener('click', window.openModalMembresia);
+    ?.addEventListener('click', () => {
+      if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
+      else toast('No se pudo abrir el modal de membresía', 'error');
+    });
 
-  // Enviar alerta — Aviso masivo
-  document.getElementById('btn-enviar-alerta')?.addEventListener('click', () => {
-    const msg = prompt('Ingresá el mensaje para el aviso masivo:');
-    if (msg) {
-      toast('Aviso enviado correctamente');
-    }
+  document.getElementById('btn-enviar-alerta')?.addEventListener('click', openAlertModal);
+}
+
+async function loadStudentsForAlerts() {
+  const { data, error } = await window.supabaseClient
+    .from('students')
+    .select('id, full_name, email')
+    .eq('gym_id', gymId)
+    .is('deleted_at', null)
+    .order('full_name', { ascending: true });
+
+  if (error) throw error;
+  alertStudents = data || [];
+}
+
+function renderSingleStudentOptions() {
+  const select = document.getElementById('alert-student-single');
+  if (!select) return;
+  if (!alertStudents.length) {
+    select.innerHTML = '<option value="">No hay alumnos disponibles</option>';
+    return;
+  }
+  select.innerHTML = [
+    '<option value="">Seleccioná un alumno</option>',
+    ...alertStudents.map(
+      (student) =>
+        `<option value="${student.id}">${escHtml(student.full_name || 'Sin nombre')} · ${escHtml(student.email || 'sin email')}</option>`
+    )
+  ].join('');
+}
+
+function renderMultiStudentOptions(query = '') {
+  const listEl = document.getElementById('alert-student-multi-list');
+  if (!listEl) return;
+  const term = query.trim().toLowerCase();
+  const filtered = !term
+    ? alertStudents
+    : alertStudents.filter((student) =>
+        `${student.full_name || ''} ${student.email || ''}`.toLowerCase().includes(term)
+      );
+
+  if (!filtered.length) {
+    listEl.innerHTML = '<p class="text-xs text-slate-500 p-2">No se encontraron alumnos.</p>';
+    return;
+  }
+
+  listEl.innerHTML = filtered
+    .map((student) => {
+      const checked = alertSelectedStudentIds.has(student.id) ? 'checked' : '';
+      return `
+        <label class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-800 cursor-pointer">
+          <input type="checkbox" class="accent-primary" data-alert-student-id="${student.id}" ${checked} />
+          <span class="text-xs text-slate-200">${escHtml(student.full_name || 'Sin nombre')}</span>
+          <span class="text-[10px] text-slate-500">${escHtml(student.email || 'sin email')}</span>
+        </label>
+      `;
+    })
+    .join('');
+
+  listEl.querySelectorAll('input[type="checkbox"][data-alert-student-id]').forEach((input) => {
+    input.addEventListener('change', (e) => {
+      const studentId = e.target.dataset.alertStudentId;
+      if (!studentId) return;
+      if (e.target.checked) alertSelectedStudentIds.add(studentId);
+      else alertSelectedStudentIds.delete(studentId);
+    });
   });
+}
+
+function setAlertModalOpen(isOpen) {
+  const modal = document.getElementById('modal-enviar-aviso');
+  if (!modal) return;
+  modal.classList.toggle('hidden', !isOpen);
+  modal.classList.toggle('flex', isOpen);
+}
+
+function setAlertMode(mode) {
+  const singleWrap = document.getElementById('alert-single-wrap');
+  const multiWrap = document.getElementById('alert-multiple-wrap');
+  if (!singleWrap || !multiWrap) return;
+  singleWrap.classList.toggle('hidden', mode !== 'single');
+  multiWrap.classList.toggle('hidden', mode !== 'multiple');
+}
+
+function resetAlertModal() {
+  const form = document.getElementById('form-enviar-aviso');
+  const searchInput = document.getElementById('alert-student-search');
+  const typeSelect = document.getElementById('alert-target-type');
+  const errorEl = document.getElementById('alert-modal-error');
+  form?.reset();
+  if (typeSelect) typeSelect.value = 'single';
+  if (searchInput) searchInput.value = '';
+  errorEl?.classList.add('hidden');
+  errorEl.textContent = '';
+  alertSelectedStudentIds.clear();
+  setAlertMode('single');
+}
+
+async function openAlertModal() {
+  const errorEl = document.getElementById('alert-modal-error');
+  try {
+    await loadStudentsForAlerts();
+    renderSingleStudentOptions();
+    renderMultiStudentOptions();
+    resetAlertModal();
+    setAlertModalOpen(true);
+  } catch (err) {
+    console.error('Error loading students for alert modal:', err);
+    if (errorEl) {
+      errorEl.textContent = 'No se pudieron cargar los alumnos para enviar avisos.';
+      errorEl.classList.remove('hidden');
+    }
+    toast('No se pudo abrir el modal de avisos', 'error');
+  }
+}
+
+function closeAlertModal() {
+  resetAlertModal();
+  setAlertModalOpen(false);
+}
+
+async function handleAlertSubmit(e) {
+  e.preventDefault();
+  const errorEl = document.getElementById('alert-modal-error');
+  const submitBtn = document.getElementById('submit-modal-aviso');
+  const targetType = document.getElementById('alert-target-type')?.value || 'single';
+  const singleStudentId = document.getElementById('alert-student-single')?.value || '';
+  const message = (document.getElementById('alert-message')?.value || '').trim();
+
+  const recipientIds = targetType === 'single' ? (singleStudentId ? [singleStudentId] : []) : Array.from(alertSelectedStudentIds);
+
+  if (errorEl) {
+    errorEl.classList.add('hidden');
+    errorEl.textContent = '';
+  }
+  if (!recipientIds.length) {
+    if (errorEl) {
+      errorEl.textContent = 'Seleccioná al menos un alumno.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+  if (!message) {
+    if (errorEl) {
+      errorEl.textContent = 'El mensaje es obligatorio.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  window.tfUtils.setBtnLoading(submitBtn, true, 'Enviando...');
+  try {
+    const { error } = await window.supabaseClient.from('gym_messages').insert({
+      gym_id: gymId,
+      sender_profile_id: authUserId,
+      recipient_student_ids: recipientIds,
+      recipient_count: recipientIds.length,
+      target_type: targetType,
+      message
+    });
+
+    if (error) throw error;
+
+    closeAlertModal();
+    toast(`Aviso enviado a ${recipientIds.length} alumno${recipientIds.length === 1 ? '' : 's'}`);
+  } catch (err) {
+    console.error('Error sending alert message:', err);
+    if (errorEl) {
+      errorEl.textContent =
+        err.code === '42P01'
+          ? 'La tabla de mensajería no existe todavía. Aplicá las migraciones de Supabase.'
+          : `No se pudo enviar el aviso: ${err.message || 'error desconocido'}`;
+      errorEl.classList.remove('hidden');
+    }
+  } finally {
+    window.tfUtils.setBtnLoading(submitBtn, false, 'Enviar aviso');
+  }
 }
 
 // ─── MODAL NUEVO ALUMNO ───────────────────────────────────
 function setupModals() {
+  const alertTypeEl = document.getElementById('alert-target-type');
+  const alertSearchEl = document.getElementById('alert-student-search');
+  const selectAllBtn = document.getElementById('alert-select-all');
+  const alertForm = document.getElementById('form-enviar-aviso');
+  const alertModal = document.getElementById('modal-enviar-aviso');
+
+  document.getElementById('close-modal-aviso')?.addEventListener('click', closeAlertModal);
+  document.getElementById('cancel-modal-aviso')?.addEventListener('click', closeAlertModal);
+  alertModal?.addEventListener('click', (evt) => {
+    if (evt.target === alertModal) closeAlertModal();
+  });
+  alertTypeEl?.addEventListener('change', (evt) => setAlertMode(evt.target.value));
+  alertSearchEl?.addEventListener('input', (evt) => renderMultiStudentOptions(evt.target.value));
+  selectAllBtn?.addEventListener('click', () => {
+    alertStudents.forEach((student) => alertSelectedStudentIds.add(student.id));
+    renderMultiStudentOptions(alertSearchEl?.value || '');
+  });
+  alertForm?.addEventListener('submit', handleAlertSubmit);
+
   window._validateName = window.tfUtils.setupValidation(
     document.getElementById('input-full-name'),
     document.getElementById('error-input-name'),
@@ -273,6 +470,48 @@ document.getElementById('modal-backdrop')?.addEventListener('click', window.clos
 document.getElementById('modal-submit-btn')?.addEventListener('click', saveNewStudent);
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
+async function loadGymMembershipPlans() {
+  const { data, error } = await window.supabaseClient
+    .from('gym_membership_plans')
+    .select('plan_key, label, duration_days, amount, is_active')
+    .eq('gym_id', gymId)
+    .eq('is_active', true)
+    .order('duration_days', { ascending: true });
+  if (error) throw error;
+  gymMembershipPlans = data || [];
+}
+
+function renderGymMembershipPlanButtons() {
+  const container = document.getElementById('membresia-plan-buttons');
+  if (!container) return;
+  if (!gymMembershipPlans.length) {
+    container.innerHTML = '<p class="text-xs text-danger col-span-3">No hay planes creados para este gimnasio.</p>';
+    return;
+  }
+  container.innerHTML = gymMembershipPlans
+    .map(
+      (plan) => `
+      <button type="button" data-plan="${plan.plan_key}" data-amount="${plan.amount ?? ''}"
+        class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+        ${escHtml(plan.label || plan.plan_key)}<br>
+        <span class="text-slate-500 font-normal">${Number(plan.duration_days || 0)} días</span>
+      </button>`
+    )
+    .join('');
+}
+
+function selectGymMembershipPlan(planKey, amount = null) {
+  document
+    .querySelectorAll('#membresia-plan-buttons .plan-btn')
+    .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
+  const selectedBtn = document.querySelector(`#membresia-plan-buttons .plan-btn[data-plan="${planKey}"]`);
+  if (selectedBtn) selectedBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
+  document.getElementById('membresia-plan').value = planKey || '';
+  const amountInput = document.getElementById('membresia-amount');
+  const parsed = Number(amount ?? selectedBtn?.dataset.amount);
+  if (amountInput) amountInput.value = Number.isFinite(parsed) ? String(parsed) : '';
+}
+
 window.openModalMembresia = async () => {
   document.getElementById('modal-nueva-membresia').classList.add('open');
   document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
@@ -291,6 +530,14 @@ window.openModalMembresia = async () => {
   (students || []).forEach((s) => {
     select.innerHTML += `<option value="${s.id}">${escHtml(s.full_name)}</option>`;
   });
+
+  try {
+    await loadGymMembershipPlans();
+    renderGymMembershipPlanButtons();
+    selectGymMembershipPlan('', null);
+  } catch (err) {
+    toast('No se pudieron cargar los planes de membresía', 'error');
+  }
 };
 
 window.closeModalMembresia = () => {
@@ -307,11 +554,7 @@ window.closeModalMembresia = () => {
 
 document.querySelectorAll('.plan-btn').forEach((btn) => {
   btn.addEventListener('click', () => {
-    document
-      .querySelectorAll('.plan-btn')
-      .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-    btn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
-    document.getElementById('membresia-plan').value = btn.dataset.plan;
+    selectGymMembershipPlan(btn.dataset.plan, btn.dataset.amount);
   });
 });
 
