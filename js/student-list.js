@@ -9,6 +9,12 @@ let studentToDelete = null;
 let activePanelStudentId = null;
 let assignModal = null;
 let gymId = null;
+let gymMembershipPlans = [];
+const DEFAULT_PLAN_META = {
+    mensual: { label: 'Mensual', duration_days: 30, amount: 30000 },
+    trimestral: { label: 'Trimestral', duration_days: 90, amount: 80000 },
+    anual: { label: 'Anual', duration_days: 365, amount: 280000 }
+};
 
 // ─── INIT ─────────────────────────────────────────────────────
 async function initStudentList() {
@@ -246,15 +252,6 @@ function setupFilters() {
     document.getElementById('search-input')?.addEventListener('input', handleFilter);
     document.getElementById('filter-status')?.addEventListener('change', handleFilter);
     document.getElementById('filter-objetivo')?.addEventListener('change', handleFilter);
-    document.getElementById('clear-filters')?.addEventListener('click', async () => {
-        const searchEl = document.getElementById('search-input');
-        const statusEl = document.getElementById('filter-status');
-        const objEl = document.getElementById('filter-objetivo');
-        if (searchEl) searchEl.value = '';
-        if (statusEl) statusEl.value = '';
-        if (objEl) objEl.value = '';
-        await loadStudents();
-    });
 }
 
 // ─── TAB RUTINA ───────────────────────────────────────────────
@@ -693,27 +690,79 @@ function setupModalMembresia() {
     const db = window.supabaseClient;
     const errorEl = document.getElementById('modal-membresia-error');
     const submitBtn = document.getElementById('modal-membresia-submit');
+    const planButtonsContainer = document.getElementById('membresia-plan-buttons');
 
-    window.openMembresiaForStudent = function (studentId, studentName) {
+    async function loadGymPlans() {
+        const { data, error } = await db
+            .from('gym_membership_plans')
+            .select('plan_key, label, duration_days, amount, is_active')
+            .eq('gym_id', gymId)
+            .eq('is_active', true)
+            .order('duration_days', { ascending: true });
+
+        if (error && error.code !== '42P01') throw error;
+        if (data && data.length) {
+            gymMembershipPlans = data;
+            return;
+        }
+        gymMembershipPlans = Object.entries(DEFAULT_PLAN_META).map(([plan_key, meta]) => ({
+            plan_key,
+            ...meta,
+            is_active: true
+        }));
+    }
+
+    function renderPlanButtons() {
+        if (!planButtonsContainer) return;
+        if (!gymMembershipPlans.length) {
+            planButtonsContainer.innerHTML = '<p class="text-xs text-danger col-span-3">No hay planes disponibles.</p>';
+            return;
+        }
+        planButtonsContainer.innerHTML = gymMembershipPlans.map((plan) => `
+            <button type="button" data-plan="${plan.plan_key}" data-amount="${plan.amount ?? ''}"
+                class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+                ${window.tfUtils.escHtml(plan.label || plan.plan_key)}<br>
+                <span class="text-slate-500 font-normal">${Number(plan.duration_days || 0)} días</span>
+            </button>
+        `).join('');
+    }
+
+    function selectPlan(planKey, amount = null) {
+        document.querySelectorAll('#membresia-plan-buttons .plan-btn').forEach((b) =>
+            b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
+        const selectedBtn = document.querySelector(`#membresia-plan-buttons .plan-btn[data-plan="${planKey}"]`);
+        if (selectedBtn) selectedBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
+        document.getElementById('membresia-plan').value = planKey || '';
+        const parsedAmount = Number(amount ?? selectedBtn?.dataset.amount);
+        const amountInput = document.getElementById('membresia-amount');
+        if (amountInput) amountInput.value = Number.isFinite(parsedAmount) ? String(parsedAmount) : '';
+    }
+
+    window.openMembresiaForStudent = async function (studentId, studentName) {
+        try {
+            await loadGymPlans();
+        } catch (err) {
+            if (errorEl) { errorEl.textContent = 'No se pudieron cargar los planes del gimnasio.'; errorEl.classList.remove('hidden'); }
+            return;
+        }
+        renderPlanButtons();
         document.getElementById('membresia-student-id').value = studentId;
         document.getElementById('membresia-student-name').textContent = studentName;
         document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
         document.getElementById('membresia-plan').value = '';
         document.getElementById('membresia-amount').value = '';
         document.getElementById('membresia-notes').value = '';
-        document.querySelectorAll('.plan-btn').forEach(b => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
+        document.querySelectorAll('#membresia-plan-buttons .plan-btn').forEach(b => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
         errorEl?.classList.add('hidden');
         window.tfUtils.showModal('modal-nueva-membresia');
     };
 
     function closeModal() { window.tfUtils.hideModal('modal-nueva-membresia'); }
 
-    document.querySelectorAll('.plan-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.plan-btn').forEach(b => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-            btn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
-            document.getElementById('membresia-plan').value = btn.dataset.plan;
-        });
+    planButtonsContainer?.addEventListener('click', (evt) => {
+        const btn = evt.target.closest('.plan-btn');
+        if (!btn) return;
+        selectPlan(btn.dataset.plan, btn.dataset.amount);
     });
 
     async function handleSave(e) {
