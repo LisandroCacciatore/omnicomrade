@@ -795,10 +795,10 @@
                             <p class="text-xs font-bold text-white">Asistente de recomendación (P2)</p>
                             <button id="btn-generate-recs" type="button" class="cat-chip active">Sugerir 5</button>
                         </div>
-                        <p class="text-[11px] text-slate-500 mb-2">Usa objetivo/patrón/filtros activos + frecuencia de uso local.</p>
+                        <p class="text-[11px] text-slate-500 mb-2">Usa objetivo/patrón/filtros activos + frecuencia de uso server-side.</p>
                         <div id="recs-list" class="text-[11px] text-slate-400 space-y-1"></div>
                         <hr class="divider my-2" />
-                        <p class="text-[11px] font-semibold text-slate-300 mb-1">Más usados (local)</p>
+                        <p class="text-[11px] font-semibold text-slate-300 mb-1">Más usados (últimos 30 días)</p>
                         <div id="usage-top-list" class="text-[11px] text-slate-400 space-y-1"></div>
                     </div>
 
@@ -1020,6 +1020,20 @@
         </form>
     </div>
 
+    <div id="modal-replacements" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="p-6">
+                <h3 class="text-sm font-bold text-white mb-1">Reemplazos sugeridos</h3>
+                <p id="replacement-title" class="text-xs text-slate-400 mb-4"></p>
+                <div id="replacement-list" class="space-y-2 text-xs text-slate-300"></div>
+                <div class="flex justify-end mt-5">
+                    <button type="button" id="close-replacements"
+                        class="py-2.5 px-4 rounded-xl border border-[#1E293B] text-sm font-semibold text-slate-400 hover:bg-[#1A2330] transition-colors">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="js/supabase.js"></script>
     <script type="module" src="js/auth-guard.js"></script>
@@ -1030,8 +1044,6 @@
 </body>
 
 </html>
-
-
 
 
 

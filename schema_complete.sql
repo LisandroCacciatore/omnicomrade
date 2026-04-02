@@ -92,6 +92,7 @@ CREATE TABLE gyms (
   logo_url    TEXT,
   color       TEXT DEFAULT '#3B82F6',
   plan        TEXT DEFAULT 'free' CHECK (plan IN ('free', 'premium')),
+  available_equipment JSONB NOT NULL DEFAULT '["barra","mancuernas","maquina","cable","peso_corporal","banda","kettlebell","otros"]'::jsonb,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at  TIMESTAMPTZ
@@ -465,6 +466,59 @@ BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$;
 CREATE TRIGGER set_exercises_updated_at
   BEFORE UPDATE ON exercises
   FOR EACH ROW EXECUTE FUNCTION update_exercises_updated_at();
+
+CREATE TABLE exercise_favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, exercise_id)
+);
+
+CREATE TABLE exercise_usage_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  exercise_id UUID NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
+  used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_exercise_favorites_user_id ON exercise_favorites(user_id);
+CREATE INDEX idx_exercise_favorites_exercise_id ON exercise_favorites(exercise_id);
+CREATE INDEX idx_exercise_usage_user_id ON exercise_usage_events(user_id);
+CREATE INDEX idx_exercise_usage_exercise_id ON exercise_usage_events(exercise_id);
+CREATE INDEX idx_exercise_usage_used_at ON exercise_usage_events(used_at DESC);
+
+ALTER TABLE exercise_favorites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exercise_usage_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "exercise_favorites_select_own" ON exercise_favorites
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "exercise_favorites_insert_own" ON exercise_favorites
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid() AND EXISTS (
+      SELECT 1 FROM exercises e
+      WHERE e.id = exercise_id
+        AND e.deleted_at IS NULL
+        AND (e.is_global = TRUE OR e.gym_id = get_current_gym_id())
+    )
+  );
+
+CREATE POLICY "exercise_favorites_delete_own" ON exercise_favorites
+  FOR DELETE USING (user_id = auth.uid());
+
+CREATE POLICY "exercise_usage_select_own" ON exercise_usage_events
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "exercise_usage_insert_own" ON exercise_usage_events
+  FOR INSERT WITH CHECK (
+    user_id = auth.uid() AND EXISTS (
+      SELECT 1 FROM exercises e
+      WHERE e.id = exercise_id
+        AND e.deleted_at IS NULL
+        AND (e.is_global = TRUE OR e.gym_id = get_current_gym_id())
+    )
+  );
 
 -- Ejercicios dentro de un día (routine-builder)
 CREATE TABLE routine_day_exercises (

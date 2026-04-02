@@ -61,7 +61,7 @@
     let filterPattern   = 'all';
     let filterOrigin    = 'all';
     let filterFavsOnly  = false;
-    let filterCompatibleOnly = false;
+    let filterCompatibleOnly = true;
     const availableEquipment = new Set();
     let searchQuery     = '';
     let viewMode        = 'grid';
@@ -80,10 +80,8 @@
     let selRegressionId = null;
     let selProgressionId = null;
 
-    const favoritesKey = `tf:favorites:${session.user.id}`;
-    const usageKey = `tf:usage:${session.user.id}`;
-    const favorites = new Set(JSON.parse(localStorage.getItem(favoritesKey) || '[]'));
-    const usageMap = JSON.parse(localStorage.getItem(usageKey) || '{}');
+    const favorites = new Set();
+    const usageMap = {};
   
     /* ─── DOM ───────────────────────────────────────────────── */
     const grid      = document.getElementById('exercises-grid');
@@ -93,6 +91,7 @@
     const backdrop  = document.getElementById('drawer-backdrop');
     const formDel   = document.getElementById('form-delete-exercise');
     const modalDel  = document.getElementById('modal-delete');
+    const modalRepl = document.getElementById('modal-replacements');
   
     /* ─── Funciones de Filtros y Músculos ────────────────────── */
     function buildMuscleList(counts = {}) {
@@ -174,12 +173,30 @@
       return c;
     }
 
-    function persistFavorites() {
-      localStorage.setItem(favoritesKey, JSON.stringify([...favorites]));
+    async function loadGymEquipment() {
+      const { data } = await db.from('gyms').select('available_equipment').eq('id', gymId).single();
+      availableEquipment.clear();
+      (data?.available_equipment || []).forEach(e => availableEquipment.add(e));
+      document.querySelectorAll('[data-avail-equip]').forEach(btn => {
+        btn.classList.toggle('active', availableEquipment.has(btn.dataset.availEquip));
+      });
     }
 
-    function persistUsage() {
-      localStorage.setItem(usageKey, JSON.stringify(usageMap));
+    async function loadFavorites() {
+      favorites.clear();
+      const { data } = await db.from('exercise_favorites')
+        .select('exercise_id')
+        .eq('user_id', session.user.id);
+      (data || []).forEach(row => favorites.add(row.exercise_id));
+    }
+
+    async function loadUsageStats() {
+      Object.keys(usageMap).forEach(k => delete usageMap[k]);
+      const { data } = await db.from('exercise_usage_events')
+        .select('exercise_id')
+        .eq('user_id', session.user.id)
+        .gte('used_at', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString());
+      (data || []).forEach(row => { usageMap[row.exercise_id] = (usageMap[row.exercise_id] || 0) + 1; });
     }
 
     function populateProgressionSelectors(currentId = null) {
@@ -230,6 +247,23 @@
         ? list.map(ex => `<div>• ${escHtml(ex.name)} <span class="text-slate-600">(${GOAL_LABELS[ex.main_goal] || 'sin objetivo'})</span></div>`).join('')
         : '<div class="text-slate-600">Sin recomendación con filtros actuales</div>';
     }
+
+    function openReplacements(exerciseId) {
+      const current = allExercises.find(ex => ex.id === exerciseId);
+      if (!current) return;
+      const candidates = allExercises
+        .filter(ex => ex.id !== current.id)
+        .filter(ex => ex.main_goal === current.main_goal)
+        .filter(ex => ex.movement_pattern === current.movement_pattern || ex.muscle_group === current.muscle_group)
+        .filter(ex => ex.safety_level !== 'alerta_alta')
+        .filter(ex => !ex.equipment || availableEquipment.has(ex.equipment) || ex.equipment === 'otros')
+        .slice(0, 6);
+      document.getElementById('replacement-title').textContent = `Alternativas para ${current.name}`;
+      document.getElementById('replacement-list').innerHTML = candidates.length
+        ? candidates.map(ex => `<div class="p-2 rounded-lg bg-[#0B1218] border border-[#1E293B]">${escHtml(ex.name)} <span class="text-slate-500">• ${PATTERN_LABELS[ex.movement_pattern] || ex.muscle_group}</span></div>`).join('')
+        : '<div class="text-slate-500">No hay reemplazos compatibles con equipamiento/configuración actual.</div>';
+      modalRepl.classList.add('open');
+    }
   
     document.querySelectorAll('[data-cat]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -277,11 +311,7 @@
 
     document.querySelectorAll('[data-avail-equip]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const equip = btn.dataset.availEquip;
-        if (availableEquipment.has(equip)) availableEquipment.delete(equip);
-        else availableEquipment.add(equip);
-        btn.classList.toggle('active', availableEquipment.has(equip));
-        renderGrid();
+        toast('Equipamiento definido por configuración del gym');
       });
     });
 
@@ -441,6 +471,10 @@
                 <span class="material-symbols-rounded text-[14px]" style="font-variation-settings:'FILL' 1">play_circle</span>
                 Ver video
               </a>` : ''}
+            <button type="button" class="ml-auto flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200" data-action="replace" data-id="${ex.id}">
+              <span class="material-symbols-rounded text-[14px]">swap_horiz</span>
+              Reemplazos
+            </button>
           </div>
           ${(ex.regression_exercise_id || ex.progression_exercise_id) ? `
             <div class="flex flex-wrap gap-1 mt-2">
@@ -456,15 +490,25 @@
         const editBtn = e.target.closest('button[data-action="edit"]');
         const deleteBtn = e.target.closest('button[data-action="delete"]');
         const favBtn = e.target.closest('button[data-action="favorite"]');
+        const replBtn = e.target.closest('button[data-action="replace"]');
         const cardEl = e.target.closest('.exercise-card');
         
         if (favBtn) {
             e.stopPropagation();
             const id = favBtn.dataset.id;
-            if (favorites.has(id)) favorites.delete(id);
-            else favorites.add(id);
-            persistFavorites();
-            renderGrid();
+            (async () => {
+              if (favorites.has(id)) {
+                await db.from('exercise_favorites').delete().eq('user_id', session.user.id).eq('exercise_id', id);
+                favorites.delete(id);
+              } else {
+                await db.from('exercise_favorites').insert({ user_id: session.user.id, exercise_id: id });
+                favorites.add(id);
+              }
+              renderGrid();
+            })();
+        } else if (replBtn) {
+            e.stopPropagation();
+            openReplacements(replBtn.dataset.id);
         } else if (editBtn) {
             e.stopPropagation();
             openEdit(editBtn.dataset.id);
@@ -475,7 +519,7 @@
             const id = cardEl.querySelector('[data-action="favorite"]')?.dataset.id;
             if (id) {
               usageMap[id] = (usageMap[id] || 0) + 1;
-              persistUsage();
+              db.from('exercise_usage_events').insert({ user_id: session.user.id, exercise_id: id, used_at: new Date().toISOString() });
               renderUsageTop();
             }
         }
@@ -688,6 +732,8 @@
   
     document.getElementById('cancel-delete').addEventListener('click', () => modalDel.classList.remove('open'));
     modalDel.addEventListener('click', e => { if (e.target === modalDel) modalDel.classList.remove('open'); });
+    document.getElementById('close-replacements').addEventListener('click', () => modalRepl.classList.remove('open'));
+    modalRepl.addEventListener('click', e => { if (e.target === modalRepl) modalRepl.classList.remove('open'); });
   
     formDel.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -721,14 +767,20 @@
       if (e.key === 'Escape') {
         if (drawer.classList.contains('open')) closeDrawer();
         if (modalDel.classList.contains('open')) modalDel.classList.remove('open');
+        if (modalRepl.classList.contains('open')) modalRepl.classList.remove('open');
       }
     });
   
     /* ─── Init ────────────────────────────────────────────────── */
     initBindSelBtns(); // Ejecutar SOLO UNA VEZ aquí
     buildMusclePicker();
+    const compatBtn = document.querySelector('[data-compatible-only]');
+    if (compatBtn) compatBtn.classList.toggle('active', filterCompatibleOnly);
+    await loadGymEquipment();
+    await loadFavorites();
+    await loadUsageStats();
     renderUsageTop();
-    generateRecommendations();
     await loadExercises();
+    generateRecommendations();
   
   })();
