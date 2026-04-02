@@ -79,6 +79,7 @@
     let selComplexity = null;
     let selRegressionId = null;
     let selProgressionId = null;
+    const unsupportedExerciseColumns = new Set();
 
     const favorites = new Set();
     const usageMap = {};
@@ -212,6 +213,45 @@
       prog.innerHTML = options;
       reg.value = selRegressionId || '';
       prog.value = selProgressionId || '';
+    }
+
+    function extractMissingColumnFromError(error) {
+      const raw = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ');
+      if (!raw) return null;
+      const patterns = [
+        /Could not find the '([^']+)' column/i,
+        /column ["']?([a-zA-Z0-9_]+)["']? .* does not exist/i,
+        /Could not find a relationship between ['"][^'"]+['"] and ['"]([^'"]+)['"]/i,
+      ];
+      for (const re of patterns) {
+        const match = raw.match(re);
+        if (match?.[1]) return match[1];
+      }
+      return null;
+    }
+
+    async function saveExerciseWithSchemaFallback(payload) {
+      const attemptPayload = { ...payload };
+      unsupportedExerciseColumns.forEach((column) => { delete attemptPayload[column]; });
+
+      for (let i = 0; i < 8; i += 1) {
+        const query = editingId
+          ? db.from('exercises').update(attemptPayload).eq('id', editingId)
+          : db.from('exercises').insert(attemptPayload);
+        const { error } = await query;
+        if (!error) return { error: null, downgraded: unsupportedExerciseColumns.size > 0 };
+
+        const missingColumn = extractMissingColumnFromError(error);
+        if (!missingColumn || !(missingColumn in attemptPayload)) return { error, downgraded: unsupportedExerciseColumns.size > 0 };
+
+        unsupportedExerciseColumns.add(missingColumn);
+        delete attemptPayload[missingColumn];
+      }
+
+      return {
+        error: { message: 'No se pudo guardar por incompatibilidad de esquema en la base de datos.' },
+        downgraded: unsupportedExerciseColumns.size > 0
+      };
     }
 
     function renderUsageTop() {
@@ -706,20 +746,19 @@
       btn.disabled = true;
       btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando…`;
   
-      let error;
-      if (editingId) {
-        ({ error } = await db.from('exercises').update(payload).eq('id', editingId));
-      } else {
-        ({ error } = await db.from('exercises').insert(payload));
-      }
+      const { error, downgraded } = await saveExerciseWithSchemaFallback(payload);
   
       btn.disabled = false;
       btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>${editingId ? 'Actualizar' : 'Guardar ejercicio'}`;
   
       if (error) { errEl.textContent = 'Error al guardar en base de datos. Intentá de nuevo.'; errEl.classList.remove('hidden'); return; }
-  
+
       closeDrawer();
-      toast(editingId ? 'Ejercicio actualizado' : 'Ejercicio creado ✓');
+      toast(
+        downgraded
+          ? 'Ejercicio guardado (modo compatibilidad de esquema)'
+          : (editingId ? 'Ejercicio actualizado' : 'Ejercicio creado ✓')
+      );
       await loadExercises();
     });
   
