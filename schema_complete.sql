@@ -399,6 +399,20 @@ CREATE TABLE exercises (
                  'core','piernas','gluteos','cardio','otros')),
   category     TEXT CHECK (category IN ('fuerza','hipertrofia','resistencia','movilidad','tecnica')),
   difficulty   TEXT CHECK (difficulty IN ('principiante','intermedio','avanzado')),
+  main_goal    TEXT CHECK (main_goal IN (
+                 'fuerza','hipertrofia','resistencia_muscular',
+                 'movilidad','potencia','readaptacion')),
+  movement_pattern TEXT CHECK (movement_pattern IN (
+                 'empuje_horizontal','empuje_vertical',
+                 'traccion_horizontal','traccion_vertical',
+                 'dominante_rodilla','dominante_cadera',
+                 'core_anti_extension','core_anti_rotacion','locomocion')),
+  safety_level TEXT CHECK (safety_level IN (
+                 'sin_alerta','precaucion','supervision_recomendada','alerta_alta')),
+  technical_cue TEXT,
+  complexity_level SMALLINT CHECK (complexity_level BETWEEN 1 AND 5),
+  regression_exercise_id UUID REFERENCES exercises(id) ON DELETE SET NULL,
+  progression_exercise_id UUID REFERENCES exercises(id) ON DELETE SET NULL,
   equipment    TEXT CHECK (equipment IN (
                  'barra','mancuernas','maquina','cable',
                  'peso_corporal','banda','kettlebell','otros')),
@@ -415,6 +429,12 @@ CREATE TABLE exercises (
 CREATE INDEX idx_exercises_gym_id      ON exercises(gym_id);
 CREATE INDEX idx_exercises_is_global   ON exercises(is_global);
 CREATE INDEX idx_exercises_muscle      ON exercises(muscle_group);
+CREATE INDEX idx_exercises_main_goal   ON exercises(main_goal);
+CREATE INDEX idx_exercises_pattern     ON exercises(movement_pattern);
+CREATE INDEX idx_exercises_safety      ON exercises(safety_level);
+CREATE INDEX idx_exercises_complexity  ON exercises(complexity_level);
+CREATE INDEX idx_exercises_regression  ON exercises(regression_exercise_id);
+CREATE INDEX idx_exercises_progression ON exercises(progression_exercise_id);
 CREATE INDEX idx_exercises_deleted_at  ON exercises(deleted_at);
 
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
