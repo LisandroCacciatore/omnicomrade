@@ -44,7 +44,15 @@ async function authGuard(allowedRoles = []) {
             return null;
         }
 
-        const role = session.user.app_metadata?.role;
+        let role = session.user.app_metadata?.role;
+        if (!role) {
+            const { data: profile } = await window.supabaseClient
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle();
+            role = profile?.role || localStorage.getItem('tf_role') || null;
+        }
         console.log(`👤 authGuard: Usuario ${session.user.email} con rol [${role}]`);
 
         // Sincronizar con localStorage para el sidebar (US-12)

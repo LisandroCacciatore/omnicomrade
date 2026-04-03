@@ -16,6 +16,10 @@ const getStudentHomeUrl = () => {
   const db    = window.supabaseClient
   const gymId = session.user.app_metadata.gym_id
   const userId = session.user.id
+  const apiHeaders = {
+    'Content-Type': 'application/json',
+    'x-actor-id': userId,
+  }
 
   /* ─── Resolver student_id ──────────────────────────────── */
   const { data: studentRecord } = await db
@@ -33,6 +37,7 @@ const getStudentHomeUrl = () => {
     window.location.href = getStudentHomeUrl()
     return
   }
+  let pendingWorkout = JSON.parse(pendingRaw)
 
   /* ─── State ────────────────────────────────────────────── */
   const answers = { sleep: null, pain: null, energy: null, painZone: null }
@@ -248,17 +253,17 @@ const getStudentHomeUrl = () => {
 
     // Enriquecer payload → workout-session lo lee
     try {
-      const pending = JSON.parse(pendingRaw)
       const score   = calcScore()
       const { level, label } = getScoreLevel(score)
-      pending.wellbeing = {
+      pendingWorkout.wellbeing = {
         score, level, label,
         sleep:    answers.sleep,
         pain:     answers.pain,
         energy:   answers.energy,
         painZone: answers.painZone,
       }
-      sessionStorage.setItem('activeWorkout', JSON.stringify(pending))
+      await saveIntentWellbeing(pendingWorkout)
+      sessionStorage.setItem('activeWorkout', JSON.stringify(pendingWorkout))
     } catch (_) {
       sessionStorage.setItem('activeWorkout', pendingRaw)
     }
@@ -268,10 +273,40 @@ const getStudentHomeUrl = () => {
   }
 
   function skipAndRedirect() {
-    sessionStorage.setItem('activeWorkout', pendingRaw)
+    sessionStorage.setItem('activeWorkout', JSON.stringify(pendingWorkout))
     sessionStorage.removeItem('pendingWorkout')
     window.location.href = 'workout-session.html'
   }
 
-})()
+  async function saveIntentWellbeing(pending) {
+    if (!studentId || !gymId) return
 
+    if (!pending.intentId) {
+      const createRes = await fetch('/api/workouts/intents', {
+        method: 'POST',
+        headers: apiHeaders,
+        body: JSON.stringify({
+          gym_id: gymId,
+          student_id: studentId,
+          routine_name: pending.routineName || null,
+          day_name: pending.dayName || null,
+          source_payload: pending,
+        }),
+      })
+      if (!createRes.ok) return
+      const created = await createRes.json()
+      pending.intentId = created?.intent?.id || null
+    }
+
+    if (!pending.intentId) return
+
+    await fetch(`/api/workouts/intents/${pending.intentId}/wellbeing`, {
+      method: 'POST',
+      headers: apiHeaders,
+      body: JSON.stringify({
+        wellbeing: pending.wellbeing || null,
+      }),
+    })
+  }
+
+})()

@@ -80,7 +80,28 @@
                 <span id="btn-spinner" class="hidden animate-spin size-5 border-2 border-white/30 border-t-white rounded-full"></span>
                 <span class="material-symbols-rounded group-hover:translate-x-1 transition-transform text-[20px]">arrow_forward</span>
             </button>
+
+            <div class="relative my-2">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                <div class="relative flex justify-center"><span class="bg-[#161E26] px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">o</span></div>
+            </div>
+
+            <button type="button" id="google-login-btn"
+                class="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 px-6 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="size-5"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.659 32.657 29.2 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.048 6.053 29.277 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 16.108 19.001 13 24 13c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.048 6.053 29.277 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.176 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.144 35.091 26.715 36 24 36c-5.179 0-9.624-3.327-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.084 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                Continuar con Google
+            </button>
         </form>
+
+        <div class="mt-6 p-4 rounded-xl border border-slate-800 bg-slate-900/30">
+            <p class="text-xs text-slate-400 mb-3">¿No tenés acceso todavía? Sumate al cupo inicial (15 personas).</p>
+            <form id="access-request-form" class="flex flex-col gap-2">
+                <input id="access-name" type="text" class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" placeholder="Tu nombre" />
+                <input id="access-email" type="email" required class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" placeholder="tu@email.com" />
+                <button type="submit" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold py-2">Solicitar acceso</button>
+                <p id="access-request-feedback" class="hidden text-xs font-bold"></p>
+            </form>
+        </div>
 
         <div class="mt-8 pt-6 border-t border-slate-800 text-center">
             <p class="text-slate-500 text-xs"> TechFitness SaaS &copy; 2024 </p>
@@ -103,7 +124,6 @@
     </script>
 </body>
 </html>
-
 
 
 
