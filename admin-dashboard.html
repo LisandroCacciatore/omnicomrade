@@ -292,6 +292,71 @@
         <!-- El wizard se renderiza dinámicamente via js/onboardingWizard.js -->
     </div>
 
+    <!-- Modal Enviar Aviso -->
+    <div id="modal-enviar-aviso"
+        class="modal-backdrop fixed inset-0 z-50 items-center justify-center p-4 bg-black/70 hidden">
+        <form id="form-enviar-aviso"
+            class="w-full max-w-2xl rounded-2xl border border-border-dark bg-surface-dark shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-border-dark flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold">Enviar aviso</h3>
+                    <p class="text-xs text-slate-400">Podés enviarlo a un alumno o a una lista personalizada.</p>
+                </div>
+                <button type="button" id="close-modal-aviso"
+                    class="size-8 rounded-lg border border-border-dark text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-rounded text-[18px]">close</span>
+                </button>
+            </div>
+
+            <div class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Destino</label>
+                    <select id="alert-target-type"
+                        class="mt-1 w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200">
+                        <option value="single">Alumno puntual</option>
+                        <option value="multiple">Lista de alumnos</option>
+                    </select>
+                </div>
+
+                <div id="alert-single-wrap">
+                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Alumno</label>
+                    <select id="alert-student-single"
+                        class="mt-1 w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200"></select>
+                </div>
+
+                <div id="alert-multiple-wrap" class="hidden space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Lista de alumnos</label>
+                        <button type="button" id="alert-select-all"
+                            class="text-[11px] font-semibold text-primary hover:underline">Seleccionar todos</button>
+                    </div>
+                    <input id="alert-student-search" type="text" placeholder="Buscar por nombre o email..."
+                        class="w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200" />
+                    <div id="alert-student-multi-list"
+                        class="max-h-48 overflow-auto rounded-xl border border-border-dark bg-slate-900 p-2 space-y-1"></div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Mensaje</label>
+                    <textarea id="alert-message" rows="4" maxlength="500"
+                        class="mt-1 w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200"
+                        placeholder="Escribí el aviso para tus alumnos..."></textarea>
+                    <p class="mt-1 text-[11px] text-slate-500">Máximo 500 caracteres.</p>
+                </div>
+
+                <p id="alert-modal-error" class="hidden text-xs font-semibold text-danger"></p>
+            </div>
+
+            <div class="px-6 py-4 border-t border-border-dark flex gap-2">
+                <button type="button" id="cancel-modal-aviso"
+                    class="flex-1 rounded-xl border border-border-dark px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 transition-colors">Cancelar</button>
+                <button type="submit" id="submit-modal-aviso"
+                    class="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white hover:brightness-110 transition-all">Enviar
+                    aviso</button>
+            </div>
+        </form>
+    </div>
+
     <!-- Modal Nueva Membresía (deprecated - usar wizard) -->
     <div id="modal-nueva-membresia" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none;">
 
@@ -309,7 +374,6 @@
 </body>
 
 </html>
-
 
 
 

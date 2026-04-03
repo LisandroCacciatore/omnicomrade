@@ -86,6 +86,43 @@ router.post('/transition', async (req, res) => {
   }
 });
 
+
+router.post('/recompute/:studentId', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { data, error } = await supabase.rpc('rpc_membership_recompute_student', {
+      p_student_id: studentId
+    });
+
+    if (error) throw error;
+
+    return res.json({ success: true, student_id: studentId, status: data });
+  } catch (error) {
+    console.error('Membership recompute student error:', error);
+    return res.status(500).json({ error: 'No se pudo recomputar estado', detail: error.message });
+  }
+});
+
+router.post('/recompute-all', async (req, res) => {
+  try {
+    const { gym_id } = req.body;
+    if (!gym_id) {
+      return res.status(400).json({ error: 'gym_id es obligatorio' });
+    }
+
+    const { data, error } = await supabase.rpc('rpc_membership_recompute_gym', {
+      p_gym_id: gym_id
+    });
+
+    if (error) throw error;
+
+    return res.json({ success: true, gym_id, updated: data });
+  } catch (error) {
+    console.error('Membership recompute gym error:', error);
+    return res.status(500).json({ error: 'No se pudo recomputar estados del gym', detail: error.message });
+  }
+});
+
 router.get('/states', (req, res) => {
   return res.json({
     states: ['pendiente', 'activa', 'por_vencer', 'vencida', 'suspendida'],

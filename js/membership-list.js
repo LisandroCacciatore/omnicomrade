@@ -1,20 +1,30 @@
 // ─── ESTADO ───────────────────────────────────────────────
 let allMemberships = [];
+let gymId = null;
+let membershipPlanCatalog = [];
 const { escHtml } = window.tfUtils;
+const PLAN_DEFAULTS = {
+    mensual: { label: 'Mensual', duration_days: 30, amount: 30000 },
+    trimestral: { label: 'Trimestral', duration_days: 90, amount: 80000 },
+    anual: { label: 'Anual', duration_days: 365, amount: 280000 }
+};
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initMembershipList() {
     const session = await window.authGuard(['gim_admin']);
     if (!session) return;
+    gymId = session.user.app_metadata?.gym_id || null;
 
     document.getElementById('user-name').textContent =
         session.user.user_metadata?.full_name || session.user.email;
 
     document.getElementById('logout-btn')?.addEventListener('click', window.tfUtils.logout);
 
+    await ensurePlanCatalog();
     await loadMemberships();
     setupFilters();
     setupModal();
+    setupPlanPricing();
 }
 
 // ─── CARGAR MEMBRESÍAS ────────────────────────────────────
@@ -58,6 +68,47 @@ async function loadMemberships() {
     allMemberships = data || [];
     updateKPIs();
     renderTable(allMemberships);
+}
+
+async function ensurePlanCatalog() {
+    if (!gymId) return;
+    const { data, error } = await window.supabaseClient
+        .from('gym_membership_plans')
+        .select('id, gym_id, plan_key, label, duration_days, amount, is_active')
+        .eq('gym_id', gymId)
+        .order('duration_days', { ascending: true });
+
+    if (error && error.code !== '42P01') {
+        console.error('Error cargando catálogo de planes:', error);
+        return;
+    }
+
+    if (data && data.length) {
+        membershipPlanCatalog = data;
+        return;
+    }
+
+    const seedRows = Object.entries(PLAN_DEFAULTS).map(([planKey, meta]) => ({
+        gym_id: gymId,
+        plan_key: planKey,
+        label: meta.label,
+        duration_days: meta.duration_days,
+        amount: meta.amount,
+        is_active: true
+    }));
+
+    const { data: inserted, error: seedError } = await window.supabaseClient
+        .from('gym_membership_plans')
+        .insert(seedRows)
+        .select('id, gym_id, plan_key, label, duration_days, amount, is_active');
+
+    if (seedError) {
+        console.error('No se pudo crear catálogo base de planes:', seedError);
+        membershipPlanCatalog = Object.entries(PLAN_DEFAULTS).map(([plan_key, meta]) => ({ ...meta, plan_key, is_active: true }));
+        return;
+    }
+
+    membershipPlanCatalog = inserted || [];
 }
 
 // ─── KPIs ─────────────────────────────────────────────────
@@ -171,6 +222,7 @@ function setupFilters() {
     const searchInput = document.getElementById('search-input');
     const filterStatus = document.getElementById('filter-status');
     const filterPlan = document.getElementById('filter-plan');
+    const clearBtn = document.getElementById('clear-membership-filters');
 
     function applyFilters() {
         const search = searchInput.value.toLowerCase();
@@ -200,17 +252,109 @@ function setupFilters() {
     searchInput.addEventListener('input', applyFilters);
     filterStatus.addEventListener('change', applyFilters);
     filterPlan.addEventListener('change', applyFilters);
+    clearBtn?.addEventListener('click', () => {
+        searchInput.value = '';
+        filterStatus.value = '';
+        filterPlan.value = '';
+        applyFilters();
+    });
+}
+
+function planMetaFromCatalog(planKey) {
+    const found = membershipPlanCatalog.find(p => p.plan_key === planKey);
+    if (found) return found;
+    const fallback = PLAN_DEFAULTS[planKey];
+    return fallback ? { plan_key: planKey, ...fallback, is_active: true } : null;
+}
+
+function hydratePlanPriceInputs() {
+    ['mensual', 'trimestral', 'anual'].forEach((planKey) => {
+        const input = document.getElementById(`plan-price-${planKey}`);
+        if (!input) return;
+        const plan = planMetaFromCatalog(planKey);
+        input.value = plan?.amount != null ? String(plan.amount) : '';
+    });
+}
+
+function setupPlanPricing() {
+    hydratePlanPriceInputs();
+    const btn = document.getElementById('save-plan-prices');
+    const feedback = document.getElementById('plan-prices-feedback');
+    btn?.addEventListener('click', async () => {
+        if (!gymId) return;
+        const rows = ['mensual', 'trimestral', 'anual'].map((planKey) => {
+            const base = PLAN_DEFAULTS[planKey];
+            const amountInput = document.getElementById(`plan-price-${planKey}`);
+            const amount = parseFloat(amountInput?.value || base.amount);
+            return {
+                gym_id: gymId,
+                plan_key: planKey,
+                label: base.label,
+                duration_days: base.duration_days,
+                amount: Number.isFinite(amount) ? amount : base.amount,
+                is_active: true
+            };
+        });
+
+        const { data, error } = await window.supabaseClient
+            .from('gym_membership_plans')
+            .upsert(rows, { onConflict: 'gym_id,plan_key' })
+            .select('id, gym_id, plan_key, label, duration_days, amount, is_active');
+
+        if (feedback) {
+            if (error) {
+                feedback.textContent = `No se pudieron guardar los valores: ${error.message}`;
+                feedback.className = 'text-xs font-bold text-danger';
+            } else {
+                feedback.textContent = 'Valores de planes guardados.';
+                feedback.className = 'text-xs font-bold text-success';
+                membershipPlanCatalog = data || membershipPlanCatalog;
+            }
+            feedback.classList.remove('hidden');
+        }
+    });
 }
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
 function setupModal() {
-    const modal = document.getElementById('modal-nueva-membresia');
     const backdrop = document.getElementById('modal-membresia-backdrop');
     const closeBtn = document.getElementById('modal-membresia-close');
     const submitBtn = document.getElementById('modal-membresia-submit');
     const errorEl = document.getElementById('modal-membresia-error');
-    const btnText = document.getElementById('membresia-btn-text');
-    const btnSpinner = document.getElementById('membresia-btn-spinner');
+    const planContainer = document.getElementById('plan-buttons-container');
+
+    function renderPlanButtons() {
+        if (!planContainer) return;
+        const activePlans = membershipPlanCatalog
+            .filter((plan) => plan.is_active !== false)
+            .sort((a, b) => (a.duration_days || 0) - (b.duration_days || 0));
+
+        if (!activePlans.length) {
+            planContainer.innerHTML = '<p class="text-xs text-danger col-span-3">No hay planes activos configurados.</p>';
+            return;
+        }
+
+        planContainer.innerHTML = activePlans.map((plan) => `
+            <button type="button" data-plan="${plan.plan_key}" data-amount="${plan.amount ?? ''}"
+                class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
+                ${escHtml(plan.label || plan.plan_key)}<br>
+                <span class="text-slate-500 font-normal">${Number(plan.duration_days || 0)} días</span>
+            </button>
+        `).join('');
+    }
+
+    function applyPlanSelection(planKey, amount = null) {
+        document.querySelectorAll('.plan-btn').forEach((btn) =>
+            btn.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
+        const selected = document.querySelector(`.plan-btn[data-plan="${planKey}"]`);
+        if (selected) selected.classList.add('border-primary', 'text-primary', 'bg-primary/10');
+        document.getElementById('membresia-plan').value = planKey || '';
+        const amountInput = document.getElementById('membresia-amount');
+        if (amountInput) {
+            const parsed = Number(amount ?? selected?.dataset.amount);
+            amountInput.value = Number.isFinite(parsed) ? String(parsed) : '';
+        }
+    }
 
     async function openModal() {
         window.tfUtils.showModal('modal-nueva-membresia');
@@ -228,6 +372,10 @@ function setupModal() {
         students?.forEach(s => {
             select.innerHTML += `<option value="${String(s.id ?? '')}">${escHtml(s.full_name || 'Sin nombre')}</option>`;
         });
+
+        await ensurePlanCatalog();
+        renderPlanButtons();
+        applyPlanSelection('', null);
     }
 
     function closeModal() {
@@ -241,13 +389,10 @@ function setupModal() {
         errorEl.classList.add('hidden');
     }
 
-    document.querySelectorAll('.plan-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.plan-btn').forEach(b =>
-                b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-            btn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
-            document.getElementById('membresia-plan').value = btn.dataset.plan;
-        });
+    planContainer?.addEventListener('click', (evt) => {
+        const btn = evt.target.closest('.plan-btn');
+        if (!btn) return;
+        applyPlanSelection(btn.dataset.plan, btn.dataset.amount);
     });
 
     async function saveMembresia() {
@@ -267,9 +412,6 @@ function setupModal() {
         window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
 
         try {
-            const session = await window.supabaseClient.auth.getSession();
-            const gymId = session.data.session.user.app_metadata.gym_id;
-
             const { error } = await window.supabaseClient
                 .from('memberships')
                 .insert({
@@ -304,5 +446,3 @@ function setupModal() {
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initMembershipList);
-
-

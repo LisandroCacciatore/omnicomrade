@@ -22,6 +22,10 @@ const getStudentHomeUrl = () => {
 
   const db    = window.supabaseClient;
   const gymId = session.user.app_metadata.gym_id;
+  const apiHeaders = {
+    'Content-Type': 'application/json',
+    'x-actor-id': session.user.id,
+  };
 
   /* ─── Resolver student_id ─────────────────────────────── */
   const workoutDataRaw = sessionStorage.getItem('activeWorkout');
@@ -86,6 +90,7 @@ const getStudentHomeUrl = () => {
   let currentIndex     = 0;
   let workoutLogs      = [];
   let sessionStartTime = new Date().toISOString();
+  let startedSessionId = workoutData.sessionId || null;
   let restTimerInterval = null;
   let heavySetsCount   = 0;
 
@@ -125,6 +130,8 @@ const getStudentHomeUrl = () => {
         <span style="font-size:13px;font-weight:900;font-family:'IBM Plex Mono',monospace;color:${cfg.color}">${wb.score}</span>`;
     }
   }
+
+  await ensureWorkoutSessionStarted();
 
   /* ═══════════════════════════════════════════════════════
      RENDER DECK
@@ -423,20 +430,36 @@ const getStudentHomeUrl = () => {
 
     try {
       const endTime = new Date();
-      const { data: sessionData, error: sessionErr } = await db.from('workout_sessions').insert({
-        gym_id:           gymId,
-        student_id:       studentId,
-        routine_name:     workoutData.routineName,
-        day_name:         workoutData.dayName,
-        started_at:       sessionStartTime,
-        completed_at:     endTime.toISOString(),
-        duration_minutes: Math.round((endTime - new Date(sessionStartTime)) / 60000),
-      }).select('id').single();
-      if (sessionErr) throw sessionErr;
+      const durationMinutes = Math.round((endTime - new Date(sessionStartTime)) / 60000);
+      if (startedSessionId) {
+        const completeRes = await fetch(`/api/workouts/sessions/${startedSessionId}/complete`, {
+          method: 'POST',
+          headers: apiHeaders,
+          body: JSON.stringify({
+            intent_id: workoutData.intentId || null,
+            duration_minutes: durationMinutes,
+            logs: workoutLogs.map(log => ({ ...log, logged_at: new Date().toISOString() })),
+          }),
+        });
+        if (!completeRes.ok) {
+          throw new Error(`Complete API failed (${completeRes.status})`);
+        }
+      } else {
+        const { data: sessionData, error: sessionErr } = await db.from('workout_sessions').insert({
+          gym_id:           gymId,
+          student_id:       studentId,
+          routine_name:     workoutData.routineName,
+          day_name:         workoutData.dayName,
+          started_at:       sessionStartTime,
+          completed_at:     endTime.toISOString(),
+          duration_minutes: durationMinutes,
+        }).select('id').single();
+        if (sessionErr) throw sessionErr;
 
-      await db.from('workout_exercise_logs').insert(
-        workoutLogs.map(log => ({ ...log, gym_id: gymId, session_id: sessionData.id }))
-      );
+        await db.from('workout_exercise_logs').insert(
+          workoutLogs.map(log => ({ ...log, gym_id: gymId, session_id: sessionData.id, logged_at: new Date().toISOString() }))
+        );
+      }
 
       sessionStorage.removeItem('activeWorkout');
 
@@ -462,6 +485,23 @@ const getStudentHomeUrl = () => {
     }
   }
 
+  async function ensureWorkoutSessionStarted() {
+    if (!workoutData.intentId || startedSessionId) return;
+    try {
+      const startRes = await fetch(`/api/workouts/intents/${workoutData.intentId}/start`, {
+        method: 'POST',
+        headers: apiHeaders,
+      });
+      if (!startRes.ok) return;
+      const payload = await startRes.json();
+      startedSessionId = payload.session_id || null;
+      if (startedSessionId) {
+        workoutData.sessionId = startedSessionId;
+        sessionStorage.setItem('activeWorkout', JSON.stringify(workoutData));
+      }
+    } catch (_) {}
+  }
+
   document.getElementById('btn-cancel-workout').addEventListener('click', () => {
     if (confirm('¿Cancelar entrenamiento? No se guardará el progreso.')) {
       sessionStorage.removeItem('activeWorkout');
@@ -473,4 +513,3 @@ const getStudentHomeUrl = () => {
   renderDeck();
 
 })();
-

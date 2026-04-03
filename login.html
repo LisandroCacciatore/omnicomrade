@@ -102,7 +102,18 @@
             <span id="google-btn-spinner" class="hidden animate-spin size-4 border-2 border-slate-500/30 border-t-slate-300 rounded-full"></span>
         </button>
 
-        <div class="mt-6 pt-5 border-t border-slate-800 text-center">
+        <!-- Access Request Section (Solicitar acceso) -->
+        <div class="mt-6 p-4 rounded-xl border border-slate-800 bg-slate-900/30">
+            <p class="text-xs text-slate-400 mb-3">¿No tenés acceso todavía? Sumate al cupo inicial (15 personas).</p>
+            <form id="access-request-form" class="flex flex-col gap-2">
+                <input id="access-name" type="text" class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" placeholder="Tu nombre" />
+                <input id="access-email" type="email" required class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" placeholder="tu@email.com" />
+                <button type="submit" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold py-2">Solicitar acceso</button>
+                <p id="access-request-feedback" class="hidden text-xs font-bold"></p>
+            </form>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-slate-800 text-center">
             <p class="text-slate-500 text-xs"> TechFitness SaaS &copy; 2024 </p>
         </div>
     </div>
@@ -123,13 +134,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

@@ -32,13 +32,37 @@
     const CAT_BG = { fuerza: 'rgba(239,68,68,.12)', hipertrofia: 'rgba(59,130,246,.12)', resistencia: 'rgba(16,185,129,.12)', movilidad: 'rgba(139,92,246,.12)', tecnica: 'rgba(245,158,11,.12)' };
     const DIFF_LABELS = { principiante: 'Principiante', intermedio: 'Intermedio', avanzado: 'Avanzado' };
     const DIFF_COLORS = { principiante: '#10B981', intermedio: '#F59E0B', avanzado: '#EF4444' };
+    const GOAL_LABELS = { fuerza: 'Fuerza', hipertrofia: 'Hipertrofia', resistencia_muscular: 'Resistencia', movilidad: 'Movilidad', potencia: 'Potencia', readaptacion: 'Readaptación' };
+    const GOAL_COLORS = { fuerza: '#EF4444', hipertrofia: '#3B82F6', resistencia_muscular: '#10B981', movilidad: '#8B5CF6', potencia: '#F59E0B', readaptacion: '#64748B' };
+    const PATTERN_LABELS = {
+      empuje_horizontal: 'Empuje horizontal',
+      empuje_vertical: 'Empuje vertical',
+      traccion_horizontal: 'Tracción horizontal',
+      traccion_vertical: 'Tracción vertical',
+      dominante_rodilla: 'Dominante rodilla',
+      dominante_cadera: 'Dominante cadera',
+      core_anti_extension: 'Core anti-extensión',
+      core_anti_rotacion: 'Core anti-rotación',
+      locomocion: 'Locomoción'
+    };
+    const SAFETY_META = {
+      sin_alerta: { label: 'Sin alerta', color: '#10B981', icon: 'verified' },
+      precaucion: { label: 'Precaución', color: '#F59E0B', icon: 'warning' },
+      supervision_recomendada: { label: 'Supervisión', color: '#3B82F6', icon: 'visibility' },
+      alerta_alta: { label: 'Alerta alta', color: '#EF4444', icon: 'priority_high' }
+    };
     const COLOR_MAP   = { red: 'active-red', blue: 'active-blue', green: 'active-green', amber: 'active-amber', purple: 'active-purple', slate: 'active-slate' };
   
     /* ─── State ──────────────────────────────────────────────── */
     let allExercises    = [];
     let filterMuscle    = null;
     let filterCat       = 'all';
+    let filterGoal      = 'all';
+    let filterPattern   = 'all';
     let filterOrigin    = 'all';
+    let filterFavsOnly  = false;
+    let filterCompatibleOnly = true;
+    const availableEquipment = new Set();
     let searchQuery     = '';
     let viewMode        = 'grid';
     let editingId       = null;
@@ -49,6 +73,16 @@
     let selCat    = null;
     let selDiff   = null;
     let selEquip  = null;
+    let selGoal   = null;
+    let selPattern = null;
+    let selSafety = null;
+    let selComplexity = null;
+    let selRegressionId = null;
+    let selProgressionId = null;
+    const unsupportedExerciseColumns = new Set();
+
+    const favorites = new Set();
+    const usageMap = {};
   
     /* ─── DOM ───────────────────────────────────────────────── */
     const grid      = document.getElementById('exercises-grid');
@@ -58,6 +92,7 @@
     const backdrop  = document.getElementById('drawer-backdrop');
     const formDel   = document.getElementById('form-delete-exercise');
     const modalDel  = document.getElementById('modal-delete');
+    const modalRepl = document.getElementById('modal-replacements');
   
     /* ─── Funciones de Filtros y Músculos ────────────────────── */
     function buildMuscleList(counts = {}) {
@@ -138,6 +173,137 @@
       allExercises.forEach(e => { c[e.muscle_group] = (c[e.muscle_group] || 0) + 1 });
       return c;
     }
+
+    async function loadGymEquipment() {
+      const { data } = await db.from('gyms').select('available_equipment').eq('id', gymId).single();
+      availableEquipment.clear();
+      (data?.available_equipment || []).forEach(e => availableEquipment.add(e));
+      document.querySelectorAll('[data-avail-equip]').forEach(btn => {
+        btn.classList.toggle('active', availableEquipment.has(btn.dataset.availEquip));
+      });
+    }
+
+    async function loadFavorites() {
+      favorites.clear();
+      const { data } = await db.from('exercise_favorites')
+        .select('exercise_id')
+        .eq('user_id', session.user.id);
+      (data || []).forEach(row => favorites.add(row.exercise_id));
+    }
+
+    async function loadUsageStats() {
+      Object.keys(usageMap).forEach(k => delete usageMap[k]);
+      const { data } = await db.from('exercise_usage_events')
+        .select('exercise_id')
+        .eq('user_id', session.user.id)
+        .gte('used_at', new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString());
+      (data || []).forEach(row => { usageMap[row.exercise_id] = (usageMap[row.exercise_id] || 0) + 1; });
+    }
+
+    function populateProgressionSelectors(currentId = null) {
+      const reg = document.getElementById('ex-regression-id');
+      const prog = document.getElementById('ex-progression-id');
+      if (!reg || !prog) return;
+      const options = [`<option value="">Sin vínculo</option>`].concat(
+        allExercises
+          .filter(ex => !currentId || ex.id !== currentId)
+          .map(ex => `<option value="${ex.id}">${escHtml(ex.name)}</option>`)
+      ).join('');
+      reg.innerHTML = options;
+      prog.innerHTML = options;
+      reg.value = selRegressionId || '';
+      prog.value = selProgressionId || '';
+    }
+
+    function extractMissingColumnFromError(error) {
+      const raw = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ');
+      if (!raw) return null;
+      const patterns = [
+        /Could not find the '([^']+)' column/i,
+        /column ["']?([a-zA-Z0-9_]+)["']? .* does not exist/i,
+        /Could not find a relationship between ['"][^'"]+['"] and ['"]([^'"]+)['"]/i,
+      ];
+      for (const re of patterns) {
+        const match = raw.match(re);
+        if (match?.[1]) return match[1];
+      }
+      return null;
+    }
+
+    async function saveExerciseWithSchemaFallback(payload) {
+      const attemptPayload = { ...payload };
+      unsupportedExerciseColumns.forEach((column) => { delete attemptPayload[column]; });
+
+      for (let i = 0; i < 8; i += 1) {
+        const query = editingId
+          ? db.from('exercises').update(attemptPayload).eq('id', editingId)
+          : db.from('exercises').insert(attemptPayload);
+        const { error } = await query;
+        if (!error) return { error: null, downgraded: unsupportedExerciseColumns.size > 0 };
+
+        const missingColumn = extractMissingColumnFromError(error);
+        if (!missingColumn || !(missingColumn in attemptPayload)) return { error, downgraded: unsupportedExerciseColumns.size > 0 };
+
+        unsupportedExerciseColumns.add(missingColumn);
+        delete attemptPayload[missingColumn];
+      }
+
+      return {
+        error: { message: 'No se pudo guardar por incompatibilidad de esquema en la base de datos.' },
+        downgraded: unsupportedExerciseColumns.size > 0
+      };
+    }
+
+    function renderUsageTop() {
+      const usageEl = document.getElementById('usage-top-list');
+      if (!usageEl) return;
+      const top = Object.entries(usageMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([id, hits]) => {
+          const ex = allExercises.find(x => x.id === id);
+          return ex ? `• ${escHtml(ex.name)} (${hits})` : null;
+        })
+        .filter(Boolean);
+      usageEl.innerHTML = top.length ? top.map(t => `<div>${t}</div>`).join('') : '<div class="text-slate-600">Sin datos todavía</div>';
+    }
+
+    function generateRecommendations() {
+      const recsEl = document.getElementById('recs-list');
+      if (!recsEl) return;
+      const list = allExercises
+        .filter(ex => !filterGoal || filterGoal === 'all' || ex.main_goal === filterGoal)
+        .filter(ex => !filterPattern || filterPattern === 'all' || ex.movement_pattern === filterPattern)
+        .filter(ex => ex.safety_level !== 'alerta_alta')
+        .sort((a, b) => {
+          const aFav = favorites.has(a.id) ? 1 : 0;
+          const bFav = favorites.has(b.id) ? 1 : 0;
+          const aUsage = usageMap[a.id] || 0;
+          const bUsage = usageMap[b.id] || 0;
+          return (bFav + bUsage) - (aFav + aUsage);
+        })
+        .slice(0, 5);
+      recsEl.innerHTML = list.length
+        ? list.map(ex => `<div>• ${escHtml(ex.name)} <span class="text-slate-600">(${GOAL_LABELS[ex.main_goal] || 'sin objetivo'})</span></div>`).join('')
+        : '<div class="text-slate-600">Sin recomendación con filtros actuales</div>';
+    }
+
+    function openReplacements(exerciseId) {
+      const current = allExercises.find(ex => ex.id === exerciseId);
+      if (!current) return;
+      const candidates = allExercises
+        .filter(ex => ex.id !== current.id)
+        .filter(ex => ex.main_goal === current.main_goal)
+        .filter(ex => ex.movement_pattern === current.movement_pattern || ex.muscle_group === current.muscle_group)
+        .filter(ex => ex.safety_level !== 'alerta_alta')
+        .filter(ex => !ex.equipment || availableEquipment.has(ex.equipment) || ex.equipment === 'otros')
+        .slice(0, 6);
+      document.getElementById('replacement-title').textContent = `Alternativas para ${current.name}`;
+      document.getElementById('replacement-list').innerHTML = candidates.length
+        ? candidates.map(ex => `<div class="p-2 rounded-lg bg-[#0B1218] border border-[#1E293B]">${escHtml(ex.name)} <span class="text-slate-500">• ${PATTERN_LABELS[ex.movement_pattern] || ex.muscle_group}</span></div>`).join('')
+        : '<div class="text-slate-500">No hay reemplazos compatibles con equipamiento/configuración actual.</div>';
+      modalRepl.classList.add('open');
+    }
   
     document.querySelectorAll('[data-cat]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -156,6 +322,49 @@
         renderGrid();
       });
     });
+
+    document.querySelectorAll('[data-goal]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-goal]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterGoal = btn.dataset.goal;
+        renderGrid();
+      });
+    });
+
+    document.querySelectorAll('[data-pattern]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-pattern]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterPattern = btn.dataset.pattern;
+        renderGrid();
+      });
+    });
+
+    document.querySelectorAll('[data-favs-only]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterFavsOnly = !filterFavsOnly;
+        btn.classList.toggle('active', filterFavsOnly);
+        renderGrid();
+      });
+    });
+
+    document.querySelectorAll('[data-avail-equip]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        toast('Equipamiento definido por configuración del gym');
+      });
+    });
+
+    document.querySelectorAll('[data-compatible-only]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterCompatibleOnly = !filterCompatibleOnly;
+        btn.classList.toggle('active', filterCompatibleOnly);
+        renderGrid();
+      });
+    });
+
+    const recBtn = document.getElementById('btn-generate-recs');
+    if (recBtn) recBtn.addEventListener('click', generateRecommendations);
   
     /* ─── Search (Optimizado con Debounce) ──────────────────── */
     const handleSearch = debounce((e) => {
@@ -190,6 +399,7 @@
       ]);
       allExercises = [...(globalEx || []), ...(gymEx || [])];
       buildMuscleList(countByMuscle());
+      populateProgressionSelectors(editingId);
       renderGrid();
     }
   
@@ -197,9 +407,23 @@
       const items = allExercises.filter(ex => {
         const matchM      = !filterMuscle  || ex.muscle_group === filterMuscle;
         const matchCat    = filterCat    === 'all' || ex.category === filterCat;
+        const matchGoal   = filterGoal   === 'all' || ex.main_goal === filterGoal;
+        const matchPattern = filterPattern === 'all' || ex.movement_pattern === filterPattern;
         const matchOrigin = filterOrigin === 'all' || (filterOrigin === 'preset' && ex.is_global) || (filterOrigin === 'custom' && !ex.is_global);
-        const matchSearch = !searchQuery  || ex.name.toLowerCase().includes(searchQuery) || (ex.description || '').toLowerCase().includes(searchQuery) || (ex.muscle_group || '').toLowerCase().includes(searchQuery);
-        return matchM && matchCat && matchOrigin && matchSearch;
+        const matchFav = !filterFavsOnly || favorites.has(ex.id);
+        const matchCompat = !filterCompatibleOnly
+          || !ex.equipment
+          || availableEquipment.size === 0
+          || availableEquipment.has(ex.equipment)
+          || ex.equipment === 'otros';
+        const matchSearch = !searchQuery
+          || ex.name.toLowerCase().includes(searchQuery)
+          || (ex.description || '').toLowerCase().includes(searchQuery)
+          || (ex.muscle_group || '').toLowerCase().includes(searchQuery)
+          || (GOAL_LABELS[ex.main_goal] || '').toLowerCase().includes(searchQuery)
+          || (PATTERN_LABELS[ex.movement_pattern] || '').toLowerCase().includes(searchQuery)
+          || (ex.technical_cue || '').toLowerCase().includes(searchQuery);
+        return matchM && matchCat && matchGoal && matchPattern && matchOrigin && matchFav && matchCompat && matchSearch;
       });
   
       countEl.textContent = `${items.length} ejercicio${items.length !== 1 ? 's' : ''}`;
@@ -214,6 +438,8 @@
       grid.classList.remove('hidden');
       emptyEl.classList.add('hidden');
       grid.innerHTML = items.map(ex => exerciseCard(ex)).join('');
+      generateRecommendations();
+      renderUsageTop();
       // NOTA: Se eliminó la asignación de eventos querySelectorAll aquí. Ahora usamos Event Delegation.
     }
   
@@ -224,6 +450,12 @@
       const catLabel = CAT_LABELS[ex.category] || ex.category || '';
       const diffColor = DIFF_COLORS[ex.difficulty] || '#64748B';
       const diffLabel = DIFF_LABELS[ex.difficulty] || ex.difficulty || '';
+      const goalColor = GOAL_COLORS[ex.main_goal] || '#64748B';
+      const goalLabel = GOAL_LABELS[ex.main_goal] || '';
+      const patternLabel = PATTERN_LABELS[ex.movement_pattern] || '';
+      const safety = SAFETY_META[ex.safety_level] || null;
+      const isFav = favorites.has(ex.id);
+      const complexity = Number(ex.complexity_level || 0);
       
       const equipIcon = {
         barra: 'sports_score', mancuernas: 'fitness_center', maquina: 'computer', cable: 'cable', peso_corporal: 'accessibility_new', banda: 'loop', kettlebell: 'fitness_center', otros: 'more_horiz'
@@ -233,6 +465,9 @@
       <div class="exercise-card" style="animation-delay:inherit">
         <div class="card-accent" style="background:${muscle.color}"></div>
         <div class="card-actions">
+          <button type="button" class="action-btn ${isFav ? 'active' : ''}" data-action="favorite" data-id="${ex.id}" title="Favorito">
+            <span class="material-symbols-rounded pointer-events-none">${isFav ? 'star' : 'star_outline'}</span>
+          </button>
           ${!ex.is_global ? `
             <button type="button" class="action-btn" data-action="edit" data-id="${ex.id}" title="Editar">
               <span class="material-symbols-rounded pointer-events-none">edit</span>
@@ -255,11 +490,16 @@
             </span>
             ${catLabel ? `<span class="badge" style="background:${catBg};color:${catColor};border:1px solid rgba(${hexToRgb(catColor)},.22)">${catLabel}</span>` : ''}
             ${diffLabel ? `<span class="badge" style="background:rgba(${hexToRgb(diffColor)},.12);color:${diffColor};border:1px solid rgba(${hexToRgb(diffColor)},.2)">${diffLabel}</span>` : ''}
+            ${goalLabel ? `<span class="badge" style="background:rgba(${hexToRgb(goalColor)},.12);color:${goalColor};border:1px solid rgba(${hexToRgb(goalColor)},.2)">${goalLabel}</span>` : ''}
+            ${patternLabel ? `<span class="badge" style="background:rgba(148,163,184,.12);color:#94A3B8;border:1px solid rgba(148,163,184,.24)">${patternLabel}</span>` : ''}
+            ${safety ? `<span class="badge" style="background:rgba(${hexToRgb(safety.color)},.12);color:${safety.color};border:1px solid rgba(${hexToRgb(safety.color)},.2)"><span class="material-symbols-rounded text-[11px]">${safety.icon}</span>${safety.label}</span>` : ''}
+            ${complexity ? `<span class="badge" style="background:rgba(148,163,184,.12);color:#E2E8F0;border:1px solid rgba(148,163,184,.24)">Complejidad ${complexity}/5</span>` : ''}
             ${ex.is_global ? `<span class="global-pill"><span class="material-symbols-rounded" style="font-size:9px">verified</span>Preset</span>` : ''}
           </div>
           <p class="text-[11px] text-slate-500 line-clamp-2 min-h-[32px] leading-relaxed">
             ${ex.description ? escHtml(ex.description) : '<span class="italic text-slate-700">Sin descripción</span>'}
           </p>
+          ${ex.technical_cue ? `<p class="text-[11px] text-slate-400 mt-2 line-clamp-1"><span class="font-semibold text-slate-300">Cue:</span> ${escHtml(ex.technical_cue)}</p>` : ''}
           <div class="flex items-center gap-3 mt-3 pt-2.5 border-t border-[#1E293B]">
             ${ex.equipment ? `
               <div class="flex items-center gap-1 text-[11px] text-slate-600">
@@ -271,7 +511,16 @@
                 <span class="material-symbols-rounded text-[14px]" style="font-variation-settings:'FILL' 1">play_circle</span>
                 Ver video
               </a>` : ''}
+            <button type="button" class="ml-auto flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200" data-action="replace" data-id="${ex.id}">
+              <span class="material-symbols-rounded text-[14px]">swap_horiz</span>
+              Reemplazos
+            </button>
           </div>
+          ${(ex.regression_exercise_id || ex.progression_exercise_id) ? `
+            <div class="flex flex-wrap gap-1 mt-2">
+              ${ex.regression_exercise_id ? `<span class="badge text-[10px]">↘ Regresión</span>` : ''}
+              ${ex.progression_exercise_id ? `<span class="badge text-[10px]">↗ Progresión</span>` : ''}
+            </div>` : ''}
         </div>
       </div>`;
     }
@@ -280,13 +529,39 @@
     grid.addEventListener('click', (e) => {
         const editBtn = e.target.closest('button[data-action="edit"]');
         const deleteBtn = e.target.closest('button[data-action="delete"]');
+        const favBtn = e.target.closest('button[data-action="favorite"]');
+        const replBtn = e.target.closest('button[data-action="replace"]');
+        const cardEl = e.target.closest('.exercise-card');
         
-        if (editBtn) {
+        if (favBtn) {
+            e.stopPropagation();
+            const id = favBtn.dataset.id;
+            (async () => {
+              if (favorites.has(id)) {
+                await db.from('exercise_favorites').delete().eq('user_id', session.user.id).eq('exercise_id', id);
+                favorites.delete(id);
+              } else {
+                await db.from('exercise_favorites').insert({ user_id: session.user.id, exercise_id: id });
+                favorites.add(id);
+              }
+              renderGrid();
+            })();
+        } else if (replBtn) {
+            e.stopPropagation();
+            openReplacements(replBtn.dataset.id);
+        } else if (editBtn) {
             e.stopPropagation();
             openEdit(editBtn.dataset.id);
         } else if (deleteBtn) {
             e.stopPropagation();
             openDelete(deleteBtn.dataset.id, deleteBtn.dataset.name);
+        } else if (cardEl) {
+            const id = cardEl.querySelector('[data-action="favorite"]')?.dataset.id;
+            if (id) {
+              usageMap[id] = (usageMap[id] || 0) + 1;
+              db.from('exercise_usage_events').insert({ user_id: session.user.id, exercise_id: id, used_at: new Date().toISOString() });
+              renderUsageTop();
+            }
         }
     });
   
@@ -306,9 +581,10 @@
       drawer.reset(); // Aprovechamos que ahora es un form para limpiar
       document.getElementById('exercise-id').value = '';
       document.getElementById('drawer-error').classList.add('hidden');
-      selMuscle = null; selCat = null; selDiff = null; selEquip = null;
+      selMuscle = null; selCat = null; selDiff = null; selEquip = null; selGoal = null; selPattern = null; selSafety = null; selComplexity = null; selRegressionId = null; selProgressionId = null;
       buildMusclePicker();
       resetSelBtns();
+      populateProgressionSelectors();
       document.getElementById('save-exercise').innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>Guardar ejercicio`;
       openDrawer();
     }
@@ -330,12 +606,24 @@
       selCat    = ex.category || null;
       selDiff   = ex.difficulty || null;
       selEquip  = ex.equipment || null;
+      selGoal   = ex.main_goal || null;
+      selPattern = ex.movement_pattern || null;
+      selSafety = ex.safety_level || null;
+      selComplexity = ex.complexity_level ? String(ex.complexity_level) : null;
+      selRegressionId = ex.regression_exercise_id || null;
+      selProgressionId = ex.progression_exercise_id || null;
+      document.getElementById('ex-cue').value = ex.technical_cue || '';
       
       buildMusclePicker();
       resetSelBtns();
       activateSelBtn('cat-picker', selCat, ex.category);
       activateSelBtn('diff-picker', selDiff, ex.difficulty);
       activateSelBtn('equip-picker', selEquip, ex.equipment);
+      activateSelBtn('goal-picker', selGoal, ex.main_goal);
+      activateSelBtn('pattern-picker', selPattern, ex.movement_pattern);
+      activateSelBtn('safety-picker', selSafety, ex.safety_level);
+      activateSelBtn('complexity-picker', selComplexity, selComplexity);
+      populateProgressionSelectors(ex.id);
       
       document.getElementById('save-exercise').innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>Actualizar`;
       openDrawer();
@@ -344,7 +632,7 @@
     /* ─── Botones de Formulario (Limpieza de Bug) ─────────────── */
     // Solo remueve clases visuales. NO bindea eventos de nuevo.
     function resetSelBtns() {
-      ['cat-picker','diff-picker','equip-picker'].forEach(id => {
+      ['cat-picker','diff-picker','equip-picker','goal-picker','pattern-picker','safety-picker','complexity-picker'].forEach(id => {
         document.querySelectorAll(`#${id} .sel-btn`).forEach(b => {
           const classes = [...b.classList].filter(c => c.startsWith('active-'));
           classes.forEach(c => b.classList.remove(c));
@@ -382,6 +670,38 @@
           else { selEquip = null; }
         });
       });
+      document.querySelectorAll('#goal-picker .sel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#goal-picker .sel-btn').forEach(b => b.classList.remove(...Object.values(COLOR_MAP)));
+          btn.classList.add(COLOR_MAP[btn.dataset.color]);
+          selGoal = btn.dataset.val;
+        });
+      });
+      document.querySelectorAll('#pattern-picker .sel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#pattern-picker .sel-btn').forEach(b => b.classList.remove(...Object.values(COLOR_MAP)));
+          btn.classList.add(COLOR_MAP[btn.dataset.color]);
+          selPattern = btn.dataset.val;
+        });
+      });
+      document.querySelectorAll('#safety-picker .sel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#safety-picker .sel-btn').forEach(b => b.classList.remove(...Object.values(COLOR_MAP)));
+          btn.classList.add(COLOR_MAP[btn.dataset.color]);
+          selSafety = btn.dataset.val;
+        });
+      });
+      document.querySelectorAll('#complexity-picker .sel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#complexity-picker .sel-btn').forEach(b => b.classList.remove(...Object.values(COLOR_MAP)));
+          btn.classList.add(COLOR_MAP[btn.dataset.color]);
+          selComplexity = btn.dataset.val;
+        });
+      });
+      const regSelect = document.getElementById('ex-regression-id');
+      const progSelect = document.getElementById('ex-progression-id');
+      if (regSelect) regSelect.addEventListener('change', (e) => { selRegressionId = e.target.value || null; });
+      if (progSelect) progSelect.addEventListener('change', (e) => { selProgressionId = e.target.value || null; });
     }
   
     /* ─── Save exercise (FORM SUBMIT) ───────────────────────── */
@@ -394,6 +714,12 @@
       // El nombre ya está validado por el 'required' del HTML, pero chequeamos espacios y músculo
       if (!name) { errEl.textContent = 'El nombre es obligatorio'; errEl.classList.remove('hidden'); return; }
       if (!selMuscle) { errEl.textContent = 'Seleccioná un músculo principal'; errEl.classList.remove('hidden'); return; }
+      if (!selGoal) { errEl.textContent = 'Seleccioná un objetivo principal'; errEl.classList.remove('hidden'); return; }
+      if (!selPattern) { errEl.textContent = 'Seleccioná un patrón de movimiento'; errEl.classList.remove('hidden'); return; }
+      if (!selSafety) { errEl.textContent = 'Seleccioná un nivel de seguridad'; errEl.classList.remove('hidden'); return; }
+      const technicalCue = document.getElementById('ex-cue').value.trim();
+      if (!technicalCue) { errEl.textContent = 'El cue técnico es obligatorio'; errEl.classList.remove('hidden'); return; }
+      if (!selComplexity) { errEl.textContent = 'Seleccioná complejidad técnica (1-5)'; errEl.classList.remove('hidden'); return; }
       errEl.classList.add('hidden');
   
       const payload = {
@@ -403,6 +729,13 @@
         muscle_group: selMuscle,
         category: selCat || null,
         difficulty: selDiff || null,
+        main_goal: selGoal,
+        movement_pattern: selPattern,
+        safety_level: selSafety,
+        technical_cue: technicalCue,
+        complexity_level: Number(selComplexity),
+        regression_exercise_id: selRegressionId,
+        progression_exercise_id: selProgressionId,
         equipment: selEquip || null,
         video_url: document.getElementById('ex-video-url').value.trim() || null,
         is_global: false,
@@ -413,20 +746,19 @@
       btn.disabled = true;
       btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando…`;
   
-      let error;
-      if (editingId) {
-        ({ error } = await db.from('exercises').update(payload).eq('id', editingId));
-      } else {
-        ({ error } = await db.from('exercises').insert(payload));
-      }
+      const { error, downgraded } = await saveExerciseWithSchemaFallback(payload);
   
       btn.disabled = false;
       btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>${editingId ? 'Actualizar' : 'Guardar ejercicio'}`;
   
       if (error) { errEl.textContent = 'Error al guardar en base de datos. Intentá de nuevo.'; errEl.classList.remove('hidden'); return; }
-  
+
       closeDrawer();
-      toast(editingId ? 'Ejercicio actualizado' : 'Ejercicio creado ✓');
+      toast(
+        downgraded
+          ? 'Ejercicio guardado (modo compatibilidad de esquema)'
+          : (editingId ? 'Ejercicio actualizado' : 'Ejercicio creado ✓')
+      );
       await loadExercises();
     });
   
@@ -439,6 +771,8 @@
   
     document.getElementById('cancel-delete').addEventListener('click', () => modalDel.classList.remove('open'));
     modalDel.addEventListener('click', e => { if (e.target === modalDel) modalDel.classList.remove('open'); });
+    document.getElementById('close-replacements').addEventListener('click', () => modalRepl.classList.remove('open'));
+    modalRepl.addEventListener('click', e => { if (e.target === modalRepl) modalRepl.classList.remove('open'); });
   
     formDel.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -472,14 +806,20 @@
       if (e.key === 'Escape') {
         if (drawer.classList.contains('open')) closeDrawer();
         if (modalDel.classList.contains('open')) modalDel.classList.remove('open');
+        if (modalRepl.classList.contains('open')) modalRepl.classList.remove('open');
       }
     });
   
     /* ─── Init ────────────────────────────────────────────────── */
     initBindSelBtns(); // Ejecutar SOLO UNA VEZ aquí
     buildMusclePicker();
+    const compatBtn = document.querySelector('[data-compatible-only]');
+    if (compatBtn) compatBtn.classList.toggle('active', filterCompatibleOnly);
+    await loadGymEquipment();
+    await loadFavorites();
+    await loadUsageStats();
+    renderUsageTop();
     await loadExercises();
+    generateRecommendations();
   
   })();
-
-

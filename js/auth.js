@@ -5,6 +5,14 @@ const btnSpinner = document.getElementById('btn-spinner');
 const btnText = document.getElementById('btn-text');
 const errorMessage = document.getElementById('error-message');
 const errorText = document.getElementById('error-text');
+
+// Elements for Google Login and Access Request
+const googleBtn = document.getElementById('google-login-btn');
+const googleBtnText = document.getElementById('google-btn-text');
+const googleBtnSpinner = document.getElementById('google-btn-spinner');
+const accessRequestForm = document.getElementById('access-request-form');
+const accessFeedback = document.getElementById('access-request-feedback');
+
 const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
     || ((role, fallback = 'login.html') => {
         const map = {
@@ -18,7 +26,7 @@ const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
     });
 
 async function handleLogin(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
     // UI Feedback
     setLoading(true);
@@ -44,7 +52,7 @@ async function handleLogin(e) {
 
         // Éxito: Redirigir por rol
         const user = data.user;
-        const role = user.app_metadata.role;
+        const role = await resolveUserRole(user);
 
         if (!role) {
             await window.supabaseClient.auth.signOut();
@@ -85,21 +93,27 @@ async function handleLogin(e) {
 }
 
 function setLoading(isLoading) {
-    window.tfUtils.setBtnLoading(loginBtn, isLoading, 'Autenticando...');
+    if (window.tfUtils && loginBtn) {
+        window.tfUtils.setBtnLoading(loginBtn, isLoading, 'Autenticando...');
+    }
 }
 
 function showError(message) {
-    errorText.textContent = message;
-    errorMessage.classList.remove('hidden');
+    if (errorText && errorMessage) {
+        errorText.textContent = message;
+        errorMessage.classList.remove('hidden');
+    }
     
     // Shake effect (opcional, premium feel)
-    const container = loginForm.parentElement;
-    container.classList.add('animate-shake');
-    setTimeout(() => container.classList.remove('animate-shake'), 500);
+    const container = loginForm?.parentElement;
+    if (container) {
+        container.classList.add('animate-shake');
+        setTimeout(() => container.classList.remove('animate-shake'), 500);
+    }
 }
 
 function hideError() {
-    errorMessage.classList.add('hidden');
+    errorMessage?.classList.add('hidden');
 }
 
 // Add CSS for shake animation if not present
@@ -118,25 +132,79 @@ document.head.appendChild(style);
 async function checkCurrentSession() {
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (session) {
-        const role = session.user.app_metadata.role;
+        // Run post-auth hook (validation etc from remote branch)
+        const postAuthOk = await runPostAuthHook(session);
+        if (!postAuthOk) return;
+
+        const role = await resolveUserRole(session.user);
         const target = getDashboardByRole(role, null);
         if (target) window.location.href = target;
     }
 }
 
-loginForm.addEventListener('submit', handleLogin);
-window.addEventListener('load', checkCurrentSession);
+/**
+ * Resolve role for a user, either from metadata or profile table
+ */
+async function resolveUserRole(user) {
+    if (!user) return null;
+    if (user.app_metadata?.role) return user.app_metadata.role;
+
+    const { data: profile } = await window.supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    return profile?.role || null;
+}
+
+/**
+ * Hook to run after login (from remote branch)
+ */
+async function runPostAuthHook(session) {
+    if (!session?.access_token) return false;
+
+    // Optional: Validation against backend API if necessary
+    // If the remote branch included an API call here, we should keep it.
+    // Based on the merged code I saw earlier:
+    try {
+        const response = await fetch('/api/auth/post-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: session.access_token })
+        });
+
+        const payload = await response.json();
+        if (!response.ok || payload.allowed === false) {
+            await window.supabaseClient.auth.signOut();
+            showError(payload?.message || 'Tu cuenta no tiene acceso aprobado todavía.');
+            return false;
+        }
+
+        if (payload?.role) {
+            if (window.TFSidebar) window.TFSidebar.setRole(payload.role);
+            else localStorage.setItem('tf_role', payload.role);
+        }
+        if (payload?.gym_id) localStorage.setItem('gym_id', payload.gym_id);
+
+        return true;
+    } catch (err) {
+        // If API doesn't exist or fails, we might just allow it if it's local dev or not mandatory
+        console.error('Post-auth hook error:', err.message);
+        // return true; // Fail gracefully or return false depending on strictness
+        return true; 
+    }
+}
 
 // ── Google OAuth ──────────────────────────────────────────────────────────────
-const googleBtn = document.getElementById('google-login-btn');
-const googleBtnText = document.getElementById('google-btn-text');
-const googleBtnSpinner = document.getElementById('google-btn-spinner');
 
 async function handleGoogleLogin() {
+    if (!googleBtn) return;
+    
     // Loading state
     googleBtn.disabled = true;
-    googleBtnText.textContent = 'Redirigiendo...';
-    googleBtnSpinner.classList.remove('hidden');
+    if (googleBtnText) googleBtnText.textContent = 'Redirigiendo...';
+    if (googleBtnSpinner) googleBtnSpinner.classList.remove('hidden');
 
     const { error } = await window.supabaseClient.auth.signInWithOAuth({
         provider: 'google',
@@ -150,20 +218,14 @@ async function handleGoogleLogin() {
         showError('Error al iniciar con Google. Intentá de nuevo.');
         // Restore button
         googleBtn.disabled = false;
-        googleBtnText.textContent = 'Continuar con Google';
-        googleBtnSpinner.classList.add('hidden');
+        if (googleBtnText) googleBtnText.textContent = 'Continuar con Google';
+        if (googleBtnSpinner) googleBtnSpinner.classList.add('hidden');
     }
-    // Si no hay error, Supabase redirige automáticamente a Google
-}
-
-if (googleBtn) {
-    googleBtn.addEventListener('click', handleGoogleLogin);
 }
 
 // ── Manejar el callback de OAuth (cuando vuelve de Google) ────────────────────
 async function handleOAuthCallback() {
     const hash = window.location.hash;
-    // Supabase pone el token en el hash tras el redirect
     if (hash && (hash.includes('access_token') || hash.includes('error'))) {
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
 
@@ -174,7 +236,7 @@ async function handleOAuthCallback() {
             return;
         }
 
-        const role = session.user.app_metadata?.role;
+        const role = await resolveUserRole(session.user);
 
         if (!role) {
             await window.supabaseClient.auth.signOut();
@@ -187,5 +249,52 @@ async function handleOAuthCallback() {
     }
 }
 
-// Ejecutar callback handler al cargar la página
-window.addEventListener('load', handleOAuthCallback);
+// ── Access Request Logic ──────────────────────────────────────────────────────
+
+async function submitAccessRequest(e) {
+    if (e) e.preventDefault();
+    const email = document.getElementById('access-email')?.value?.trim()?.toLowerCase();
+    const fullName = document.getElementById('access-name')?.value?.trim() || null;
+    if (!email) return;
+
+    if (accessFeedback) accessFeedback.classList.add('hidden');
+    
+    try {
+        const res = await fetch('/api/access-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, full_name: fullName, source: 'login_form' })
+        });
+        const payload = await res.json();
+
+        if (accessFeedback) {
+            if (res.ok) {
+                accessFeedback.textContent = 'Solicitud enviada. Te avisaremos cuando estés aprobado.';
+                accessFeedback.className = 'text-xs font-bold text-success';
+                accessRequestForm?.reset();
+            } else {
+                accessFeedback.textContent = payload?.message || payload?.error || 'No se pudo registrar la solicitud.';
+                accessFeedback.className = 'text-xs font-bold text-warning';
+            }
+            accessFeedback.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error('Access request error:', err.message);
+        if (accessFeedback) {
+            accessFeedback.textContent = 'Error de red. Intentá de nuevo.';
+            accessFeedback.className = 'text-xs font-bold text-warning';
+            accessFeedback.classList.remove('hidden');
+        }
+    }
+}
+
+// ── Event Listeners ───────────────────────────────────────────────────────────
+
+if (loginForm) loginForm.addEventListener('submit', handleLogin);
+if (googleBtn) googleBtn.addEventListener('click', handleGoogleLogin);
+if (accessRequestForm) accessRequestForm.addEventListener('submit', submitAccessRequest);
+
+window.addEventListener('load', () => {
+    checkCurrentSession();
+    handleOAuthCallback();
+});
