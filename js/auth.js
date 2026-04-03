@@ -5,6 +5,9 @@ const btnSpinner = document.getElementById('btn-spinner');
 const btnText = document.getElementById('btn-text');
 const errorMessage = document.getElementById('error-message');
 const errorText = document.getElementById('error-text');
+const googleLoginBtn = document.getElementById('google-login-btn');
+const accessRequestForm = document.getElementById('access-request-form');
+const accessFeedback = document.getElementById('access-request-feedback');
 const getDashboardByRole = window.tfRouteMap?.getDashboardByRole
     || ((role, fallback = 'login.html') => {
         const map = {
@@ -44,7 +47,7 @@ async function handleLogin(e) {
 
         // Éxito: Redirigir por rol
         const user = data.user;
-        const role = user.app_metadata.role;
+        const role = await resolveUserRole(user);
 
         if (!role) {
             await window.supabaseClient.auth.signOut();
@@ -118,11 +121,99 @@ document.head.appendChild(style);
 async function checkCurrentSession() {
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (session) {
-        const role = session.user.app_metadata.role;
+        const postAuthOk = await runPostAuthHook(session);
+        if (!postAuthOk) return;
+
+        const role = await resolveUserRole(session.user);
         const target = getDashboardByRole(role, null);
         if (target) window.location.href = target;
     }
 }
 
+async function resolveUserRole(user) {
+    if (!user) return null;
+    if (user.app_metadata?.role) return user.app_metadata.role;
+
+    const { data: profile } = await window.supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    return profile?.role || null;
+}
+
+async function runPostAuthHook(session) {
+    if (!session?.access_token) return false;
+
+    try {
+        const response = await fetch('/api/auth/post-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: session.access_token })
+        });
+
+        const payload = await response.json();
+        if (!response.ok || payload.allowed === false) {
+            await window.supabaseClient.auth.signOut();
+            showError(payload?.message || 'Tu cuenta no tiene acceso aprobado todavía.');
+            return false;
+        }
+
+        if (payload?.role) {
+            if (window.TFSidebar) window.TFSidebar.setRole(payload.role);
+            else localStorage.setItem('tf_role', payload.role);
+        }
+        if (payload?.gym_id) localStorage.setItem('gym_id', payload.gym_id);
+
+        return true;
+    } catch (err) {
+        console.error('Post-auth hook error:', err.message);
+        showError('No pudimos validar tu acceso. Intentá de nuevo.');
+        return false;
+    }
+}
+
+async function loginWithGoogle() {
+    hideError();
+    const redirectTo = `${window.location.origin}/login.html`;
+
+    const { error } = await window.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo }
+    });
+
+    if (error) showError('No se pudo iniciar Google OAuth. Intentá más tarde.');
+}
+
+async function submitAccessRequest(e) {
+    e.preventDefault();
+    const email = document.getElementById('access-email')?.value?.trim()?.toLowerCase();
+    const fullName = document.getElementById('access-name')?.value?.trim() || null;
+    if (!email) return;
+
+    accessFeedback?.classList.add('hidden');
+    const res = await fetch('/api/access-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, full_name: fullName, source: 'login_form' })
+    });
+    const payload = await res.json();
+
+    if (accessFeedback) {
+        if (res.ok) {
+            accessFeedback.textContent = 'Solicitud enviada. Te avisaremos cuando estés aprobado.';
+            accessFeedback.className = 'text-xs font-bold text-success';
+            accessRequestForm?.reset();
+        } else {
+            accessFeedback.textContent = payload?.message || payload?.error || 'No se pudo registrar la solicitud.';
+            accessFeedback.className = 'text-xs font-bold text-warning';
+        }
+        accessFeedback.classList.remove('hidden');
+    }
+}
+
 loginForm.addEventListener('submit', handleLogin);
+googleLoginBtn?.addEventListener('click', loginWithGoogle);
+accessRequestForm?.addEventListener('submit', submitAccessRequest);
 window.addEventListener('load', checkCurrentSession);
