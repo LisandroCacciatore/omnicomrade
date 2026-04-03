@@ -126,3 +126,66 @@ async function checkCurrentSession() {
 
 loginForm.addEventListener('submit', handleLogin);
 window.addEventListener('load', checkCurrentSession);
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+const googleBtn = document.getElementById('google-login-btn');
+const googleBtnText = document.getElementById('google-btn-text');
+const googleBtnSpinner = document.getElementById('google-btn-spinner');
+
+async function handleGoogleLogin() {
+    // Loading state
+    googleBtn.disabled = true;
+    googleBtnText.textContent = 'Redirigiendo...';
+    googleBtnSpinner.classList.remove('hidden');
+
+    const { error } = await window.supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: `${window.location.origin}/login.html`
+        }
+    });
+
+    if (error) {
+        console.error('Google OAuth error:', error.message);
+        showError('Error al iniciar con Google. Intentá de nuevo.');
+        // Restore button
+        googleBtn.disabled = false;
+        googleBtnText.textContent = 'Continuar con Google';
+        googleBtnSpinner.classList.add('hidden');
+    }
+    // Si no hay error, Supabase redirige automáticamente a Google
+}
+
+if (googleBtn) {
+    googleBtn.addEventListener('click', handleGoogleLogin);
+}
+
+// ── Manejar el callback de OAuth (cuando vuelve de Google) ────────────────────
+async function handleOAuthCallback() {
+    const hash = window.location.hash;
+    // Supabase pone el token en el hash tras el redirect
+    if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+        const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+
+        if (error || !session) {
+            const params = new URLSearchParams(hash.substring(1));
+            const errorDesc = params.get('error_description') || 'Error desconocido';
+            showError(`Error OAuth: ${errorDesc}`);
+            return;
+        }
+
+        const role = session.user.app_metadata?.role;
+
+        if (!role) {
+            await window.supabaseClient.auth.signOut();
+            showError('Tu cuenta no tiene permisos asignados. Contactá al administrador.');
+            return;
+        }
+
+        const redirectUrl = getDashboardByRole(role, 'index.html');
+        window.location.href = redirectUrl;
+    }
+}
+
+// Ejecutar callback handler al cargar la página
+window.addEventListener('load', handleOAuthCallback);
