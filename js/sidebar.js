@@ -43,6 +43,7 @@
       section: 'Config',
       items: [
         { href: 'gym-setting.html',       icon: 'settings',       label: 'Configuración', roles: ['gim_admin'] },
+        { href: 'access-requests.html',   icon: 'how_to_reg',     label: 'Accesos OAuth', roles: ['gim_admin'] },
       ]
     },
   ]
@@ -208,5 +209,4 @@
   })
 
 })()
-
 

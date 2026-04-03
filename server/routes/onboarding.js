@@ -1,34 +1,56 @@
 import express from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { processOnboarding } from '../services/onboardingService.js';
+import { supabase } from '../index.js';
 
 const router = express.Router();
 
-const processedRequests = new Map();
+function hashPayload(payload) {
+  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+async function getLedgerRow(requestId) {
+  const { data, error } = await supabase
+    .from('onboarding_requests')
+    .select('id, request_id, gym_id, status, result_json, error_code, error_message')
+    .eq('request_id', requestId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
 
 router.post('/', async (req, res) => {
   try {
     const { request_id, gym_id, student, membership, program } = req.body;
 
-    if (!request_id) {
-      return res.status(400).json({ error: 'request_id es obligatorio' });
-    }
-    if (!gym_id) {
-      return res.status(400).json({ error: 'gym_id es obligatorio' });
-    }
-    if (!student) {
-      return res.status(400).json({ error: 'student es obligatorio' });
-    }
+    if (!request_id) return res.status(400).json({ error: 'request_id es obligatorio' });
+    if (!gym_id) return res.status(400).json({ error: 'gym_id es obligatorio' });
+    if (!student) return res.status(400).json({ error: 'student es obligatorio' });
 
-    if (processedRequests.has(request_id)) {
-      const cached = processedRequests.get(request_id);
+    const actorId = req.headers['x-actor-id'] || req.headers['x-user-id'] || null;
+    const payloadHash = hashPayload({ gym_id, student, membership, program });
+
+    const existing = await getLedgerRow(request_id);
+
+    if (existing?.status === 'success' && existing.result_json) {
       return res.status(200).json({
-        ...cached,
-        idempotent: true
+        ...existing.result_json,
+        idempotent: true,
+        source: 'api'
       });
     }
 
-    const actorId = req.headers['x-actor-id'] || req.headers['x-user-id'] || null;
+    if (!existing) {
+      const { error: insertError } = await supabase.from('onboarding_requests').insert({
+        request_id,
+        gym_id,
+        actor_id: actorId,
+        payload_hash: payloadHash,
+        status: 'processing'
+      });
+      if (insertError) throw insertError;
+    }
 
     const result = await processOnboarding(
       {
@@ -41,17 +63,34 @@ router.post('/', async (req, res) => {
       actorId
     );
 
-    processedRequests.set(request_id, result);
-
-    setTimeout(() => processedRequests.delete(request_id), 3600000);
+    await supabase
+      .from('onboarding_requests')
+      .update({
+        status: result.success ? 'success' : 'failed',
+        result_json: result,
+        updated_at: new Date().toISOString()
+      })
+      .eq('request_id', request_id);
 
     const statusCode = result.success ? 201 : 422;
-    return res.status(statusCode).json(result);
+    return res.status(statusCode).json({ ...result, source: 'api' });
   } catch (error) {
     console.error('Onboarding error:', error);
 
-    const statusCode = error.recoverable === false ? 500 : 422;
+    const requestId = req.body?.request_id;
+    if (requestId) {
+      await supabase
+        .from('onboarding_requests')
+        .update({
+          status: 'failed',
+          error_code: error.code || 'ONBOARDING_ERROR',
+          error_message: error.message,
+          updated_at: new Date().toISOString()
+        })
+        .eq('request_id', requestId);
+    }
 
+    const statusCode = error.recoverable === false ? 500 : 422;
     return res.status(statusCode).json({
       success: false,
       error: error.code,
@@ -64,14 +103,23 @@ router.post('/', async (req, res) => {
 router.get('/status/:requestId', async (req, res) => {
   try {
     const { requestId } = req.params;
+    const ledger = await getLedgerRow(requestId);
 
-    if (processedRequests.has(requestId)) {
-      return res.json({ status: 'completed', data: processedRequests.get(requestId) });
+    if (!ledger) return res.json({ status: 'not_found' });
+    if (ledger.status === 'processing') return res.json({ status: 'processing' });
+
+    if (ledger.status === 'success') {
+      return res.json({ status: 'completed', data: ledger.result_json });
     }
 
-    return res.json({ status: 'not_found' });
+    return res.json({
+      status: 'failed',
+      error: ledger.error_code,
+      message: ledger.error_message
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Internal error' });
+    console.error('Onboarding status error:', error);
+    return res.status(500).json({ error: 'Internal error' });
   }
 });
 
