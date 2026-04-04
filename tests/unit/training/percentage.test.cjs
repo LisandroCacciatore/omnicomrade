@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { loadTfScript } = require('../../test-utils.cjs');
 
-const { pct } = require('../../../js/training-math');
+const tfTrainingMath = loadTfScript('training-math.js');
+const { pct } = tfTrainingMath;
 
 test('pct calculates and rounds percentages', () => {
   assert.equal(pct(100, 0.5), 50);

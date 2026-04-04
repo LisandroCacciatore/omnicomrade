@@ -1,278 +1,360 @@
-<!DOCTYPE html>
+<!doctype html>
 <html class="dark" lang="es">
-
-<head>
+  <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Alumnos | TechFitness</title>
     <link rel="icon" type="image/png" href="assets/img/favicon.png" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
     <script type="module" src="js/tailwind-config.js"></script>
     <style>
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-        }
+      body {
+        font-family: 'Space Grotesk', sans-serif;
+      }
 
-        .material-symbols-rounded {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
+      .material-symbols-rounded {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24;
+      }
 
-        .active-nav {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3B82F6;
-            font-weight: 700;
-        }
+      .active-nav {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        font-weight: 700;
+      }
 
-        /* Panel lateral slide */
-        #profile-panel {
-            transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+      /* Panel lateral slide */
+      #profile-panel {
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
 
-        #profile-panel.open {
-            transform: translateX(0);
-        }
+      #profile-panel.open {
+        transform: translateX(0);
+      }
 
-        #panel-backdrop {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
+      #panel-backdrop {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
 
-        #panel-backdrop.open {
-            opacity: 1;
-            pointer-events: auto;
-        }
+      #panel-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-        /* US-07: Modal Transitions */
-        .modal-active {
-            opacity: 1 !important;
-            transform: scale(1) !important;
-            transition: opacity 200ms ease-out, transform 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-        }
-        .modal-hidden {
-            opacity: 0 !important;
-            transform: scale(0.95) !important;
-            pointer-events: none;
-            transition: opacity 150ms ease-in, transform 150ms ease-in !important;
-        }
+      /* US-07: Modal Transitions */
+      .modal-active {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        transition:
+          opacity 200ms ease-out,
+          transform 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .modal-hidden {
+        opacity: 0 !important;
+        transform: scale(0.95) !important;
+        pointer-events: none;
+        transition:
+          opacity 150ms ease-in,
+          transform 150ms ease-in !important;
+      }
 
-        /* US-08: Skeleton Animation delays */
-        .sk-delay-1 { animation-delay: 50ms; }
-        .sk-delay-2 { animation-delay: 150ms; }
-        .sk-delay-3 { animation-delay: 250ms; }
-        .sk-delay-4 { animation-delay: 350ms; }
+      /* US-08: Skeleton Animation delays */
+      .sk-delay-1 {
+        animation-delay: 50ms;
+      }
+      .sk-delay-2 {
+        animation-delay: 150ms;
+      }
+      .sk-delay-3 {
+        animation-delay: 250ms;
+      }
+      .sk-delay-4 {
+        animation-delay: 350ms;
+      }
 
-        /* US-09: Button processing */
-        button:disabled {
-            opacity: 0.5 !important;
-            cursor: not-allowed !important;
-            filter: grayscale(0.5);
-        }
+      /* US-09: Button processing */
+      button:disabled {
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+        filter: grayscale(0.5);
+      }
 
-        /* US-11: Form Validation */
-        .input-error {
-            border-color: #EF4444 !important;
-            box-shadow: 0 0 0 1px #EF4444 !important;
+      /* US-11: Form Validation */
+      .input-error {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 1px #ef4444 !important;
+      }
+      .error-label {
+        color: #ef4444;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 4px;
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
         }
-        .error-label {
-            color: #EF4444;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 4px;
-            animation: fadeIn 0.3s ease-out;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+      }
 
-        /* Tabs */
-        .tab-btn {
-            border-bottom: 2px solid transparent;
-            transition: all 0.15s;
-        }
+      /* Tabs */
+      .tab-btn {
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+      }
 
-        .tab-btn.active {
-            border-bottom-color: #3B82F6;
-            color: #3B82F6;
-            font-weight: 700;
-        }
+      .tab-btn.active {
+        border-bottom-color: #3b82f6;
+        color: #3b82f6;
+        font-weight: 700;
+      }
 
-        .tab-content {
-            display: none;
-        }
+      .tab-content {
+        display: none;
+      }
 
-        .tab-content.active {
-            display: block;
-        }
+      .tab-content.active {
+        display: block;
+      }
 
-        @media (max-width: 768px) {
-            #students-table-wrapper { display: none; }
-            #students-cards { display: block; }
+      @media (max-width: 768px) {
+        #students-table-wrapper {
+          display: none;
         }
-        @media (min-width: 769px) {
-            #students-table-wrapper { display: block; }
-            #students-cards { display: none; }
+        #students-cards {
+          display: block;
         }
+      }
+      @media (min-width: 769px) {
+        #students-table-wrapper {
+          display: block;
+        }
+        #students-cards {
+          display: none;
+        }
+      }
     </style>
-</head>
+  </head>
 
-<body class="bg-background-dark text-slate-100 h-screen flex overflow-hidden">
+  <body class="bg-background-dark text-slate-100 h-screen flex overflow-hidden">
     <!-- Toast Notification -->
-    <div id="toast"
-        class="fixed top-6 right-6 z-[100] translate-x-[150%] transition-transform duration-300 pointer-events-none">
-        <div
-            class="bg-surface-dark border border-border-dark rounded-2xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px]">
-            <span id="toast-icon" class="material-symbols-rounded text-success">check_circle</span>
-            <p id="toast-msg" class="text-sm font-bold text-white"></p>
-        </div>
+    <div
+      id="toast"
+      class="fixed top-6 right-6 z-[100] translate-x-[150%] transition-transform duration-300 pointer-events-none"
+    >
+      <div
+        class="bg-surface-dark border border-border-dark rounded-2xl shadow-2xl p-4 flex items-center gap-3 min-w-[300px]"
+      >
+        <span id="toast-icon" class="material-symbols-rounded text-success">check_circle</span>
+        <p id="toast-msg" class="text-sm font-bold text-white"></p>
+      </div>
     </div>
 
     <!-- Sidebar -->
     <aside id="app-sidebar"></aside>
 
     <div class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-        <!-- Header -->
-        <header
-            class="sticky top-0 h-16 border-b border-border-dark bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0">
-            <div class="flex items-center gap-4">
-                <button id="hamburger-btn" class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2">
-                    <span class="material-symbols-rounded text-slate-400">menu</span>
-                </button>
-                <div class="size-8 bg-primary rounded flex items-center justify-center">
-                    <span class="material-symbols-rounded text-white text-[20px]">fitness_center</span>
-                </div>
-                <h1 class="text-xl font-bold tracking-tight text-white">Tech<span class="text-primary">Fitness</span></h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-xs font-bold text-white" id="user-name">Admin</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Gimnasio Admin</p>
-                </div>
-                <button id="logout-btn"
-                    class="size-10 rounded-full border border-border-dark flex items-center justify-center hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-rounded text-slate-400">logout</span>
-                </button>
-            </div>
-        </header>
+      <!-- Header -->
+      <header
+        class="sticky top-0 h-16 border-b border-border-dark bg-background-dark/80 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0"
+      >
+        <div class="flex items-center gap-4">
+          <button
+            id="hamburger-btn"
+            class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2"
+          >
+            <span class="material-symbols-rounded text-slate-400">menu</span>
+          </button>
+          <div class="size-8 bg-primary rounded flex items-center justify-center">
+            <span class="material-symbols-rounded text-white text-[20px]">fitness_center</span>
+          </div>
+          <h1 class="text-xl font-bold tracking-tight text-white">
+            Tech<span class="text-primary">Fitness</span>
+          </h1>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-bold text-white" id="user-name">Admin</p>
+            <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">
+              Gimnasio Admin
+            </p>
+          </div>
+          <button
+            id="logout-btn"
+            class="size-10 rounded-full border border-border-dark flex items-center justify-center hover:bg-slate-800 transition-colors"
+          >
+            <span class="material-symbols-rounded text-slate-400">logout</span>
+          </button>
+        </div>
+      </header>
 
-        <!-- Main -->
-        <main class="flex-1 px-6 pb-6 pt-4 lg:px-8 lg:pb-8 lg:pt-4 space-y-4 overflow-y-auto">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-3xl font-black">Gestión de <span class="text-primary">Alumnos</span></h2>
-                    <p class="text-slate-500 text-sm mt-1" id="subtitle">Cargando alumnos...</p>
-                </div>
-                <button id="btn-nuevo-alumno"
-                    class="flex items-center gap-2 bg-primary hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">
-                    <span class="material-symbols-rounded text-[18px]">add</span><span>Nuevo Alumno</span>
-                </button>
-            </div>
+      <!-- Main -->
+      <main class="flex-1 px-6 pb-6 pt-4 lg:px-8 lg:pb-8 lg:pt-4 space-y-4 overflow-y-auto">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-3xl font-black">
+              Gestión de <span class="text-primary">Alumnos</span>
+            </h2>
+            <p class="text-slate-500 text-sm mt-1" id="subtitle">Cargando alumnos...</p>
+          </div>
+          <button
+            id="btn-nuevo-alumno"
+            class="flex items-center gap-2 bg-primary hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all"
+          >
+            <span class="material-symbols-rounded text-[18px]">add</span><span>Nuevo Alumno</span>
+          </button>
+        </div>
 
-            <!-- Filtros -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <div class="relative flex-1">
-                    <span
-                        class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]">search</span>
-                    <input type="text" id="search-input" placeholder="Buscar por nombre o email..."
-                        class="w-full bg-surface-dark border border-border-dark rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary focus:border-primary transition-all" />
-                </div>
-                <select id="filter-status" aria-label="Filtrar por estado de membresía"
-                    class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[170px]">
-                    <option value="">Todos los estados</option>
-                    <option value="activa">Activa</option>
-                    <option value="por_vencer">Por vencer</option>
-                    <option value="vencida">Vencida</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="suspendida">Suspendida</option>
-                </select>
-                <select id="filter-objetivo" aria-label="Filtrar por objetivo"
-                    class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[190px]">
-                    <option value="">Todos los objetivos</option>
-                    <option value="fuerza">Fuerza</option>
-                    <option value="estetica">Estética</option>
-                    <option value="rendimiento">Rendimiento</option>
-                    <option value="rehabilitacion">Rehabilitación</option>
-                    <option value="general">General</option>
-                </select>
-            </div>
+        <!-- Filtros -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <span
+              class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[20px]"
+              >search</span
+            >
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Buscar por nombre o email..."
+              class="w-full bg-surface-dark border border-border-dark rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-600 focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+            />
+          </div>
+          <select
+            id="filter-status"
+            aria-label="Filtrar por estado de membresía"
+            class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[170px]"
+          >
+            <option value="">Todos los estados</option>
+            <option value="activa">Activa</option>
+            <option value="por_vencer">Por vencer</option>
+            <option value="vencida">Vencida</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="suspendida">Suspendida</option>
+          </select>
+          <select
+            id="filter-objetivo"
+            aria-label="Filtrar por objetivo"
+            class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[190px]"
+          >
+            <option value="">Todos los objetivos</option>
+            <option value="fuerza">Fuerza</option>
+            <option value="estetica">Estética</option>
+            <option value="rendimiento">Rendimiento</option>
+            <option value="rehabilitacion">Rehabilitación</option>
+            <option value="general">General</option>
+          </select>
+        </div>
 
-            <!-- Tabla -->
-            <div id="students-table-wrapper"
-                class="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden overflow-x-auto shadow-sm">
-                <table class="w-full text-left">
-                    <thead class="hidden sm:table-header-group bg-border-dark/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
-                        <tr>
-                            <th class="px-6 py-4">Alumno</th>
-                            <th class="px-6 py-4">Objetivo</th>
-                            <th class="px-6 py-4">Membresía</th>
-                            <th class="px-6 py-4">Vencimiento</th>
-                            <th class="px-6 py-4">Plan</th>
-                            <th class="px-6 py-4">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border-dark block sm:table-row-group" id="students-table">
-                        <tr class="animate-pulse sk-delay-1">
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-36 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-20 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-20 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                        </tr>
-                        <tr class="animate-pulse sk-delay-2">
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-28 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-20 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-20 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="h-4 w-16 bg-slate-800 rounded"></div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div id="empty-state" class="hidden py-16 text-center">
-                    <span class="material-symbols-rounded text-slate-700 text-[48px]">group</span>
-                    <p class="text-slate-500 text-sm mt-3">No hay alumnos registrados todavía.</p>
-                    <a href="student-form.html" class="inline-flex items-center gap-2 mt-4 bg-primary hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-xl">
-                        <span class="material-symbols-rounded text-[18px]">person_add</span>Agregar Alumno
-                    </a>
-                </div>
+        <!-- Tabla -->
+        <div
+          id="students-table-wrapper"
+          class="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden overflow-x-auto shadow-sm"
+        >
+          <table class="w-full text-left">
+            <thead
+              class="hidden sm:table-header-group bg-border-dark/50 text-slate-400 uppercase text-[10px] font-black tracking-widest"
+            >
+              <tr>
+                <th class="px-6 py-4">Alumno</th>
+                <th class="px-6 py-4">Objetivo</th>
+                <th class="px-6 py-4">Membresía</th>
+                <th class="px-6 py-4">Vencimiento</th>
+                <th class="px-6 py-4">Plan</th>
+                <th class="px-6 py-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark block sm:table-row-group" id="students-table">
+              <tr class="animate-pulse sk-delay-1">
+                <td class="px-6 py-4">
+                  <div class="h-4 w-36 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+              </tr>
+              <tr class="animate-pulse sk-delay-2">
+                <td class="px-6 py-4">
+                  <div class="h-4 w-28 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-20 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="h-4 w-16 bg-slate-800 rounded"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div id="empty-state" class="hidden py-16 text-center">
+            <div
+              class="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5"
+            >
+              <span
+                class="material-symbols-rounded text-primary text-[40px]"
+                style="font-variation-settings: 'FILL' 1"
+                >group_add</span
+              >
             </div>
-            <div id="students-cards" class="space-y-3 p-4"></div>
-        </main>
+            <h3 class="text-xl font-black text-white mb-2">No hay atletas todavía</h3>
+            <p class="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
+              Empezá agregando tu primer atleta al gimnasio. Podés asignarle membresía y un programa
+              de entrenamiento.
+            </p>
+            <button
+              id="btn-empty-add-student"
+              class="inline-flex items-center gap-2 bg-primary hover:bg-blue-500 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-primary/20"
+            >
+              <span class="material-symbols-rounded text-[18px]">person_add</span>Agregar Primer
+              Atleta
+            </button>
+          </div>
+        </div>
+        <div id="students-cards" class="space-y-3 p-4"></div>
+      </main>
     </div>
 
     <!-- ═══════════════════════════════════════════
@@ -280,333 +362,501 @@
     ══════════════════════════════════════════════ -->
     <div id="panel-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"></div>
 
-    <div id="profile-panel"
-        class="fixed top-0 right-0 h-full w-full max-w-lg bg-surface-dark border-l border-border-dark z-50 flex flex-col shadow-2xl overflow-hidden">
+    <div
+      id="profile-panel"
+      class="fixed top-0 right-0 h-full w-full max-w-lg bg-surface-dark border-l border-border-dark z-50 flex flex-col shadow-2xl overflow-hidden"
+    >
+      <!-- Panel Header -->
+      <div
+        class="flex items-center justify-between px-6 py-4 border-b border-border-dark shrink-0 bg-surface-dark"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            id="panel-avatar"
+            class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-lg shrink-0"
+          >
+            ?
+          </div>
+          <div>
+            <p class="font-black text-sm" id="panel-name">—</p>
+            <p
+              class="text-[10px] text-slate-500 uppercase tracking-widest"
+              id="panel-objetivo-label"
+            >
+              —
+            </p>
+          </div>
+        </div>
+        <button
+          id="panel-close"
+          class="size-9 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors"
+        >
+          <span class="material-symbols-rounded text-slate-400">close</span>
+        </button>
+      </div>
 
-        <!-- Panel Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-border-dark shrink-0 bg-surface-dark">
-            <div class="flex items-center gap-3">
-                <div id="panel-avatar"
-                    class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-lg shrink-0">
-                    ?</div>
-                <div>
-                    <p class="font-black text-sm" id="panel-name">—</p>
-                    <p class="text-[10px] text-slate-500 uppercase tracking-widest" id="panel-objetivo-label">—</p>
-                </div>
+      <!-- Tabs -->
+      <div
+        class="flex border-b border-border-dark px-6 shrink-0 gap-5 overflow-x-auto bg-surface-dark"
+      >
+        <button
+          class="tab-btn active py-3 text-xs text-slate-400 whitespace-nowrap"
+          data-tab="info"
+        >
+          Info
+        </button>
+        <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="membresias">
+          Membresías
+        </button>
+        <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="rutina">
+          Rutina
+        </button>
+        <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="asistencia">
+          Asistencia
+        </button>
+        <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="notas">
+          Notas
+        </button>
+        <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="medico">
+          Médico
+        </button>
+      </div>
+
+      <!-- Panel body -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <!-- INFO -->
+        <div class="tab-content active" id="tab-info">
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-background-dark rounded-xl p-4 border border-border-dark col-span-2">
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Nombre</p>
+              <p class="text-sm font-bold" id="panel-fullname">—</p>
             </div>
-            <button id="panel-close"
-                class="size-9 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
-                <span class="material-symbols-rounded text-slate-400">close</span>
+            <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Email</p>
+              <p class="text-xs font-medium truncate" id="panel-email">—</p>
+            </div>
+            <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Teléfono</p>
+              <p class="text-xs font-medium" id="panel-phone">—</p>
+            </div>
+            <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Nacimiento</p>
+              <p class="text-xs font-medium" id="panel-birth">—</p>
+            </div>
+            <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
+              <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Ingreso</p>
+              <p class="text-xs font-medium" id="panel-created">—</p>
+            </div>
+            <div
+              class="bg-background-dark rounded-xl p-4 border border-border-dark col-span-2 flex items-center justify-between"
+            >
+              <div>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Membresía</p>
+                <p id="panel-status-badge">—</p>
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3 mb-3">
+            <button
+              id="panel-btn-editar"
+              class="flex-1 flex items-center justify-center gap-2 border border-border-dark rounded-xl py-2.5 text-xs font-bold hover:bg-slate-800 transition-all"
+            >
+              <span class="material-symbols-rounded text-[16px] text-warning">edit</span> Editar
+              datos
             </button>
+            <button
+              id="panel-btn-membresia"
+              class="flex-1 flex items-center justify-center gap-2 border border-success/30 bg-success/5 rounded-xl py-2.5 text-xs font-bold text-success hover:bg-success/10 transition-all"
+            >
+              <span class="material-symbols-rounded text-[16px]">sell</span> Nueva membresía
+            </button>
+          </div>
+          <a
+            id="panel-btn-progress"
+            href="#"
+            class="flex items-center justify-center gap-2 border border-border-dark hover:bg-surface-2 transition text-slate-400 hover:text-white text-sm font-bold px-3 py-2.5 rounded-xl"
+          >
+            <span class="material-symbols-rounded text-[17px]">trending_up</span>
+            Ver progreso
+          </a>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex border-b border-border-dark px-6 shrink-0 gap-5 overflow-x-auto bg-surface-dark">
-            <button class="tab-btn active py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="info">Info</button>
-            <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap"
-                data-tab="membresias">Membresías</button>
-            <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="rutina">Rutina</button>
-            <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap"
-                data-tab="asistencia">Asistencia</button>
-            <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="notas">Notas</button>
-            <button class="tab-btn py-3 text-xs text-slate-400 whitespace-nowrap" data-tab="medico">Médico</button>
+        <!-- MEMBRESÍAS -->
+        <div class="tab-content" id="tab-membresias">
+          <div id="panel-membresias-list" class="space-y-3">
+            <p class="text-center text-slate-500 text-sm py-8">Cargando...</p>
+          </div>
         </div>
 
-        <!-- Panel body -->
-        <div class="flex-1 overflow-y-auto p-6">
-
-            <!-- INFO -->
-            <div class="tab-content active" id="tab-info">
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div class="bg-background-dark rounded-xl p-4 border border-border-dark col-span-2">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Nombre</p>
-                        <p class="text-sm font-bold" id="panel-fullname">—</p>
-                    </div>
-                    <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Email</p>
-                        <p class="text-xs font-medium truncate" id="panel-email">—</p>
-                    </div>
-                    <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Teléfono</p>
-                        <p class="text-xs font-medium" id="panel-phone">—</p>
-                    </div>
-                    <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Nacimiento</p>
-                        <p class="text-xs font-medium" id="panel-birth">—</p>
-                    </div>
-                    <div class="bg-background-dark rounded-xl p-4 border border-border-dark">
-                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Ingreso</p>
-                        <p class="text-xs font-medium" id="panel-created">—</p>
-                    </div>
-                    <div
-                        class="bg-background-dark rounded-xl p-4 border border-border-dark col-span-2 flex items-center justify-between">
-                        <div>
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Membresía</p>
-                            <p id="panel-status-badge">—</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-3 mb-3">
-                    <button id="panel-btn-editar"
-                        class="flex-1 flex items-center justify-center gap-2 border border-border-dark rounded-xl py-2.5 text-xs font-bold hover:bg-slate-800 transition-all">
-                        <span class="material-symbols-rounded text-[16px] text-warning">edit</span> Editar datos
-                    </button>
-                    <button id="panel-btn-membresia"
-                        class="flex-1 flex items-center justify-center gap-2 border border-success/30 bg-success/5 rounded-xl py-2.5 text-xs font-bold text-success hover:bg-success/10 transition-all">
-                        <span class="material-symbols-rounded text-[16px]">sell</span> Nueva membresía
-                    </button>
-                </div>
-                <a id="panel-btn-progress" href="#"
-                    class="flex items-center justify-center gap-2 border border-border-dark hover:bg-surface-2 transition text-slate-400 hover:text-white text-sm font-bold px-3 py-2.5 rounded-xl">
-                    <span class="material-symbols-rounded text-[17px]">trending_up</span>
-                    Ver progreso
-                </a>
-            </div>
-
-            <!-- MEMBRESÍAS -->
-            <div class="tab-content" id="tab-membresias">
-                <div id="panel-membresias-list" class="space-y-3">
-                    <p class="text-center text-slate-500 text-sm py-8">Cargando...</p>
-                </div>
-            </div>
-
-            <!-- RUTINA -->
-            <div class="tab-content" id="tab-rutina">
-                <div class="text-center py-12">
-                    <span class="material-symbols-rounded text-slate-700 text-[48px]">exercise</span>
-                    <p class="text-slate-500 text-sm mt-3">Módulo de rutinas disponible próximamente.</p>
-                </div>
-            </div>
-
-            <!-- ASISTENCIA -->
-            <div class="tab-content" id="tab-asistencia">
-                <div class="text-center py-12">
-                    <span class="material-symbols-rounded text-slate-700 text-[48px]">event_available</span>
-                    <p class="text-slate-500 text-sm mt-3">Módulo de asistencia disponible próximamente.</p>
-                </div>
-            </div>
-
-            <!-- NOTAS DEL COACH -->
-            <div class="tab-content" id="tab-notas">
-                <div class="flex flex-col gap-3">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Notas del coach</label>
-                    <textarea id="panel-notes-input" rows="8"
-                        class="bg-background-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none text-sm"
-                        placeholder="Observaciones, indicaciones especiales, historial de lesiones..."></textarea>
-                    <button id="panel-btn-save-notes"
-                        class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 transition-all">
-                        <span id="notes-btn-text">Guardar notas</span>
-                        <span id="notes-btn-spinner"
-                            class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                    </button>
-                    <p id="notes-saved-msg" class="hidden text-center text-xs text-success font-bold">✓ Notas guardadas
-                    </p>
-                </div>
-            </div>
-
-            <!-- CERTIFICADO MÉDICO -->
-            <div class="tab-content" id="tab-medico">
-                <div class="flex flex-col gap-4">
-                    <div id="cert-current"
-                        class="hidden bg-background-dark border border-border-dark rounded-xl p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="material-symbols-rounded text-success">verified</span>
-                            <div>
-                                <p class="text-sm font-bold">Certificado cargado</p>
-                                <p class="text-[10px] text-slate-500">Hacé click en "Ver" para abrirlo</p>
-                            </div>
-                        </div>
-                        <a id="cert-link" href="#" target="_blank"
-                            class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                            Ver <span class="material-symbols-rounded text-[14px]">open_in_new</span>
-                        </a>
-                    </div>
-                    <div id="cert-empty"
-                        class="hidden bg-background-dark border border-dashed border-border-muted rounded-xl p-6 text-center">
-                        <span class="material-symbols-rounded text-slate-600 text-[36px]">upload_file</span>
-                        <p class="text-slate-500 text-sm mt-2">Sin certificado cargado</p>
-                    </div>
-
-                    <label class="flex flex-col gap-2 cursor-pointer">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Subir certificado (PDF o
-                            imagen)</span>
-                        <div
-                            class="relative border border-dashed border-border-muted rounded-xl p-8 text-center hover:border-primary transition-colors bg-background-dark">
-                            <span class="material-symbols-rounded text-slate-500 text-[32px]">cloud_upload</span>
-                            <p class="text-slate-500 text-xs mt-1">Arrastrá o hacé click para subir</p>
-                            <input type="file" id="cert-file-input" accept=".pdf,image/*"
-                                class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                        </div>
-                    </label>
-
-                    <div id="cert-upload-error"
-                        class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
-                    </div>
-                    <div id="cert-upload-progress" class="hidden flex items-center gap-2 text-xs text-slate-400">
-                        <span
-                            class="animate-spin size-4 border-2 border-primary/30 border-t-primary rounded-full"></span>
-                        Subiendo archivo...
-                    </div>
-                </div>
-            </div>
-
+        <!-- RUTINA -->
+        <div class="tab-content" id="tab-rutina">
+          <div class="text-center py-12">
+            <span class="material-symbols-rounded text-slate-700 text-[48px]">exercise</span>
+            <p class="text-slate-500 text-sm mt-3">Módulo de rutinas disponible próximamente.</p>
+          </div>
         </div>
+
+        <!-- ASISTENCIA -->
+        <div class="tab-content" id="tab-asistencia">
+          <div class="text-center py-12">
+            <span class="material-symbols-rounded text-slate-700 text-[48px]">event_available</span>
+            <p class="text-slate-500 text-sm mt-3">Módulo de asistencia disponible próximamente.</p>
+          </div>
+        </div>
+
+        <!-- NOTAS DEL COACH -->
+        <div class="tab-content" id="tab-notas">
+          <div class="flex flex-col gap-3">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >Notas del coach</label
+            >
+            <textarea
+              id="panel-notes-input"
+              rows="8"
+              class="bg-background-dark border border-border-dark rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none text-sm"
+              placeholder="Observaciones, indicaciones especiales, historial de lesiones..."
+            ></textarea>
+            <button
+              id="panel-btn-save-notes"
+              class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 transition-all"
+            >
+              <span id="notes-btn-text">Guardar notas</span>
+              <span
+                id="notes-btn-spinner"
+                class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"
+              ></span>
+            </button>
+            <p id="notes-saved-msg" class="hidden text-center text-xs text-success font-bold">
+              ✓ Notas guardadas
+            </p>
+          </div>
+        </div>
+
+        <!-- CERTIFICADO MÉDICO -->
+        <div class="tab-content" id="tab-medico">
+          <div class="flex flex-col gap-4">
+            <div
+              id="cert-current"
+              class="hidden bg-background-dark border border-border-dark rounded-xl p-4 flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-rounded text-success">verified</span>
+                <div>
+                  <p class="text-sm font-bold">Certificado cargado</p>
+                  <p class="text-[10px] text-slate-500">Hacé click en "Ver" para abrirlo</p>
+                </div>
+              </div>
+              <a
+                id="cert-link"
+                href="#"
+                target="_blank"
+                class="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              >
+                Ver <span class="material-symbols-rounded text-[14px]">open_in_new</span>
+              </a>
+            </div>
+            <div
+              id="cert-empty"
+              class="hidden bg-background-dark border border-dashed border-border-muted rounded-xl p-6 text-center"
+            >
+              <span class="material-symbols-rounded text-slate-600 text-[36px]">upload_file</span>
+              <p class="text-slate-500 text-sm mt-2">Sin certificado cargado</p>
+            </div>
+
+            <label class="flex flex-col gap-2 cursor-pointer">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                >Subir certificado (PDF o imagen)</span
+              >
+              <div
+                class="relative border border-dashed border-border-muted rounded-xl p-8 text-center hover:border-primary transition-colors bg-background-dark"
+              >
+                <span class="material-symbols-rounded text-slate-500 text-[32px]"
+                  >cloud_upload</span
+                >
+                <p class="text-slate-500 text-xs mt-1">Arrastrá o hacé click para subir</p>
+                <input
+                  type="file"
+                  id="cert-file-input"
+                  accept=".pdf,image/*"
+                  class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+              </div>
+            </label>
+
+            <div
+              id="cert-upload-error"
+              class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20"
+            ></div>
+            <div
+              id="cert-upload-progress"
+              class="hidden flex items-center gap-2 text-xs text-slate-400"
+            >
+              <span
+                class="animate-spin size-4 border-2 border-primary/30 border-t-primary rounded-full"
+              ></span>
+              Subiendo archivo...
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MODAL NUEVO / EDITAR ALUMNO -->
-    <div id="modal-alumno" 
-         role="dialog" aria-modal="true" aria-labelledby="modal-title-alumno"
-         class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div id="modal-alumno-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-        <form id="form-alumno"
-            class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-black" id="modal-title-alumno">Nuevo <span class="text-primary">Alumno</span>
-                </h3>
-                <button type="button" id="modal-alumno-close"
-                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-rounded text-slate-400">close</span>
-                </button>
+    <div
+      id="modal-alumno"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title-alumno"
+      class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4"
+    >
+      <div id="modal-alumno-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <form
+        id="form-alumno"
+        class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10"
+      >
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-xl font-black" id="modal-title-alumno">
+            Nuevo <span class="text-primary">Alumno</span>
+          </h3>
+          <button
+            type="button"
+            id="modal-alumno-close"
+            class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <span class="material-symbols-rounded text-slate-400">close</span>
+          </button>
+        </div>
+        <input type="hidden" id="alumno-id" />
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >Nombre completo *</label
+            >
+            <input
+              type="text"
+              id="alumno-full-name"
+              required
+              class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+              placeholder="Ej: Juan Pérez"
+            />
+            <div
+              id="error-alumno-name"
+              class="hidden text-danger text-[10px] font-bold uppercase mt-1"
+            ></div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
+            <input
+              type="email"
+              id="alumno-email"
+              class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+              placeholder="juan@email.com"
+            />
+            <div
+              id="error-alumno-email"
+              class="hidden text-danger text-[10px] font-bold uppercase mt-1"
+            ></div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                >Teléfono</label
+              >
+              <input
+                type="tel"
+                id="alumno-phone"
+                class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                placeholder="+54 11..."
+              />
             </div>
-            <input type="hidden" id="alumno-id" />
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Nombre completo *</label>
-                    <input type="text" id="alumno-full-name" required
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                        placeholder="Ej: Juan Pérez" />
-                    <div id="error-alumno-name" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Email</label>
-                    <input type="email" id="alumno-email"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                        placeholder="juan@email.com" />
-                    <div id="error-alumno-email" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Teléfono</label>
-                        <input type="tel" id="alumno-phone"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                            placeholder="+54 11..." />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Nacimiento</label>
-                        <input type="date" id="alumno-birth-date"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all" />
-                        <div id="error-alumno-birth" class="hidden text-danger text-[10px] font-bold uppercase mt-1"></div>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Objetivo</label>
-                    <select id="alumno-objetivo"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
-                        <option value="">Sin definir</option>
-                        <option value="fuerza">Fuerza</option>
-                        <option value="estetica">Estética</option>
-                        <option value="rendimiento">Rendimiento</option>
-                        <option value="rehabilitacion">Rehabilitación</option>
-                        <option value="general">General</option>
-                    </select>
-                </div>
-                <div id="modal-alumno-error"
-                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
-                </div>
-                <button type="submit" id="modal-alumno-submit"
-                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-primary/20 mt-2">
-                    <span id="alumno-btn-text">Guardar Alumno</span>
-                    <span id="alumno-btn-spinner"
-                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                </button>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                >Nacimiento</label
+              >
+              <input
+                type="date"
+                id="alumno-birth-date"
+                class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all"
+              />
+              <div
+                id="error-alumno-birth"
+                class="hidden text-danger text-[10px] font-bold uppercase mt-1"
+              ></div>
             </div>
-        </form>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >Objetivo</label
+            >
+            <select
+              id="alumno-objetivo"
+              class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all"
+            >
+              <option value="">Sin definir</option>
+              <option value="fuerza">Fuerza</option>
+              <option value="estetica">Estética</option>
+              <option value="rendimiento">Rendimiento</option>
+              <option value="rehabilitacion">Rehabilitación</option>
+              <option value="general">General</option>
+            </select>
+          </div>
+          <div
+            id="modal-alumno-error"
+            class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20"
+          ></div>
+          <button
+            type="submit"
+            id="modal-alumno-submit"
+            class="flex items-center justify-center gap-2 w-full rounded-xl bg-primary hover:bg-blue-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-primary/20 mt-2"
+          >
+            <span id="alumno-btn-text">Guardar Alumno</span>
+            <span
+              id="alumno-btn-spinner"
+              class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"
+            ></span>
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- MODAL NUEVA MEMBRESÍA -->
-    <div id="modal-nueva-membresia" 
-         role="dialog" aria-modal="true" aria-labelledby="modal-title-nm"
-         class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div id="modal-membresia-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-        <form id="form-membresia"
-            class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10">
-            <div class="flex items-center justify-between mb-6">
-                <div>
-                    <h3 id="modal-title-nm" class="text-xl font-black">Nueva <span class="text-success">Membresía</span></h3>
-                    <p class="text-xs text-slate-500 mt-1" id="membresia-student-name"></p>
-                </div>
-                <button type="button" id="modal-membresia-close"
-                    class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors">
-                    <span class="material-symbols-rounded text-slate-400">close</span>
-                </button>
+    <div
+      id="modal-nueva-membresia"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title-nm"
+      class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4"
+    >
+      <div
+        id="modal-membresia-backdrop"
+        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      ></div>
+      <form
+        id="form-membresia"
+        class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-md shadow-2xl z-10"
+      >
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 id="modal-title-nm" class="text-xl font-black">
+              Nueva <span class="text-success">Membresía</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-1" id="membresia-student-name"></p>
+          </div>
+          <button
+            type="button"
+            id="modal-membresia-close"
+            class="size-8 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <span class="material-symbols-rounded text-slate-400">close</span>
+          </button>
+        </div>
+        <input type="hidden" id="membresia-student-id" />
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Plan *</label>
+            <div class="grid grid-cols-3 gap-2" id="membresia-plan-buttons"></div>
+            <input type="hidden" id="membresia-plan" required value="" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+              >Fecha de inicio *</label
+            >
+            <input
+              type="date"
+              id="membresia-start-date"
+              required
+              class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                >Monto *</label
+              >
+              <input
+                type="number"
+                id="membresia-amount"
+                required
+                min="0"
+                step="0.01"
+                class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
+                placeholder="0.00"
+              />
             </div>
-            <input type="hidden" id="membresia-student-id" />
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Plan *</label>
-                    <div class="grid grid-cols-3 gap-2" id="membresia-plan-buttons"></div>
-                    <input type="hidden" id="membresia-plan" required value="" />
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Fecha de inicio *</label>
-                    <input type="date" id="membresia-start-date" required
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all" />
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Monto *</label>
-                        <input type="number" id="membresia-amount" required min="0" step="0.01"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600"
-                            placeholder="0.00" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Método</label>
-                        <select id="membresia-payment-method"
-                            class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all">
-                            <option value="efectivo">Efectivo</option>
-                            <option value="transferencia">Transferencia</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Notas</label>
-                    <textarea id="membresia-notes" rows="2"
-                        class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none"
-                        placeholder="Observaciones opcionales..."></textarea>
-                </div>
-                <div id="modal-membresia-error"
-                    class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20">
-                </div>
-                <button type="submit" id="modal-membresia-submit"
-                    class="flex items-center justify-center gap-2 w-full rounded-xl bg-success hover:bg-emerald-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-success/20 mt-2">
-                    <span id="membresia-btn-text">Registrar Membresía</span>
-                    <span id="membresia-btn-spinner"
-                        class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                </button>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-400"
+                >Método</label
+              >
+              <select
+                id="membresia-payment-method"
+                class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all"
+              >
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+              </select>
             </div>
-        </form>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Notas</label>
+            <textarea
+              id="membresia-notes"
+              rows="2"
+              class="bg-slate-900/50 border border-slate-800 rounded-xl focus:ring-2 focus:ring-primary text-white py-3 px-4 transition-all placeholder:text-slate-600 resize-none"
+              placeholder="Observaciones opcionales..."
+            ></textarea>
+          </div>
+          <div
+            id="modal-membresia-error"
+            class="hidden text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20"
+          ></div>
+          <button
+            type="submit"
+            id="modal-membresia-submit"
+            class="flex items-center justify-center gap-2 w-full rounded-xl bg-success hover:bg-emerald-600 text-white font-bold py-3 px-6 transition-all shadow-lg shadow-success/20 mt-2"
+          >
+            <span id="membresia-btn-text">Registrar Membresía</span>
+            <span
+              id="membresia-btn-spinner"
+              class="hidden animate-spin size-4 border-2 border-white/30 border-t-white rounded-full"
+            ></span>
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- MODAL ELIMINAR -->
-    <div id="modal-eliminar" 
-         role="dialog" aria-modal="true" aria-labelledby="modal-title-eliminar"
-         class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div id="modal-eliminar-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-        <div
-            class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-sm shadow-2xl z-10 text-center">
-            <div class="size-14 bg-danger/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span class="material-symbols-rounded text-danger text-[28px]">delete</span>
-            </div>
-            <h3 id="modal-title-eliminar" class="text-lg font-black mb-2">¿Eliminar alumno?</h3>
-            <p class="text-slate-400 text-sm mb-4">Esta acción no se puede deshacer.</p>
-            <p class="font-bold text-white mb-6" id="eliminar-alumno-name"></p>
-            <div class="flex gap-3">
-                <button id="btn-cancelar-eliminar"
-                    class="flex-1 py-3 rounded-xl border border-border-dark text-sm font-bold hover:bg-slate-800 transition-all">Cancelar</button>
-                <button id="btn-confirmar-eliminar"
-                    class="flex-1 py-3 rounded-xl bg-danger hover:bg-red-600 text-white text-sm font-bold transition-all">Eliminar</button>
-            </div>
+    <div
+      id="modal-eliminar"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title-eliminar"
+      class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4"
+    >
+      <div id="modal-eliminar-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div
+        class="relative bg-surface-dark border border-border-dark rounded-2xl p-8 w-full max-w-sm shadow-2xl z-10 text-center"
+      >
+        <div class="size-14 bg-danger/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <span class="material-symbols-rounded text-danger text-[28px]">delete</span>
         </div>
+        <h3 id="modal-title-eliminar" class="text-lg font-black mb-2">¿Eliminar alumno?</h3>
+        <p class="text-slate-400 text-sm mb-4">Esta acción no se puede deshacer.</p>
+        <p class="font-bold text-white mb-6" id="eliminar-alumno-name"></p>
+        <div class="flex gap-3">
+          <button
+            id="btn-cancelar-eliminar"
+            class="flex-1 py-3 rounded-xl border border-border-dark text-sm font-bold hover:bg-slate-800 transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btn-confirmar-eliminar"
+            class="flex-1 py-3 rounded-xl bg-danger hover:bg-red-600 text-white text-sm font-bold transition-all"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -617,8 +867,5 @@
     <script type="module" src="js/program-assign.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/student-list.js"></script>
-</body>
-
+  </body>
 </html>
-
-

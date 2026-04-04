@@ -27,6 +27,19 @@ async function initDashboard() {
   gymId = session.user.app_metadata.gym_id;
   authUserId = session.user.id;
   window.gymId = gymId;
+
+  // VERIFICAR ONBOARDING (US-ONB)
+  const { data: gym } = await window.supabaseClient
+    .from('gyms')
+    .select('onboarding_completed')
+    .eq('id', gymId)
+    .single();
+
+  if (gym && !gym.onboarding_completed) {
+    window.location.href = 'onboarding.html';
+    return;
+  }
+
   userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
 
   // Skeleton
