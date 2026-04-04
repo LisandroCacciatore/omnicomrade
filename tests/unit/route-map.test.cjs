@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { loadTfScript } = require('../test-utils.cjs');
 
-const { normalizeRole, getDashboardByRole } = require('../../js/route-map');
+const tfRouteMap = loadTfScript('route-map.js');
+const { normalizeRole, getDashboardByRole } = tfRouteMap;
 
 test('normalizeRole maps coach to profesor', () => {
   assert.equal(normalizeRole('coach'), 'profesor');

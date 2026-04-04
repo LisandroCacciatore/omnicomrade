@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { loadTfScript } = require('../test-utils.cjs');
 
-const { createDB } = require('../../js/db');
+const tfDb = loadTfScript('db.js');
+const { createDB } = tfDb;
 
 function queryBuilder(result) {
   return {
@@ -21,7 +23,10 @@ test('createDB students.getAll returns typed result', async () => {
   const db = createDB(fakeClient);
   const res = await db.students.getAll({ gymId: 'gym-1' });
 
-  assert.deepEqual(res, { data: [{ id: 1 }], error: null });
+  // Use explicit property check instead of deepStrictEqual on VM-born objects
+  assert.equal(res.error, null);
+  assert.equal(res.data.length, 1);
+  assert.equal(res.data[0].id, 1);
 });
 
 test('createDB exercises.getGlobalAndGym merges global and custom rows', async () => {
@@ -36,5 +41,7 @@ test('createDB exercises.getGlobalAndGym merges global and custom rows', async (
   const res = await db.exercises.getGlobalAndGym('gym-1');
 
   assert.equal(res.error, null);
-  assert.deepEqual(res.data, [{ id: 1 }, { id: 2 }]);
+  assert.equal(res.data.length, 2);
+  assert.equal(res.data[0].id, 1);
+  assert.equal(res.data[1].id, 2);
 });

@@ -1,7 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { loadTfScript } = require('../test-utils.cjs');
 
-const { createStore } = require('../../js/store');
+const tfStore = loadTfScript('store.js');
+const { createStore } = tfStore;
 
 test('createStore updates and reads state', () => {
   const store = createStore({ count: 1 });
