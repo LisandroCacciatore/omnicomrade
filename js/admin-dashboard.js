@@ -3,6 +3,8 @@
  * TechFitness — Dashboard del Administrador
  */
 
+await import('./auth-guard.js');
+
 // ─── DOM refs ─────────────────────────────────────────────
 const kpiTotalStudents = document.getElementById('kpi-total-students');
 const kpiActiveMemberships = document.getElementById('kpi-active-memberships');
@@ -189,12 +191,10 @@ function setupQuickActions() {
     assignProgramModal?.open();
   });
 
-  document
-    .querySelector('[data-action="nueva-membresia"]')
-    ?.addEventListener('click', () => {
-      if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
-      else toast('No se pudo abrir el modal de membresía', 'error');
-    });
+  document.querySelector('[data-action="nueva-membresia"]')?.addEventListener('click', () => {
+    if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
+    else toast('No se pudo abrir el modal de membresía', 'error');
+  });
 
   document.getElementById('btn-enviar-alerta')?.addEventListener('click', openAlertModal);
 }
@@ -325,7 +325,12 @@ async function handleAlertSubmit(e) {
   const singleStudentId = document.getElementById('alert-student-single')?.value || '';
   const message = (document.getElementById('alert-message')?.value || '').trim();
 
-  const recipientIds = targetType === 'single' ? (singleStudentId ? [singleStudentId] : []) : Array.from(alertSelectedStudentIds);
+  const recipientIds =
+    targetType === 'single'
+      ? singleStudentId
+        ? [singleStudentId]
+        : []
+      : Array.from(alertSelectedStudentIds);
 
   if (errorEl) {
     errorEl.classList.add('hidden');
@@ -498,7 +503,8 @@ function renderGymMembershipPlanButtons() {
   const container = document.getElementById('membresia-plan-buttons');
   if (!container) return;
   if (!gymMembershipPlans.length) {
-    container.innerHTML = '<p class="text-xs text-danger col-span-3">No hay planes creados para este gimnasio.</p>';
+    container.innerHTML =
+      '<p class="text-xs text-danger col-span-3">No hay planes creados para este gimnasio.</p>';
     return;
   }
   container.innerHTML = gymMembershipPlans
@@ -517,7 +523,9 @@ function selectGymMembershipPlan(planKey, amount = null) {
   document
     .querySelectorAll('#membresia-plan-buttons .plan-btn')
     .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-  const selectedBtn = document.querySelector(`#membresia-plan-buttons .plan-btn[data-plan="${planKey}"]`);
+  const selectedBtn = document.querySelector(
+    `#membresia-plan-buttons .plan-btn[data-plan="${planKey}"]`
+  );
   if (selectedBtn) selectedBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
   document.getElementById('membresia-plan').value = planKey || '';
   const amountInput = document.getElementById('membresia-amount');
