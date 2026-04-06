@@ -64,46 +64,38 @@ window.addEventListener('onboarding:completed', async () => {
 async function loadKPIs() {
   try {
     const db = window.supabaseClient;
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const [
-      { count: totalCount },
-      { count: activeCount },
-      { count: expiredCount },
-      { count: expiringSoonCount }
+      { count: activeStudents },
+      { count: expiringSoon },
+      { data: monthIncomeData }
     ] = await Promise.all([
-      db.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-      db
-        .from('students')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null)
-        .eq('membership_status', 'activa'),
-      db
-        .from('students')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null)
-        .eq('membership_status', 'vencida'),
-      db
-        .from('memberships')
-        .select('*', { count: 'exact', head: true })
-        .gte('end_date', new Date().toISOString().split('T')[0])
-        .lte('end_date', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      // Atletas activos (membership_status = 'activa')
+      db.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('membership_status', 'activa'),
+      // Membresías por vencer (próximos 7 días)
+      db.from('memberships').select('*', { count: 'exact', head: true }).gte('end_date', today.toISOString().split('T')[0]).lte('end_date', sevenDaysFromNow),
+      // Ingresos del mes (suma de amount de memberships iniciadas este mes)
+      db.from('memberships').select('amount').gte('start_date', startOfMonth).lte('start_date', endOfMonth)
     ]);
 
-    kpiTotalStudents.textContent = totalCount || 0;
-    kpiActiveMemberships.textContent = activeCount || 0;
-    kpiExpiringSoon.textContent = expiringSoonCount || 0;
-    kpiExpired.textContent = expiredCount || 0;
+    const monthlyIncome = (monthIncomeData || []).reduce((sum, m) => sum + (m.amount || 0), 0);
 
-    // Porcentajes calculados sobre total de alumnos
-    const total = totalCount || 1;
-    const set = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = `${val}%`;
-    };
-    set('pct-active-memberships', Math.round((activeCount / total) * 100));
-    set('pct-expiring-soon', Math.round((expiringSoonCount / total) * 100));
-    set('pct-expired', Math.round((expiredCount / total) * 100));
+    // Update DOM
+    const kpiActiveStudents = document.getElementById('kpi-active-students');
+    const kpiExpiringSoon = document.getElementById('kpi-expiring-soon');
+    const kpiMonthlyIncome = document.getElementById('kpi-monthly-income');
+
+    if (kpiActiveStudents) kpiActiveStudents.textContent = activeStudents || 0;
+    if (kpiExpiringSoon) kpiExpiringSoon.textContent = expiringSoon || 0;
+    if (kpiMonthlyIncome) kpiMonthlyIncome.textContent = '$' + (monthlyIncome || 0).toLocaleString('es-AR');
   } catch (err) {
+    console.error('Error loading KPIs:', err);
+  }
+}
     console.error('Error loading KPIs:', err);
   }
 }
@@ -425,9 +417,9 @@ function setupModals() {
   );
 }
 
-window.openNewAlumno = () => window.onboardingWizard.open();
+window.openNewAtleta = () => window.onboardingWizard.open();
 
-window.closeModalAlumno = () => {
+window.closeModalAtleta = () => {
   document.getElementById('modal-nuevo-alumno').classList.remove('open');
   ['input-full-name', 'input-email', 'input-phone', 'input-birth-date'].forEach((id) => {
     const el = document.getElementById(id);
@@ -468,8 +460,8 @@ async function saveNewStudent() {
 
     if (error) throw error;
 
-    toast('Alumno creado con éxito');
-    window.closeModalAlumno();
+    toast('Atleta creado con éxito');
+    window.closeModalAtleta();
     await Promise.all([loadKPIs(), loadRecentStudents()]);
   } catch (err) {
     const modalError = document.getElementById('modal-error');
@@ -482,9 +474,9 @@ async function saveNewStudent() {
   }
 }
 
-document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAlumno);
-document.getElementById('modal-close-btn')?.addEventListener('click', window.closeModalAlumno);
-document.getElementById('modal-backdrop')?.addEventListener('click', window.closeModalAlumno);
+document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAtleta);
+document.getElementById('modal-close-btn')?.addEventListener('click', window.closeModalAtleta);
+document.getElementById('modal-backdrop')?.addEventListener('click', window.closeModalAtleta);
 document.getElementById('modal-submit-btn')?.addEventListener('click', saveNewStudent);
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
@@ -591,7 +583,7 @@ async function saveMembresia() {
 
   if (!studentId || !plan || !startDate || !amount) {
     if (errorEl) {
-      errorEl.textContent = 'Alumno, plan, fecha y monto son obligatorios.';
+      errorEl.textContent = 'Atleta, plan, fecha y monto son obligatorios.';
       errorEl.classList.remove('hidden');
     }
     return;

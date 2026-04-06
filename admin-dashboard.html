@@ -147,57 +147,42 @@
                     <button id="btn-nuevo-alumno"
                         class="flex items-center gap-2 bg-primary hover:bg-blue-600 px-5 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-primary/20 transition-all">
                         <span class="material-symbols-rounded text-[18px]">add</span>
-                        <span>Nuevo Alumno</span>
-                    </button>
-                    <button
-                        class="flex items-center gap-2 border border-border-dark bg-surface-dark px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">
-                        <span class="material-symbols-rounded text-[18px]">file_download</span>
-                        <span>Reporte</span>
+                        <span>Nuevo Atleta</span>
                     </button>
                 </div>
             </div>
 
             <!-- KPI Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- KPI Card -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- KPI Card: Atletas activos -->
                 <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <div class="size-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
                             <span class="material-symbols-rounded">group</span>
                         </div>
                     </div>
-                    <p class="text-2xl font-black mt-2" id="kpi-total-students">---</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Alumnos Totales</p>
+                    <p class="text-2xl font-black mt-2 font-mono" id="kpi-active-students">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Atletas activos</p>
                 </div>
-                <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <div class="size-10 bg-success/10 text-success rounded-xl flex items-center justify-center">
-                            <span class="material-symbols-rounded">check_circle</span>
-                        </div>
-                        <span id="pct-active-memberships" class="text-[10px] font-bold text-success bg-success/10 px-2 py-0.5 rounded-full">--%</span>
-                    </div>
-                    <p class="text-2xl font-black mt-2" id="kpi-active-memberships">---</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Membresías Activas</p>
-                </div>
+                <!-- KPI Card: Membresías por vencer -->
                 <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <div class="size-10 bg-warning/10 text-warning rounded-xl flex items-center justify-center">
                             <span class="material-symbols-rounded">event_busy</span>
                         </div>
-                        <span id="pct-expiring-soon" class="text-[10px] font-bold text-warning bg-warning/10 px-2 py-0.5 rounded-full">--%</span>
                     </div>
-                    <p class="text-2xl font-black mt-2" id="kpi-expiring-soon">---</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">A Vencer (7 días)</p>
+                    <p class="text-2xl font-black mt-2 font-mono" id="kpi-expiring-soon">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Por vencer (7 días)</p>
                 </div>
+                <!-- KPI Card: Ingresos del mes -->
                 <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <div class="size-10 bg-danger/10 text-danger rounded-xl flex items-center justify-center">
-                            <span class="material-symbols-rounded">warning</span>
+                        <div class="size-10 bg-success/10 text-success rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-rounded">payments</span>
                         </div>
-                        <span id="pct-expired" class="text-[10px] font-bold text-danger bg-danger/10 px-2 py-0.5 rounded-full">--%</span>
                     </div>
-                    <p class="text-2xl font-black mt-2" id="kpi-expired">---</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Membresías Vencidas</p>
+                    <p class="text-2xl font-black mt-2 font-mono" id="kpi-monthly-income">---</p>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Ingresos del mes</p>
                 </div>
             </div>
 
@@ -207,7 +192,7 @@
                 <!-- Recent Students List -->
                 <div class="lg:col-span-2 space-y-4">
                     <div class="flex items-center justify-between px-2">
-                        <h3 class="text-lg font-bold">Alumnos Recientes</h3>
+                        <h3 class="text-lg font-bold">Atletas Recientes</h3>
                         <a href="student-list.html" class="text-xs text-primary font-bold hover:underline">Ver todos</a>
                     </div>
                     <div
@@ -216,7 +201,7 @@
                             <thead
                                 class="bg-border-dark/50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
                                 <tr>
-                                    <th class="px-6 py-4">Alumno</th>
+                                    <th class="px-6 py-4">Atleta</th>
                                     <th class="px-6 py-4">Estado</th>
                                     <th class="px-6 py-4">F. Ingreso</th>
                                     <th class="px-6 py-4">Cuentas</th>
@@ -313,13 +298,13 @@
                     <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Destino</label>
                     <select id="alert-target-type"
                         class="mt-1 w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200">
-                        <option value="single">Alumno puntual</option>
-                        <option value="multiple">Lista de alumnos</option>
+                        <option value="single">Atleta puntual</option>
+                        <option value="multiple">Lista de atletas</option>
                     </select>
                 </div>
 
                 <div id="alert-single-wrap">
-                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Alumno</label>
+                    <label class="text-xs font-bold text-slate-300 uppercase tracking-wider">Atleta</label>
                     <select id="alert-student-single"
                         class="mt-1 w-full rounded-xl border border-border-dark bg-slate-900 px-3 py-2 text-sm text-slate-200"></select>
                 </div>
