@@ -952,4 +952,8 @@ function setupModalEliminar() {
 }
 
 // ─── ARRANCAR ─────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', initStudentList);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStudentList);
+} else {
+  initStudentList();
+}

@@ -224,8 +224,7 @@ function setupQuickActions() {
     });
 
   document.querySelector('[data-action="nueva-membresia"]')?.addEventListener('click', () => {
-    if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
-    else toast('No se pudo abrir el modal de membresía', 'error');
+    window.openModalMembresia();
   });
 
   document.getElementById('btn-enviar-alerta')?.addEventListener('click', openAlertModal);
@@ -243,8 +242,7 @@ function setupDashboardButtons() {
   });
 
   document.getElementById('btn-nueva-membresia')?.addEventListener('click', () => {
-    if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
-    else toast('No se pudo abrir el modal de membresía', 'error');
+    window.openModalMembresia();
   });
 }
 
@@ -455,149 +453,16 @@ function setupModals() {
 window.openNewAtleta = () => window.onboardingWizard.open();
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
-async function loadGymMembershipPlans() {
-  const { data, error } = await window.supabaseClient
-    .from('gym_membership_plans')
-    .select('plan_key, label, duration_days, amount, is_active')
-    .eq('gym_id', gymId)
-    .eq('is_active', true)
-    .order('duration_days', { ascending: true });
-  if (error) throw error;
-  gymMembershipPlans = data || [];
-}
-
-function renderGymMembershipPlanButtons() {
-  const container = document.getElementById('membresia-plan-buttons');
-  if (!container) return;
-  if (!gymMembershipPlans.length) {
-    container.innerHTML =
-      '<p class="text-xs text-danger col-span-3">No hay planes creados para este gimnasio.</p>';
-    return;
-  }
-  container.innerHTML = gymMembershipPlans
-    .map(
-      (plan) => `
-      <button type="button" data-plan="${plan.plan_key}" data-amount="${plan.amount ?? ''}"
-        class="plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all">
-        ${escHtml(plan.label || plan.plan_key)}<br>
-        <span class="text-slate-500 font-normal">${Number(plan.duration_days || 0)} días</span>
-      </button>`
-    )
-    .join('');
-}
-
-function selectGymMembershipPlan(planKey, amount = null) {
-  document
-    .querySelectorAll('#membresia-plan-buttons .plan-btn')
-    .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-  const selectedBtn = document.querySelector(
-    `#membresia-plan-buttons .plan-btn[data-plan="${planKey}"]`
-  );
-  if (selectedBtn) selectedBtn.classList.add('border-primary', 'text-primary', 'bg-primary/10');
-  document.getElementById('membresia-plan').value = planKey || '';
-  const amountInput = document.getElementById('membresia-amount');
-  const parsed = Number(amount ?? selectedBtn?.dataset.amount);
-  if (amountInput) amountInput.value = Number.isFinite(parsed) ? String(parsed) : '';
-}
-
-window.openModalMembresia = async () => {
-  document.getElementById('modal-nueva-membresia').classList.add('open');
-  document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
-
-  const { data: students } = await window.supabaseClient
-    .from('students')
-    .select('id, full_name')
-    .eq('gym_id', gymId)
-    .eq('membership_status', 'activa')
-    .is('deleted_at', null)
-    .order('full_name');
-
-  const select = document.getElementById('membresia-student-id');
-  select.innerHTML = '<option value="">Seleccioná un alumno...</option>';
-  (students || []).forEach((s) => {
-    select.innerHTML += `<option value="${s.id}">${escHtml(s.full_name)}</option>`;
-  });
-
-  try {
-    await loadGymMembershipPlans();
-    renderGymMembershipPlanButtons();
-    selectGymMembershipPlan('', null);
-  } catch (err) {
-    toast('No se pudieron cargar los planes de membresía', 'error');
+// Admin dashboard uses the onboarding wizard for memberships
+// (wizard handles student + membership + program in one flow)
+window.openModalMembresia = () => {
+  if (window.onboardingWizard?.open) {
+    window.onboardingWizard.open();
+  } else {
+    console.error('❌ onboardingWizard no disponible');
+    toast('Error: el wizard no está disponible', 'error');
   }
 };
-
-window.closeModalMembresia = () => {
-  document.getElementById('modal-nueva-membresia').classList.remove('open');
-  document.getElementById('membresia-student-id').value = '';
-  document.getElementById('membresia-plan').value = '';
-  document.getElementById('membresia-amount').value = '';
-  document.getElementById('membresia-notes').value = '';
-  document
-    .querySelectorAll('.plan-btn')
-    .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
-  document.getElementById('modal-membresia-error')?.classList.add('hidden');
-};
-
-async function saveMembresia() {
-  const studentId = document.getElementById('membresia-student-id').value;
-  const plan = document.getElementById('membresia-plan').value;
-  const startDate = document.getElementById('membresia-start-date').value;
-  const amount = document.getElementById('membresia-amount').value;
-  const paymentMethod = document.getElementById('membresia-payment-method').value;
-  const notes = document.getElementById('membresia-notes').value.trim();
-  const errorEl = document.getElementById('modal-membresia-error');
-  const submitBtn = document.getElementById('modal-membresia-submit');
-
-  if (!studentId || !plan || !startDate || !amount) {
-    if (errorEl) {
-      errorEl.textContent = 'Atleta, plan, fecha y monto son obligatorios.';
-      errorEl.classList.remove('hidden');
-    }
-    return;
-  }
-
-  window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
-  try {
-    const { error } = await window.supabaseClient.from('memberships').insert({
-      gym_id: gymId,
-      student_id: studentId,
-      plan,
-      start_date: startDate,
-      end_date: startDate,
-      amount: parseFloat(amount),
-      payment_method: paymentMethod,
-      notes: notes || null
-    });
-    if (error) throw error;
-    toast('Membresía registrada');
-    window.closeModalMembresia();
-    await Promise.all([loadKPIs(), loadRecentStudents()]);
-  } catch (err) {
-    if (errorEl) {
-      errorEl.textContent = 'Error: ' + err.message;
-      errorEl.classList.remove('hidden');
-    }
-  } finally {
-    window.tfUtils.setBtnLoading(submitBtn, false);
-  }
-}
-
-function setupMembershipModal() {
-  document
-    .getElementById('modal-membresia-backdrop')
-    ?.addEventListener('click', window.closeModalMembresia);
-  document
-    .getElementById('modal-membresia-close')
-    ?.addEventListener('click', window.closeModalMembresia);
-  document.getElementById('modal-membresia-submit')?.addEventListener('click', saveMembresia);
-
-  document.getElementById('membresia-plan-buttons')?.addEventListener('click', (evt) => {
-    const btn = evt.target.closest('.plan-btn');
-    if (!btn) return;
-    selectGymMembershipPlan(btn.dataset.plan, btn.dataset.amount);
-  });
-}
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 if (document.readyState === 'loading') {

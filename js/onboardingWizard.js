@@ -205,9 +205,9 @@ class OnboardingWizard {
   _renderStepMembership() {
     const d = this._data.membership || {};
     const plans = [
-      { value: 'mensual', label: 'Mensual', desc: '30 días' },
-      { value: 'trimestral', label: 'Trimestral', desc: '90 días' },
-      { value: 'anual', label: 'Anual', desc: '365 días' }
+      { value: 'mensual', label: 'Mensual', desc: '30 días', amount: 30000 },
+      { value: 'trimestral', label: 'Trimestral', desc: '90 días', amount: 80000 },
+      { value: 'anual', label: 'Anual', desc: '365 días', amount: 280000 }
     ];
 
     return `
@@ -218,7 +218,7 @@ class OnboardingWizard {
             ${plans
               .map(
                 (p) => `
-              <button type="button" data-plan="${p.value}" 
+              <button type="button" data-plan="${p.value}" data-amount="${p.amount}"
                 class="ow-plan-btn border border-slate-800 rounded-xl py-3 text-xs font-bold hover:border-primary transition-all
                   ${(d.plan || '') === p.value ? 'border-primary bg-primary/10 text-primary' : ''}">
                 ${p.label}<br><span class="text-slate-500 font-normal">${p.desc}</span>
@@ -353,6 +353,10 @@ class OnboardingWizard {
           .forEach((b) => b.classList.remove('border-primary', 'bg-primary/10', 'text-primary'));
         btn.classList.add('border-primary', 'bg-primary/10', 'text-primary');
         document.getElementById('ow-membresia-plan').value = btn.dataset.plan;
+        const amountInput = document.getElementById('ow-membresia-amount');
+        if (amountInput && btn.dataset.amount && !amountInput.value) {
+          amountInput.value = btn.dataset.amount;
+        }
       });
     });
 
