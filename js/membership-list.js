@@ -314,20 +314,30 @@ function setupPlanPricing() {
 
     // Ensure profile exists before upserting (FK on changed_by)
     const session = await window.supabaseClient.auth.getSession();
-    const userId = session?.data?.session?.user?.id;
-    if (userId) {
-      const { data: profile } = await window.supabaseClient
-        .from('profiles')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-      if (!profile) {
-        await window.supabaseClient
-          .from('profiles')
-          .insert({ id: userId })
-          .select('id')
-          .single()
-          .catch(() => {});
+    const user = session?.data?.session?.user;
+    if (user?.id) {
+      const role = user.app_metadata?.role || 'gim_admin';
+      const fullName =
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        (user.email ? user.email.split('@')[0] : 'Administrador');
+
+      const { error: profileError } = await window.supabaseClient.from('profiles').upsert(
+        {
+          id: user.id,
+          gym_id: gymId,
+          full_name: fullName,
+          role
+        },
+        { onConflict: 'id' }
+      );
+
+      if (profileError && feedback) {
+        feedback.textContent =
+          'No se pudo validar tu perfil de usuario para registrar cambios de planes.';
+        feedback.className = 'text-xs font-bold text-danger';
+        feedback.classList.remove('hidden');
+        return;
       }
     }
 
@@ -481,10 +491,11 @@ function setupModal() {
     }
   }
 
-  document.getElementById('btn-nueva-membresia').addEventListener('click', openModal);
-  backdrop.addEventListener('click', closeModal);
-  closeBtn.addEventListener('click', closeModal);
-  submitBtn.addEventListener('click', saveMembresia);
+  document.getElementById('btn-nueva-membresia')?.addEventListener('click', openModal);
+  document.getElementById('btn-empty-nueva-membresia')?.addEventListener('click', openModal);
+  backdrop?.addEventListener('click', closeModal);
+  closeBtn?.addEventListener('click', closeModal);
+  submitBtn?.addEventListener('click', saveMembresia);
 }
 
 // ─── ARRANCAR ─────────────────────────────────────────────
