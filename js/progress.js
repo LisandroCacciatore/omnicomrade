@@ -10,7 +10,15 @@
   const db = window.supabaseClient;
   const gymId = session.user.app_metadata?.gym_id;
   const role = session.user.app_metadata?.role;
-  const { escHtml, toast, debounce } = window.tfUtils;
+  function escHtml(s) {
+    return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
+  }
+  function toast(m, t) {
+    window.tfUtils?.toast?.(m, t);
+  }
+  function debounce(f, w) {
+    return window.tfUtils?.debounce?.(f, w) || f;
+  }
 
   let selectedStudentId = null;
   let expandChart = null;

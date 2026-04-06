@@ -12,7 +12,9 @@
   const db = window.supabaseClient;
   const user = session.user;
   const gymId = user.app_metadata.gym_id;
-  const { toast } = window.tfUtils;
+  function toast(m, t) {
+    window.tfUtils?.toast?.(m, t);
+  }
 
   /* ─── State ──────────────────────────────────────────────── */
   let logoFile = null;
@@ -20,10 +22,10 @@
   let selectedColor = '#3B82F6';
 
   /* ─── Tab routing ─────────────────────────────────────────── */
-  document.querySelectorAll('.settings-tab').forEach(btn => {
+  document.querySelectorAll('.settings-tab').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.settings-tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.settings-tab').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
     });
@@ -37,7 +39,10 @@
       .eq('id', gymId)
       .single();
 
-    if (error || !data) { toast('Error al cargar datos del gimnasio', 'error'); return; }
+    if (error || !data) {
+      toast('Error al cargar datos del gimnasio', 'error');
+      return;
+    }
 
     // Populate fields
     document.getElementById('gym-name').value = data.name || '';
@@ -79,7 +84,10 @@
       .eq('id', user.id)
       .single();
 
-    if (error || !data) { toast('Error al cargar perfil', 'error'); return; }
+    if (error || !data) {
+      toast('Error al cargar perfil', 'error');
+      return;
+    }
 
     document.getElementById('profile-name').value = data.full_name || '';
     document.getElementById('profile-email').value = user.email || '';
@@ -91,7 +99,13 @@
     document.getElementById('profile-name-display').textContent = data.full_name || '—';
     document.getElementById('profile-email-display').textContent = user.email || '—';
 
-    const initials = (data.full_name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+    const initials =
+      (data.full_name || '')
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || '?';
     document.getElementById('avatar-initials').textContent = initials;
 
     if (data.avatar_url) {
@@ -110,13 +124,19 @@
     const btn = document.getElementById('save-gym-info');
     setBtnLoading(btn, 'Guardando…');
 
-    const { error } = await db.from('gyms').update({
-      name,
-      updated_at: new Date().toISOString(),
-    }).eq('id', gymId);
+    const { error } = await db
+      .from('gyms')
+      .update({
+        name,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', gymId);
 
     setBtnIdle(btn, 'Guardar cambios', 'save');
-    if (error) { toast('Error al guardar', 'error'); return; }
+    if (error) {
+      toast('Error al guardar', 'error');
+      return;
+    }
 
     document.getElementById('sidebar-gym-name').textContent = name;
     document.getElementById('dot-gym').classList.remove('visible');
@@ -135,9 +155,12 @@
   logoFileInput.addEventListener('change', () => handleLogoSelect(logoFileInput.files[0]));
 
   const dropzone = document.getElementById('logo-dropzone');
-  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('drag-over');
+  });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-  dropzone.addEventListener('drop', e => {
+  dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
@@ -146,12 +169,15 @@
 
   function handleLogoSelect(file) {
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast('El archivo supera los 2 MB', 'error'); return; }
+    if (file.size > 2 * 1024 * 1024) {
+      toast('El archivo supera los 2 MB', 'error');
+      return;
+    }
     logoFile = file;
     saveLogoBtn.disabled = false;
 
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = (e) => {
       const img = document.getElementById('logo-preview-img');
       img.src = e.target.result;
       img.classList.remove('hidden');
@@ -181,11 +207,16 @@
       return;
     }
 
-    const { data: urlData } = await db.storage.from('gym-logos').createSignedUrl(path, 60 * 60 * 24 * 365);
+    const { data: urlData } = await db.storage
+      .from('gym-logos')
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
     const logoUrl = urlData?.signedUrl || null;
 
     if (logoUrl) {
-      await db.from('gyms').update({ logo_url: logoUrl, updated_at: new Date().toISOString() }).eq('id', gymId);
+      await db
+        .from('gyms')
+        .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
+        .eq('id', gymId);
       const sidebarIcon = document.getElementById('sidebar-logo-icon');
       sidebarIcon.innerHTML = `<img src="${logoUrl}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
     }
@@ -203,16 +234,16 @@
     document.getElementById('color-hex-preview').style.background = hex;
     document.getElementById('gym-color-preview').style.background = hex;
 
-    document.querySelectorAll('.color-swatch').forEach(s => {
+    document.querySelectorAll('.color-swatch').forEach((s) => {
       s.classList.toggle('selected', s.dataset.color.toLowerCase() === hex.toLowerCase());
     });
   }
 
-  document.querySelectorAll('.color-swatch').forEach(swatch => {
+  document.querySelectorAll('.color-swatch').forEach((swatch) => {
     swatch.addEventListener('click', () => setColor(swatch.dataset.color));
   });
 
-  document.getElementById('color-hex-input').addEventListener('input', e => {
+  document.getElementById('color-hex-input').addEventListener('input', (e) => {
     const val = e.target.value.trim();
     if (/^[0-9A-Fa-f]{6}$/.test(val)) setColor('#' + val.toUpperCase());
   });
@@ -221,13 +252,19 @@
     const btn = document.getElementById('save-color');
     setBtnLoading(btn, 'Guardando…');
 
-    const { error } = await db.from('gyms').update({
-      color: selectedColor,
-      updated_at: new Date().toISOString(),
-    }).eq('id', gymId);
+    const { error } = await db
+      .from('gyms')
+      .update({
+        color: selectedColor,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', gymId);
 
     setBtnIdle(btn, 'Guardar color', 'palette');
-    if (error) { toast('Error al guardar color', 'error'); return; }
+    if (error) {
+      toast('Error al guardar color', 'error');
+      return;
+    }
     toast('Color del gimnasio actualizado');
   });
 
@@ -239,13 +276,19 @@
     const btn = document.getElementById('save-profile');
     setBtnLoading(btn, 'Guardando…');
 
-    const { error } = await db.from('profiles').update({
-      full_name: fullName,
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id);
+    const { error } = await db
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
 
     setBtnIdle(btn, 'Guardar perfil', 'save');
-    if (error) { toast('Error al guardar perfil', 'error'); return; }
+    if (error) {
+      toast('Error al guardar perfil', 'error');
+      return;
+    }
 
     document.getElementById('profile-name-display').textContent = fullName;
     document.getElementById('dot-profile').classList.remove('visible');
@@ -257,10 +300,13 @@
   });
 
   /* ─── Avatar ─────────────────────────────────────────────── */
-  document.getElementById('avatar-file').addEventListener('change', e => {
+  document.getElementById('avatar-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast('La imagen supera los 2 MB', 'error'); return; }
+    if (file.size > 2 * 1024 * 1024) {
+      toast('La imagen supera los 2 MB', 'error');
+      return;
+    }
     avatarFile = file;
 
     const card = document.getElementById('avatar-upload-card');
@@ -268,7 +314,7 @@
     document.getElementById('avatar-file-name').textContent = file.name;
 
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = (ev) => {
       document.getElementById('avatar-new-img').src = ev.target.result;
     };
     reader.readAsDataURL(file);
@@ -298,11 +344,16 @@
       return;
     }
 
-    const { data: urlData } = await db.storage.from('avatars').createSignedUrl(path, 60 * 60 * 24 * 365);
+    const { data: urlData } = await db.storage
+      .from('avatars')
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
     const avatarUrl = urlData?.signedUrl || null;
 
     if (avatarUrl) {
-      await db.from('profiles').update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() }).eq('id', user.id);
+      await db
+        .from('profiles')
+        .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
       const avatarImg = document.getElementById('avatar-img');
       avatarImg.src = avatarUrl;
       avatarImg.classList.remove('hidden');
@@ -327,7 +378,4 @@
 
   /* ─── Init ───────────────────────────────────────────────── */
   await Promise.all([loadGym(), loadProfile()]);
-
 })();
-
-

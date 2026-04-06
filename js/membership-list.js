@@ -2,7 +2,10 @@
 let allMemberships = [];
 let gymId = null;
 let membershipPlanCatalog = [];
-const { escHtml } = window.tfUtils;
+
+function escHtml(s) {
+  return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
+}
 const PLAN_DEFAULTS = {
   mensual: { label: 'Mensual', duration_days: 30, amount: 30000 },
   trimestral: { label: 'Trimestral', duration_days: 90, amount: 80000 },

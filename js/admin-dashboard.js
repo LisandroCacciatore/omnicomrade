@@ -8,7 +8,13 @@ await import('./auth-guard.js');
 // ─── DOM refs ─────────────────────────────────────────────
 const recentStudentsTable = document.getElementById('recent-students-table');
 const userNameEl = document.getElementById('user-name');
-const { escHtml, toast } = window.tfUtils;
+
+function escHtml(s) {
+  return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
+}
+function toast(m, t) {
+  window.tfUtils?.toast?.(m, t);
+}
 
 let assignProgramModal = null;
 let gymId = null;
@@ -22,7 +28,31 @@ async function initDashboard() {
   const session = await window.authGuard(['gim_admin']);
   if (!session) return;
 
-  gymId = session.user.app_metadata.gym_id;
+  // Resolve gym_id with fallbacks
+  gymId =
+    session.user.app_metadata?.gym_id ||
+    session.user.raw_app_meta_data?.gym_id ||
+    window.gymId ||
+    localStorage.getItem('gym_id');
+
+  if (!gymId && window.supabaseClient) {
+    const { data: profile } = await window.supabaseClient
+      .from('profiles')
+      .select('gym_id')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    if (profile?.gym_id) {
+      gymId = profile.gym_id;
+      localStorage.setItem('gym_id', gymId);
+    }
+  }
+
+  if (!gymId) {
+    console.error('❌ No se pudo resolver gym_id');
+    toast('Error de configuración: gym_id no disponible', 'error');
+    return;
+  }
+
   authUserId = session.user.id;
   window.gymId = gymId;
 
@@ -201,7 +231,12 @@ function setupQuickActions() {
 // ─── DASHBOARD BUTTONS ────────────────────────────────────
 function setupDashboardButtons() {
   document.getElementById('btn-nuevo-alumno')?.addEventListener('click', () => {
-    window.openNewAtleta();
+    if (window.onboardingWizard?.open) {
+      window.onboardingWizard.open();
+    } else {
+      console.error('❌ onboardingWizard no disponible');
+      toast('Error: el wizard de onboarding no está disponible', 'error');
+    }
   });
 
   document.getElementById('btn-nueva-membresia')?.addEventListener('click', () => {
