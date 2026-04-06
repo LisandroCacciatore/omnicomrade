@@ -464,4 +464,8 @@ function setupModal() {
 }
 
 // ─── ARRANCAR ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', initMembershipList);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMembershipList);
+} else {
+  initMembershipList();
+}

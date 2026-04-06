@@ -612,4 +612,9 @@ function setupMembershipModal() {
 }
 
 // ─── ARRANCAR ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', initDashboard);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  // DOMContentLoaded ya se disparó antes de que este módulo cargara
+  initDashboard();
+}
