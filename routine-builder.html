@@ -259,8 +259,8 @@
       .ex-set-row {
         display: grid;
         grid-template-columns: 20px 1fr 1fr 40px 40px 52px 24px 20px;
-        gap: 0;
-        padding: 3px 8px;
+        gap: 4px;
+        padding: 6px 10px;
         border-bottom: 1px solid #060a0e;
         align-items: center;
       }
@@ -559,7 +559,8 @@
         border-color: rgba(239, 68, 68, 0.3);
       }
       .btn-copy-sets,
-      .btn-paste-sets {
+      .btn-paste-sets,
+      .btn-apply-all {
         padding: 3px 8px;
         border-radius: 6px;
         border: 1px solid #1e293b;
@@ -571,10 +572,19 @@
         transition: all 0.12s;
       }
       .btn-copy-sets:hover,
-      .btn-paste-sets:hover {
+      .btn-paste-sets:hover,
+      .btn-apply-all:hover {
         border-color: #3b82f6;
         color: #60a5fa;
         background: rgba(59, 130, 246, 0.06);
+      }
+      .quick-fill-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-bottom: 1px dashed #0f1922;
+        background: #05080c;
       }
 
       /* Others */
@@ -755,6 +765,8 @@
                 >· Borrador guardado</span
               >
             </div>
+            <div id="summary-muscle-volume" class="flex flex-wrap gap-1.5 mt-1"></div>
+            <div id="summary-movement-alert" class="mt-1 text-[10px] text-slate-500"></div>
           </div>
           <button
             type="submit"

@@ -539,6 +539,77 @@
     return [];
   }
 
+  /**
+   * Calcula la próxima carga sugerida según cumplimiento reciente.
+   * Regla:
+   * - +2.5kg si hubo cumplimiento total y readiness >= 70.
+   * - Deload -10% si hubo 2 fallos consecutivos o readiness rojo sin override.
+   * - Mantener si no hay evidencia suficiente.
+   *
+   * @param {Object} params
+   * @param {string} params.studentId
+   * @param {string} params.exerciseName
+   * @param {number} params.currentWeightKg
+   * @param {number} [params.readinessScore=70]
+   * @param {string} [params.readinessLevel='verde']
+   * @param {boolean} [params.overrideUsed=false]
+   * @returns {Promise<{weight_kg:number, mode:'progress'|'deload'|'hold', reason:string}>}
+   */
+  async function calculateNextSessionLoad(params) {
+    var studentId = params && params.studentId;
+    var exerciseName = params && params.exerciseName;
+    var currentWeightKg = Number((params && params.currentWeightKg) || 0);
+    var readinessScore = Number((params && params.readinessScore) || 70);
+    var readinessLevel = (params && params.readinessLevel) || 'verde';
+    var overrideUsed = Boolean(params && params.overrideUsed);
+    var db = (typeof window !== 'undefined' && window.supabaseClient) || null;
+
+    if (!db || !studentId || !exerciseName || currentWeightKg <= 0) {
+      return { weight_kg: round(currentWeightKg, 2.5), mode: 'hold', reason: 'insufficient_context' };
+    }
+
+    var logsRes = await db
+      .from('exercise_logs')
+      .select('planned_reps, actual_reps, actual_weight_kg, performed_at')
+      .eq('student_id', studentId)
+      .eq('exercise_name', exerciseName)
+      .order('performed_at', { ascending: false })
+      .limit(2);
+
+    var rows = (logsRes && logsRes.data) || [];
+    var failures = rows.filter(function (r) {
+      var planned = parseInt(String(r.planned_reps || '').match(/\d+/)?.[0] || '0', 10);
+      var actual = parseInt(String(r.actual_reps || '').match(/\d+/)?.[0] || '0', 10);
+      return planned > 0 && actual > 0 && actual < planned;
+    }).length;
+
+    var compliant = rows.length > 0 && rows.every(function (r) {
+      var planned = parseInt(String(r.planned_reps || '').match(/\d+/)?.[0] || '0', 10);
+      var actual = parseInt(String(r.actual_reps || '').match(/\d+/)?.[0] || '0', 10);
+      return planned > 0 && actual >= planned;
+    });
+
+    var shouldDeload =
+      failures >= 2 || ((readinessLevel === 'rojo' || readinessScore < 40) && !overrideUsed);
+    if (shouldDeload) {
+      return {
+        weight_kg: round(currentWeightKg * 0.9, 2.5),
+        mode: 'deload',
+        reason: failures >= 2 ? 'two_consecutive_failures' : 'low_readiness_without_override'
+      };
+    }
+
+    if (compliant && readinessScore >= 70 && readinessLevel !== 'rojo') {
+      return {
+        weight_kg: round(currentWeightKg + 2.5, 2.5),
+        mode: 'progress',
+        reason: 'full_compliance_and_good_readiness'
+      };
+    }
+
+    return { weight_kg: round(currentWeightKg, 2.5), mode: 'hold', reason: 'no_clear_signal' };
+  }
+
   /* ══════════════════════════════════════════════════════════
      PUBLIC API
   ══════════════════════════════════════════════════════════ */
@@ -553,7 +624,8 @@
     generateWendler531: generateWendler531,
     generateCubeMethod: generateCubeMethod,
     generatePPL: generatePPL,
-    generateProgram: generateProgram
+    generateProgram: generateProgram,
+    calculateNextSessionLoad: calculateNextSessionLoad
   };
 
   global.tfTrainingEngine = api;

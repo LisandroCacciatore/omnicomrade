@@ -122,7 +122,6 @@
   let selComplexity = null;
   let selRegressionId = null;
   let selProgressionId = null;
-  const unsupportedExerciseColumns = new Set();
 
   const favorites = new Set();
   const usageMap = {};
@@ -246,48 +245,6 @@
     prog.innerHTML = options;
     reg.value = selRegressionId || '';
     prog.value = selProgressionId || '';
-  }
-
-  function extractMissingColumnFromError(error) {
-    const raw = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ');
-    if (!raw) return null;
-    const patterns = [
-      /Could not find the '([^']+)' column/i,
-      /column ["']?([a-zA-Z0-9_]+)["']? .* does not exist/i,
-      /Could not find a relationship between ['"][^'"]+['"] and ['"]([^'"]+)['"]/i
-    ];
-    for (const re of patterns) {
-      const match = raw.match(re);
-      if (match?.[1]) return match[1];
-    }
-    return null;
-  }
-
-  async function saveExerciseWithSchemaFallback(payload) {
-    const attemptPayload = { ...payload };
-    unsupportedExerciseColumns.forEach((column) => {
-      delete attemptPayload[column];
-    });
-
-    for (let i = 0; i < 8; i += 1) {
-      const query = editingId
-        ? db.from('exercises').update(attemptPayload).eq('id', editingId)
-        : db.from('exercises').insert(attemptPayload);
-      const { error } = await query;
-      if (!error) return { error: null, downgraded: unsupportedExerciseColumns.size > 0 };
-
-      const missingColumn = extractMissingColumnFromError(error);
-      if (!missingColumn || !(missingColumn in attemptPayload))
-        return { error, downgraded: unsupportedExerciseColumns.size > 0 };
-
-      unsupportedExerciseColumns.add(missingColumn);
-      delete attemptPayload[missingColumn];
-    }
-
-    return {
-      error: { message: 'No se pudo guardar por incompatibilidad de esquema en la base de datos.' },
-      downgraded: unsupportedExerciseColumns.size > 0
-    };
   }
 
   function renderUsageTop() {
@@ -439,6 +396,14 @@
   });
 
   /* ─── Load & Render ─────────────────────────────────────── */
+  async function saveExercise(payload) {
+    const query = editingId
+      ? db.from('exercises').update(payload).eq('id', editingId)
+      : db.from('exercises').insert(payload);
+    const { error } = await query;
+    return { error };
+  }
+
   async function loadExercises() {
     const [{ data: gymEx }, { data: globalEx }] = await Promise.all([
       db.from('exercises').select('*').eq('gym_id', gymId).is('deleted_at', null).order('name'),
@@ -454,7 +419,6 @@
     const items = allExercises.filter((ex) => {
       const matchM = !filterMuscle || ex.muscle_group === filterMuscle;
       const matchCat = filterCat === 'all' || ex.category === filterCat;
-      // NOTE: main_goal and movement_pattern columns removed from schema
       const matchGoal = filterGoal === 'all' || !ex.main_goal || ex.main_goal === filterGoal;
       const matchPattern =
         filterPattern === 'all' || !ex.movement_pattern || ex.movement_pattern === filterPattern;
@@ -887,7 +851,11 @@
       muscle_group: selMuscle,
       category: selCat || null,
       difficulty: selDiff || null,
-      // NOTE: main_goal, movement_pattern, safety_level, complexity_level, technical_cue removed - columns don't exist
+      main_goal: selGoal || null,
+      movement_pattern: selPattern || null,
+      safety_level: selSafety || null,
+      complexity_level: selComplexity ? parseInt(selComplexity, 10) : null,
+      technical_cue: technicalCue,
       equipment: selEquip || null,
       video_url: document.getElementById('ex-video-url').value.trim() || null,
       is_global: false,
@@ -898,25 +866,24 @@
     btn.disabled = true;
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando…`;
 
-    const { error, downgraded } = await saveExerciseWithSchemaFallback(payload);
+    const { error } = await saveExercise(payload);
 
     btn.disabled = false;
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>${editingId ? 'Actualizar' : 'Guardar ejercicio'}`;
 
     if (error) {
-      errEl.textContent = 'Error al guardar en base de datos. Intentá de nuevo.';
+      console.error('Error guardando ejercicio', { error, payload, editingId });
+      const missingTechnicalCue =
+        error?.code === '42703' && (error?.message || '').toLowerCase().includes('technical_cue');
+      errEl.textContent = missingTechnicalCue
+        ? 'Error de sincronización: contacte a soporte.'
+        : `Error al guardar en base de datos: ${error.message || 'error desconocido'}`;
       errEl.classList.remove('hidden');
       return;
     }
 
     closeDrawer();
-    toast(
-      downgraded
-        ? 'Ejercicio guardado (modo compatibilidad de esquema)'
-        : editingId
-          ? 'Ejercicio actualizado'
-          : 'Ejercicio creado ✓'
-    );
+    toast(editingId ? 'Ejercicio actualizado' : 'Ejercicio creado ✓');
     await loadExercises();
   });
 

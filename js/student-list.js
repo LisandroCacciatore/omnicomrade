@@ -70,7 +70,8 @@ async function loadStudents(filters = {}) {
 
   allStudents = data || [];
   updateSubtitle();
-  renderTable(allStudents);
+  const hasActiveFilters = Boolean(filters.search || filters.status || filters.objetivo);
+  renderTable(allStudents, hasActiveFilters);
 }
 
 function updateSubtitle() {
@@ -80,13 +81,31 @@ function updateSubtitle() {
 }
 
 // ─── RENDER TABLA ─────────────────────────────────────────────
-function renderTable(students) {
+function renderTable(students, hasActiveFilters = false) {
   const tbody = document.getElementById('students-table');
   const emptyState = document.getElementById('empty-state');
   if (!tbody) return;
 
   if (!students || students.length === 0) {
     tbody.innerHTML = '';
+    const emptyTitle = document.getElementById('empty-state-title');
+    const emptyDescription = document.getElementById('empty-state-description');
+    const emptyAction = document.getElementById('btn-empty-add-student');
+
+    if (hasActiveFilters) {
+      if (emptyTitle) emptyTitle.textContent = 'No hay atletas con esos filtros';
+      if (emptyDescription)
+        emptyDescription.textContent =
+          'Probá cambiar o limpiar los filtros para ver atletas registrados.';
+      emptyAction?.classList.add('hidden');
+    } else {
+      if (emptyTitle) emptyTitle.textContent = 'No hay atletas todavía';
+      if (emptyDescription)
+        emptyDescription.textContent =
+          'Empezá agregando tu primer atleta al gimnasio. Podés asignarle membresía y un programa de entrenamiento.';
+      emptyAction?.classList.remove('hidden');
+    }
+
     emptyState?.classList.remove('hidden');
     return;
   }
@@ -694,6 +713,11 @@ function setupModalAtleta() {
   const submitBtn = document.getElementById('modal-alumno-submit');
 
   window.openNewAtleta = function () {
+    if (window.onboardingWizard?.open) {
+      window.onboardingWizard.open();
+      return;
+    }
+
     document.getElementById('modal-title-alumno').innerHTML =
       'Nuevo <span class="text-primary">Atleta</span>';
     document.getElementById('alumno-id').value = '';
@@ -762,6 +786,9 @@ function setupModalAtleta() {
   }
 
   document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAtleta);
+  document
+    .getElementById('btn-empty-add-student')
+    ?.addEventListener('click', window.openNewAtleta);
   document.getElementById('modal-alumno-backdrop')?.addEventListener('click', closeModal);
   document.getElementById('modal-alumno-close')?.addEventListener('click', closeModal);
   document.getElementById('form-alumno')?.addEventListener('submit', handleSave);

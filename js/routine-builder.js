@@ -95,6 +95,98 @@
     };
   }
 
+  function findExercise(dayId, exId) {
+    const day = days.find((d) => d.id === dayId);
+    if (!day) return null;
+    return day.exercises.find((x) => x._id === exId) || null;
+  }
+
+  function normalizeMuscleKey(raw) {
+    const key = String(raw || 'otros')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return key || 'otros';
+  }
+
+  function updateSummary() {
+    const name = document.getElementById('routine-name')?.value?.trim() || 'Sin nombre';
+    const objetivo = selObjetivo || 'Sin objetivo';
+    const daysCount = days.length;
+    const exCount = days.reduce((acc, d) => acc + (d.exercises?.length || 0), 0);
+    const setsCount = days.reduce(
+      (acc, d) => acc + d.exercises.reduce((sAcc, ex) => sAcc + (ex.sets_detail?.length || 0), 0),
+      0
+    );
+
+    const byMuscle = {};
+    days.forEach((day) => {
+      day.exercises.forEach((ex) => {
+        const muscle = normalizeMuscleKey(ex.muscle_group);
+        byMuscle[muscle] = (byMuscle[muscle] || 0) + (ex.sets_detail?.length || 0);
+      });
+    });
+
+    const summaryEl = document.getElementById('routine-summary');
+    if (summaryEl) summaryEl.classList.remove('hidden');
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+    setText('sum-name', name);
+    setText('sum-obj', objetivo);
+    setText('sum-days', `${daysCount} día${daysCount !== 1 ? 's' : ''}`);
+    setText('sum-ex', `${exCount} ejercicio${exCount !== 1 ? 's' : ''}`);
+    setText('sum-sets', `${setsCount} sets`);
+
+    const volumeEl = document.getElementById('summary-muscle-volume');
+    if (!volumeEl) return;
+    const volumeEntries = Object.entries(byMuscle).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (!volumeEntries.length) {
+      volumeEl.innerHTML =
+        '<span class="text-[10px] text-slate-600">Sin volumen por músculo todavía</span>';
+      return;
+    }
+
+    volumeEl.innerHTML = volumeEntries
+      .map(([muscle, sets]) => {
+        const color =
+          sets > 20
+            ? 'bg-warning/15 text-warning border-warning/40'
+            : 'bg-slate-900 text-slate-400 border-border-dark';
+        return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[10px] font-bold ${color}">${escHtml(
+          muscle
+        )}: ${sets} sets</span>`;
+      })
+      .join('');
+
+    const pushMuscles = ['pecho', 'hombros', 'triceps'];
+    const pullMuscles = ['espalda', 'biceps'];
+    const pushSets = pushMuscles.reduce((acc, m) => acc + (byMuscle[m] || 0), 0);
+    const pullSets = pullMuscles.reduce((acc, m) => acc + (byMuscle[m] || 0), 0);
+    const ratioEl = document.getElementById('summary-movement-alert');
+    if (!ratioEl) return;
+
+    if (pushSets > 0 && pullSets === 0) {
+      ratioEl.className =
+        'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-warning/10 text-warning border border-warning/30';
+      ratioEl.textContent =
+        `Push/Pull desbalanceado (${pushSets}:0). Sumá volumen de espalda para prevenir sobrecarga anterior.`;
+      return;
+    }
+
+    if (pushSets > pullSets * 1.8 && pullSets > 0) {
+      ratioEl.className =
+        'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-warning/10 text-warning border border-warning/30';
+      ratioEl.textContent = `Push/Pull ratio: ${pushSets}:${pullSets} (alto empuje).`;
+      return;
+    }
+
+    ratioEl.className =
+      'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+    ratioEl.textContent = `Push/Pull ratio balanceado: ${pushSets}:${pullSets}`;
+  }
+
   /* ─── Load DB ────────────────────────────────────────── */
   async function loadExercises() {
     if (dbApi?.exercises?.getGlobalAndGym) {
@@ -790,6 +882,16 @@
         <span></span>
       </div>
 
+      <div class="quick-fill-row">
+        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Set 1 →</span>
+        <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="weight_kg" title="Aplicar peso del Set 1 a todos">
+          <span class="material-symbols-rounded" style="font-size:12px">fitness_center</span> Aplicar peso a todos
+        </button>
+        <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="reps" title="Aplicar reps del Set 1 a todos">
+          <span class="material-symbols-rounded" style="font-size:12px">repeat</span> Aplicar reps a todos
+        </button>
+      </div>
+
       ${setsHTML}
 
       <div class="ex-footer">
@@ -919,6 +1021,12 @@
       pasteSets(btnPasteSets.dataset.dayId, btnPasteSets.dataset.exId);
       return;
     }
+
+    const btnApplyAll = e.target.closest('.btn-apply-all');
+    if (btnApplyAll) {
+      applyToAllSets(btnApplyAll.dataset.dayId, btnApplyAll.dataset.exId, btnApplyAll.dataset.field);
+      return;
+    }
   });
 
   canvas.addEventListener('input', (e) => {
@@ -950,7 +1058,16 @@
     const val = e.target.value.trim();
     if (field === 'weight_kg') s.weight_kg = val ? parseFloat(val) : null;
     if (field === 'reps') s.reps = val || null;
-    if (field === 'rpe_target') s.rpe_target = val ? parseFloat(val) : null;
+    if (field === 'rpe_target') {
+      const parsed = val ? parseFloat(val) : null;
+      if (parsed != null && parsed > 10) {
+        s.rpe_target = 10;
+        e.target.value = '10';
+        toast('RPE máximo permitido: 10', 'error');
+      } else {
+        s.rpe_target = parsed;
+      }
+    }
     if (field === 'rir_target') s.rir_target = val ? parseInt(val) : null;
   });
 
@@ -1305,6 +1422,24 @@
     if (_saveSpan) _saveSpan.textContent = 'Actualizar rutina';
 
     renderDays();
+  }
+
+  function applyToAllSets(dayId, exId, field) {
+    const ex = findExercise(dayId, exId);
+    if (!ex || !ex.sets_detail?.length) return;
+    const sourceValue = ex.sets_detail[0]?.[field];
+    if (sourceValue == null || sourceValue === '') {
+      toast('Completá el primer set antes de aplicar al resto', 'error');
+      return;
+    }
+    ex.sets_detail.forEach((set, idx) => {
+      if (idx === 0) return;
+      set[field] = sourceValue;
+    });
+    renderDays();
+    toast(
+      field === 'weight_kg' ? 'Peso aplicado a todos los sets' : 'Reps aplicadas a todos los sets'
+    );
   }
 
   /* ─── Auto-guardado de borrador ─────────────────────── */
