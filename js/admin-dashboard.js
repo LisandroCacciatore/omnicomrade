@@ -452,7 +452,6 @@ function setupModals() {
 window.openNewAtleta = () => window.onboardingWizard.open();
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
-let gymMembershipPlans = [];
 const DEFAULT_PLAN_META = {
   mensual: { label: 'Mensual', duration_days: 30, amount: 30000 },
   trimestral: { label: 'Trimestral', duration_days: 90, amount: 80000 },

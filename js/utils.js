@@ -77,6 +77,21 @@ window.tfUtils = {
   }
 };
 
+// Algunos navegadores/extensiones inyectan listeners de runtime que generan
+// rechazos no controlados fuera del código de la app.
+// Filtramos únicamente este caso conocido para no contaminar consola ni UX.
+const EXTENSION_CHANNEL_CLOSED_ERROR =
+  'A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received';
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    const reasonMessage = String(event?.reason?.message || event?.reason || '');
+    if (!reasonMessage.includes(EXTENSION_CHANNEL_CLOSED_ERROR)) return;
+    event.preventDefault();
+    console.warn('[runtime] Ignoring browser-extension message channel rejection.');
+  });
+}
+
 // Auto-init si es cargado en navegador
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => window.tfUtils.init());

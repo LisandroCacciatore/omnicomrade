@@ -95,6 +95,72 @@
     };
   }
 
+  function findExercise(dayId, exId) {
+    const day = days.find((d) => d.id === dayId);
+    if (!day) return null;
+    return day.exercises.find((x) => x._id === exId) || null;
+  }
+
+  function normalizeMuscleKey(raw) {
+    const key = String(raw || 'otros')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    return key || 'otros';
+  }
+
+  function updateSummary() {
+    const name = document.getElementById('routine-name')?.value?.trim() || 'Sin nombre';
+    const objetivo = selObjetivo || 'Sin objetivo';
+    const daysCount = days.length;
+    const exCount = days.reduce((acc, d) => acc + (d.exercises?.length || 0), 0);
+    const setsCount = days.reduce(
+      (acc, d) => acc + d.exercises.reduce((sAcc, ex) => sAcc + (ex.sets_detail?.length || 0), 0),
+      0
+    );
+
+    const byMuscle = {};
+    days.forEach((day) => {
+      day.exercises.forEach((ex) => {
+        const muscle = normalizeMuscleKey(ex.muscle_group);
+        byMuscle[muscle] = (byMuscle[muscle] || 0) + (ex.sets_detail?.length || 0);
+      });
+    });
+
+    const summaryEl = document.getElementById('routine-summary');
+    if (summaryEl) summaryEl.classList.remove('hidden');
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+    setText('sum-name', name);
+    setText('sum-obj', objetivo);
+    setText('sum-days', `${daysCount} día${daysCount !== 1 ? 's' : ''}`);
+    setText('sum-ex', `${exCount} ejercicio${exCount !== 1 ? 's' : ''}`);
+    setText('sum-sets', `${setsCount} sets`);
+
+    const volumeEl = document.getElementById('summary-muscle-volume');
+    if (!volumeEl) return;
+    const volumeEntries = Object.entries(byMuscle).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (!volumeEntries.length) {
+      volumeEl.innerHTML =
+        '<span class="text-[10px] text-slate-600">Sin volumen por músculo todavía</span>';
+      return;
+    }
+
+    volumeEl.innerHTML = volumeEntries
+      .map(([muscle, sets]) => {
+        const color =
+          sets > 20
+            ? 'bg-warning/15 text-warning border-warning/40'
+            : 'bg-slate-900 text-slate-400 border-border-dark';
+        return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[10px] font-bold ${color}">${escHtml(
+          muscle
+        )}: ${sets} sets</span>`;
+      })
+      .join('');
+  }
+
   /* ─── Load DB ────────────────────────────────────────── */
   async function loadExercises() {
     if (dbApi?.exercises?.getGlobalAndGym) {
@@ -803,6 +869,12 @@
           <button type="button" class="btn-paste-sets" data-day-id="${dayId}" data-ex-id="${ex._id}" title="Pegar sets" ${!clipboardSets ? 'disabled style="opacity:0.3"' : ''}>
             <span class="material-symbols-rounded" style="font-size:12px">content_paste</span>
           </button>
+          <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="weight_kg" title="Aplicar peso del Set 1 a todos">
+            <span class="material-symbols-rounded" style="font-size:12px">fitness_center</span> Peso⇢Todos
+          </button>
+          <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="reps" title="Aplicar reps del Set 1 a todos">
+            <span class="material-symbols-rounded" style="font-size:12px">repeat</span> Reps⇢Todos
+          </button>
         </div>
         <div class="ex-footer-rest">
           <span class="ex-param-label">DESC.</span>
@@ -917,6 +989,12 @@
     const btnPasteSets = e.target.closest('.btn-paste-sets');
     if (btnPasteSets) {
       pasteSets(btnPasteSets.dataset.dayId, btnPasteSets.dataset.exId);
+      return;
+    }
+
+    const btnApplyAll = e.target.closest('.btn-apply-all');
+    if (btnApplyAll) {
+      applyFieldToAllSets(btnApplyAll.dataset.dayId, btnApplyAll.dataset.exId, btnApplyAll.dataset.field);
       return;
     }
   });
@@ -1305,6 +1383,24 @@
     if (_saveSpan) _saveSpan.textContent = 'Actualizar rutina';
 
     renderDays();
+  }
+
+  function applyFieldToAllSets(dayId, exId, field) {
+    const ex = findExercise(dayId, exId);
+    if (!ex || !ex.sets_detail?.length) return;
+    const sourceValue = ex.sets_detail[0]?.[field];
+    if (sourceValue == null || sourceValue === '') {
+      toast('Completá el primer set antes de aplicar al resto', 'error');
+      return;
+    }
+    ex.sets_detail.forEach((set, idx) => {
+      if (idx === 0) return;
+      set[field] = sourceValue;
+    });
+    renderDays();
+    toast(
+      field === 'weight_kg' ? 'Peso aplicado a todos los sets' : 'Reps aplicadas a todos los sets'
+    );
   }
 
   /* ─── Auto-guardado de borrador ─────────────────────── */

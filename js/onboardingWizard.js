@@ -354,7 +354,7 @@ class OnboardingWizard {
         btn.classList.add('border-primary', 'bg-primary/10', 'text-primary');
         document.getElementById('ow-membresia-plan').value = btn.dataset.plan;
         const amountInput = document.getElementById('ow-membresia-amount');
-        if (amountInput && btn.dataset.amount && !amountInput.value) {
+        if (amountInput && btn.dataset.amount) {
           amountInput.value = btn.dataset.amount;
         }
       });
