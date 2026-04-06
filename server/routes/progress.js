@@ -33,7 +33,9 @@ router.get('/students/:studentId/summary', async (req, res) => {
         .order('session_date', { ascending: true }),
       supabase
         .from('v_stagnation_check')
-        .select('exercise_name, muscle_group, is_stagnant, progress_pct, sessions_tracked')
+        .select(
+          'exercise_name, muscle_group, is_stagnant, progress_pct, sessions_tracked:sessions_with_data'
+        )
         .eq('student_id', studentId)
         .eq('gym_id', gymId)
     ]);

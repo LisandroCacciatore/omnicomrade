@@ -56,6 +56,16 @@ const getStudentHomeUrl = () => {
   const totalSets = sets.length;
   if (!totalSets) { window.location.href = getStudentHomeUrl(); return; }
 
+  // Dynamic Load Factor por bienestar: si readiness está en rojo, sugerir -15%.
+  const readinessScore = Number(workoutData?.wellbeing?.score || 0);
+  const isLowReadiness = workoutData?.wellbeing?.level === 'rojo' || readinessScore < 40;
+  if (isLowReadiness) {
+    sets.forEach((set) => {
+      if (!set.weight_kg || set.weight_kg <= 0) return;
+      set.weight_kg = Math.max(0, Math.round((set.weight_kg * 0.85) / 2.5) * 2.5);
+    });
+  }
+
   /* ─── Historial: último peso por ejercicio ──────────── */
   const lastWeightByEx = {};
   if (studentId) {
@@ -93,6 +103,13 @@ const getStudentHomeUrl = () => {
   let startedSessionId = workoutData.sessionId || null;
   let restTimerInterval = null;
   let heavySetsCount   = 0;
+  let readinessOverride = false;
+
+  function repsToNumber(repsValue) {
+    if (repsValue == null) return 0;
+    const match = String(repsValue).match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  }
 
   /* ─── DOM ─────────────────────────────────────────────── */
   const deckEl      = document.getElementById('exercise-deck');
@@ -322,16 +339,27 @@ const getStudentHomeUrl = () => {
     const plannedWeight = parseFloat(workoutData.exercises[index]?.weight_kg) || 0;
     const actualWeight  = s.weight_kg > 0 ? s.weight_kg : null;
 
+    const actualReps = repsToNumber(s.reps);
     workoutLogs.push({
+      // payload base para exercise_logs
+      exercise_id: s.exercise_id || null,
       exercise_name: s.name,
-      muscle_group:  s.muscle || null,
-      set_number:    s.setNum,
-      reps_target:   s.reps  || null,
-      reps_actual:   s.reps  || null,
+      set_number: s.setNum,
+      planned_reps: s.reps || null,
+      actual_reps: actualReps || null,
+      planned_weight_kg: plannedWeight > 0 ? plannedWeight : null,
+      actual_weight_kg: actualWeight,
+      rpe_reported: s.rpe_target || null,
+      performed_at: new Date().toISOString(),
+      ignored_readiness_recommendation: readinessOverride,
+      // compat para endpoints legacy
+      muscle_group: s.muscle || null,
+      reps_target: s.reps || null,
+      reps_actual: s.reps || null,
       weight_target: plannedWeight > 0 ? plannedWeight : null,
-      weight_used:   actualWeight,
+      weight_used: actualWeight,
       status,
-      effort_level:  effort,
+      effort_level: effort,
     });
 
     // Animar salida
@@ -419,6 +447,34 @@ const getStudentHomeUrl = () => {
     setTimeout(() => { if (el) el.style.display = 'none'; }, 7000);
   }
 
+  if (isLowReadiness) {
+    const loadSuggestion = document.getElementById('load-suggestion');
+    if (loadSuggestion) {
+      loadSuggestion.style.cssText =
+        'display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);margin-bottom:8px';
+      loadSuggestion.innerHTML = `
+        <span style="font-size:16px">🛟</span>
+        <p style="flex:1;font-size:11px;font-weight:700;color:#FCA5A5">
+          Puntaje bajo: sugerimos reducir carga un 15% para entrenar de forma segura.
+        </p>
+        <button id="btn-override-readiness" style="background:#0B1218;border:1px solid rgba(248,113,113,.35);color:#FCA5A5;padding:6px 10px;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer">
+          Mantener carga original
+        </button>
+      `;
+      const btnOverride = document.getElementById('btn-override-readiness');
+      btnOverride?.addEventListener('click', () => {
+        readinessOverride = true;
+        sets.forEach((set, idx) => {
+          const original = parseFloat(workoutData.exercises[idx]?.weight_kg) || 0;
+          set.weight_kg = original;
+        });
+        loadSuggestion.style.display = 'none';
+        toast('Override activo: se mantiene la carga original', 'warning');
+        renderDeck();
+      });
+    }
+  }
+
   /* ─── Finalizar ────────────────────────────────────────── */
   async function finishWorkout() {
     deckEl.innerHTML = `
@@ -431,6 +487,11 @@ const getStudentHomeUrl = () => {
     try {
       const endTime = new Date();
       const durationMinutes = Math.round((endTime - new Date(sessionStartTime)) / 60000);
+      const totalVolumeKg = workoutLogs.reduce((acc, log) => {
+        const reps = repsToNumber(log.actual_reps ?? log.reps_actual);
+        const weight = Number((log.actual_weight_kg ?? log.weight_used) || 0);
+        return acc + (Number.isFinite(weight) ? weight : 0) * reps;
+      }, 0);
       if (startedSessionId) {
         const completeRes = await fetch(`/api/workouts/sessions/${startedSessionId}/complete`, {
           method: 'POST',
@@ -444,6 +505,27 @@ const getStudentHomeUrl = () => {
         if (!completeRes.ok) {
           throw new Error(`Complete API failed (${completeRes.status})`);
         }
+
+        const exerciseLogRows = workoutLogs.map(log => ({
+          gym_id: gymId,
+          student_id: studentId,
+          routine_id: workoutData.routineId || null,
+          routine_day_id: workoutData.dayId || null,
+          exercise_id: log.exercise_id || null,
+          exercise_name: log.exercise_name,
+          performed_at: log.performed_at || new Date().toISOString(),
+          set_number: log.set_number || null,
+          planned_reps: log.planned_reps,
+          actual_reps: String(log.actual_reps || ''),
+          planned_weight_kg: log.planned_weight_kg,
+          actual_weight_kg: log.actual_weight_kg,
+          rpe_reported: log.rpe_reported,
+          notes: log.ignored_readiness_recommendation
+            ? `override_readiness:${log.effort_level || 'normal'}`
+            : log.effort_level || null
+        }));
+        const { error: exLogErr } = await db.from('exercise_logs').insert(exerciseLogRows);
+        if (exLogErr) throw exLogErr;
       } else {
         const { data: sessionData, error: sessionErr } = await db.from('workout_sessions').insert({
           gym_id:           gymId,
@@ -456,9 +538,27 @@ const getStudentHomeUrl = () => {
         }).select('id').single();
         if (sessionErr) throw sessionErr;
 
-        await db.from('workout_exercise_logs').insert(
-          workoutLogs.map(log => ({ ...log, gym_id: gymId, session_id: sessionData.id, logged_at: new Date().toISOString() }))
-        );
+        const exerciseLogRows = workoutLogs.map(log => ({
+          gym_id: gymId,
+          student_id: studentId,
+          routine_id: workoutData.routineId || null,
+          routine_day_id: workoutData.dayId || null,
+          exercise_id: log.exercise_id || null,
+          exercise_name: log.exercise_name,
+          performed_at: log.performed_at || new Date().toISOString(),
+          set_number: log.set_number || null,
+          planned_reps: log.planned_reps,
+          actual_reps: String(log.actual_reps || ''),
+          planned_weight_kg: log.planned_weight_kg,
+          actual_weight_kg: log.actual_weight_kg,
+          rpe_reported: log.rpe_reported,
+          notes: log.ignored_readiness_recommendation
+            ? `override_readiness:${log.effort_level || 'normal'}`
+            : log.effort_level || null
+        }));
+
+        const { error: exLogErr } = await db.from('exercise_logs').insert(exerciseLogRows);
+        if (exLogErr) throw exLogErr;
       }
 
       sessionStorage.removeItem('activeWorkout');
@@ -468,6 +568,7 @@ const getStudentHomeUrl = () => {
         <span class="text-7xl mb-4">🎉</span>
         <h2 class="text-3xl font-black text-center mb-2">¡Guardado!</h2>
         <p class="font-bold opacity-80">${workoutLogs.length} sets completados.</p>
+        <p class="font-bold opacity-80 mt-1">Entrenamiento completado: ${Math.round(totalVolumeKg).toLocaleString('es-AR')} kg movilizados.</p>
       </div>`;
 
       if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
