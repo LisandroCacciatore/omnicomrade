@@ -876,7 +876,7 @@
       const missingTechnicalCue =
         error?.code === '42703' && (error?.message || '').toLowerCase().includes('technical_cue');
       errEl.textContent = missingTechnicalCue
-        ? 'Error de sincronización de datos: contacte a soporte.'
+        ? 'Error de sincronización: contacte a soporte.'
         : `Error al guardar en base de datos: ${error.message || 'error desconocido'}`;
       errEl.classList.remove('hidden');
       return;

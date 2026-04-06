@@ -25,7 +25,7 @@ let gymMembershipPlans = [];
 let painSummaryByZone = new Map();
 let latestPainZoneLogs = [];
 let selectedPainZone = '';
-let showSensitiveWellbeingNotes = false;
+let showSensitiveWellbeingNotes = true;
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initDashboard() {
@@ -260,7 +260,7 @@ async function runSchemaHealthCheck() {
 
     const isSchemaMismatch = error.code === '42703';
     if (!isSchemaMismatch) return;
-    toast('Error de sincronización de datos: columnas críticas faltantes en ejercicios.', 'error');
+    toast('Error de sincronización: contacte a soporte.', 'error');
     console.warn('Schema health-check failed for exercises columns:', error.message);
   } catch (err) {
     console.warn('Schema health-check error:', err?.message || err);
@@ -333,7 +333,7 @@ async function initPainHeatmap() {
   if (!statusEl || !zoneListEl) return;
 
   if (sensitiveNotesToggle) {
-    sensitiveNotesToggle.checked = false;
+    sensitiveNotesToggle.checked = true;
     sensitiveNotesToggle.addEventListener('change', (evt) => {
       showSensitiveWellbeingNotes = !!evt.target.checked;
       if (selectedPainZone) renderPainZoneDetailList(selectedPainZone, latestPainZoneLogs);
