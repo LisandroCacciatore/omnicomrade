@@ -905,6 +905,12 @@
           <button type="button" class="btn-paste-sets" data-day-id="${dayId}" data-ex-id="${ex._id}" title="Pegar sets" ${!clipboardSets ? 'disabled style="opacity:0.3"' : ''}>
             <span class="material-symbols-rounded" style="font-size:12px">content_paste</span>
           </button>
+          <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="weight_kg" title="Aplicar peso del Set 1 a todos">
+            <span class="material-symbols-rounded" style="font-size:12px">fitness_center</span> Peso⇢Todos
+          </button>
+          <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="reps" title="Aplicar reps del Set 1 a todos">
+            <span class="material-symbols-rounded" style="font-size:12px">repeat</span> Reps⇢Todos
+          </button>
         </div>
         <div class="ex-footer-rest">
           <span class="ex-param-label">DESC.</span>
