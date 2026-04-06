@@ -204,21 +204,36 @@ function getStatusClass(status) {
 function setupQuickActions() {
   const db = window.supabaseClient;
 
-  if (window.ProgramAssignModal && !assignProgramModal) {
-    assignProgramModal = new window.ProgramAssignModal({
-      gymId,
-      db,
-      studentFilter: { membership_status: 'activa' },
-      onSuccess: async () => {
-        toast('Programa asignado con éxito');
-        await Promise.all([loadKPIs(), loadRecentStudents()]);
+  document
+    .querySelector('[data-action="asignar-programa"]')
+    ?.addEventListener('click', async () => {
+      // Lazy init: esperar a que ProgramAssignModal esté disponible
+      if (!window.ProgramAssignModal) {
+        console.warn('⏳ Esperando a que ProgramAssignModal cargue...');
+        let retries = 0;
+        while (!window.ProgramAssignModal && retries < 20) {
+          await new Promise((r) => setTimeout(r, 100));
+          retries++;
+        }
+        if (!window.ProgramAssignModal) {
+          toast('Error: no se pudo cargar el módulo de asignación', 'error');
+          return;
+        }
       }
-    });
-  }
 
-  document.querySelector('[data-action="asignar-programa"]')?.addEventListener('click', () => {
-    assignProgramModal?.open();
-  });
+      if (!assignProgramModal) {
+        assignProgramModal = new window.ProgramAssignModal({
+          gymId,
+          db,
+          studentFilter: { membership_status: 'activa' },
+          onSuccess: async () => {
+            toast('Programa asignado con éxito');
+            await Promise.all([loadKPIs(), loadRecentStudents()]);
+          }
+        });
+      }
+      assignProgramModal.open();
+    });
 
   document.querySelector('[data-action="nueva-membresia"]')?.addEventListener('click', () => {
     if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
