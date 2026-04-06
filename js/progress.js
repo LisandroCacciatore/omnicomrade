@@ -24,6 +24,11 @@
   let expandChart = null;
   let activeExRow = null;
 
+  function repsToNumber(value) {
+    const match = String(value ?? '').match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  }
+
   const urlStudentId = new URLSearchParams(window.location.search).get('student');
 
   function normalizeStudentRow(row) {
@@ -388,6 +393,7 @@
     let sessData = [];
     let logsData = [];
     let stagData = [];
+    let exerciseLogsData = [];
     let queryFailed = false;
 
     /* ─── Fetch en paralelo ─────────────────────────────── */
@@ -423,10 +429,17 @@
             'exercise_name, muscle_group, is_stagnant, progress_pct, sessions_tracked:sessions_with_data'
           )
           .eq('student_id', studentId)
+          .eq('gym_id', gymId),
+
+        db
+          .from('exercise_logs')
+          .select('exercise_name, performed_at, actual_weight_kg, actual_reps, rpe_reported')
+          .eq('student_id', studentId)
           .eq('gym_id', gymId)
+          .order('performed_at', { ascending: true })
       ]);
 
-      const [sessionsRes, logsRes, stagRes] = results;
+      const [sessionsRes, logsRes, stagRes, exerciseLogsRes] = results;
       if (sessionsRes.status === 'fulfilled' && !sessionsRes.value.error)
         sessData = sessionsRes.value.data || [];
       else queryFailed = true;
@@ -438,6 +451,9 @@
       if (stagRes.status === 'fulfilled' && !stagRes.value.error)
         stagData = stagRes.value.data || [];
       else queryFailed = true;
+
+      if (exerciseLogsRes.status === 'fulfilled' && !exerciseLogsRes.value.error)
+        exerciseLogsData = exerciseLogsRes.value.data || [];
     } catch (error) {
       console.error('❌ Error cargando progreso:', error.message || error);
       queryFailed = true;
@@ -473,20 +489,102 @@
     /* ─── ZONA 2: Exercise list ─────────────────────────── */
     renderExerciseList(exercises);
 
+    renderSessionTonnageTrend(exerciseLogsData);
+
     /* ─── ZONA 3: Consistency + Stagnation ──────────────── */
     renderConsistency(weekDone, weekGoal, sessData, useMock);
-    renderStagnation(
-      useMock
-        ? [
-            {
-              exercise_name: 'Press de Banco',
-              is_stagnant: true,
-              progress_pct: 0,
-              sessions_tracked: 3
-            }
-          ]
-        : stagData
-    );
+    const derivedStagnation = deriveStagnationFromExerciseLogs(exerciseLogsData);
+    renderStagnation(useMock
+      ? [
+          {
+            exercise_name: 'Press de Banco',
+            is_stagnant: true,
+            progress_pct: 0,
+            sessions_tracked: 3
+          }
+        ]
+      : [...stagData, ...derivedStagnation]);
+  }
+
+  function renderSessionTonnageTrend(exerciseLogsData) {
+    if (!Array.isArray(exerciseLogsData) || !exerciseLogsData.length) return;
+    const byDay = {};
+    exerciseLogsData.forEach((log) => {
+      const day = String(log.performed_at || '').slice(0, 10);
+      if (!day) return;
+      const weight = Number(log.actual_weight_kg || 0);
+      const reps = repsToNumber(log.actual_reps);
+      byDay[day] = (byDay[day] || 0) + weight * reps;
+    });
+    const points = Object.entries(byDay)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([day, total]) => ({ day, total: Math.round(total) }));
+    if (!points.length) return;
+
+    document.getElementById('expand-chart-wrap')?.classList.remove('hidden');
+    document.getElementById('expand-chart-title').textContent = 'Evolución de tonelaje por sesión';
+    document.getElementById('expand-chart-pr').textContent = `Máximo: ${Math.max(...points.map((p) => p.total)).toLocaleString('es-AR')} kg`;
+    if (expandChart) expandChart.destroy();
+    const ctx = document.getElementById('expand-chart').getContext('2d');
+    expandChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: points.map((p) => p.day.slice(5)),
+        datasets: [
+          {
+            label: 'Total Kg',
+            data: points.map((p) => p.total),
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59,130,246,0.15)',
+            tension: 0.35,
+            borderWidth: 2,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { ticks: { color: '#64748B' }, grid: { color: 'rgba(30,41,59,.5)' } },
+          x: { ticks: { color: '#64748B' }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function deriveStagnationFromExerciseLogs(exerciseLogsData) {
+    if (!Array.isArray(exerciseLogsData) || !exerciseLogsData.length) return [];
+    const byExerciseSession = {};
+    exerciseLogsData.forEach((log) => {
+      const ex = log.exercise_name;
+      const day = String(log.performed_at || '').slice(0, 10);
+      if (!ex || !day) return;
+      const key = `${ex}__${day}`;
+      byExerciseSession[key] = (byExerciseSession[key] || 0) + Number(log.actual_weight_kg || 0) * repsToNumber(log.actual_reps);
+    });
+
+    const byExercise = {};
+    Object.entries(byExerciseSession).forEach(([key, total]) => {
+      const [exercise, day] = key.split('__');
+      byExercise[exercise] ||= [];
+      byExercise[exercise].push({ day, total });
+    });
+
+    return Object.entries(byExercise)
+      .map(([exercise_name, sessions]) => {
+        const sorted = sessions.sort((a, b) => b.day.localeCompare(a.day)).slice(0, 3);
+        if (sorted.length < 3) return null;
+        const [s1, s2, s3] = sorted;
+        const stagnant = s1.total <= s2.total && s2.total <= s3.total;
+        if (!stagnant) return null;
+        return {
+          exercise_name,
+          is_stagnant: true,
+          progress_pct: s3.total > 0 ? ((s1.total - s3.total) / s3.total) * 100 : 0,
+          sessions_tracked: 3
+        };
+      })
+      .filter(Boolean);
   }
 
   /* ─── Build exercise data from v_exercise_progress ────────── */
@@ -581,7 +679,7 @@
         ? [0, 2, 5].includes(i) // Mon, Wed, Sat
         : sessData.some((s) => s.completed_at?.slice(0, 10) === dateStr);
       const isToday = i === 6;
-      return `<div class="w-6 h-6 rounded-md transition-colors ${trained ? 'bg-emerald-500' : 'bg-[#1E293B]'} ${isToday ? 'ring-1 ring-slate-500' : ''}" title="${dateStr}"></div>`;
+      return `<div class="w-6 h-6 rounded-md transition-colors ${trained ? 'bg-primary' : 'bg-[#1E293B]'} ${isToday ? 'ring-1 ring-slate-500' : ''}" title="${dateStr}"></div>`;
     });
     dotsEl.innerHTML = dots.join('');
 
@@ -598,7 +696,14 @@
   function renderStagnation(stagData) {
     const listEl = document.getElementById('stagnation-list');
     const okEl = document.getElementById('stagnation-ok');
-    const stagnant = stagData.filter((s) => s.is_stagnant);
+    const stagnantMap = new Map();
+    (stagData || [])
+      .filter((s) => s.is_stagnant)
+      .forEach((s) => {
+        const key = s.exercise_name || `stag-${stagnantMap.size}`;
+        if (!stagnantMap.has(key)) stagnantMap.set(key, s);
+      });
+    const stagnant = Array.from(stagnantMap.values());
 
     if (!stagnant.length) {
       listEl.innerHTML = '';

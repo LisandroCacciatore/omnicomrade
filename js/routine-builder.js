@@ -159,6 +159,32 @@
         )}: ${sets} sets</span>`;
       })
       .join('');
+
+    const pushMuscles = ['pecho', 'hombros', 'triceps'];
+    const pullMuscles = ['espalda', 'biceps'];
+    const pushSets = pushMuscles.reduce((acc, m) => acc + (byMuscle[m] || 0), 0);
+    const pullSets = pullMuscles.reduce((acc, m) => acc + (byMuscle[m] || 0), 0);
+    const ratioEl = document.getElementById('summary-movement-alert');
+    if (!ratioEl) return;
+
+    if (pushSets > 0 && pullSets === 0) {
+      ratioEl.className =
+        'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-warning/10 text-warning border border-warning/30';
+      ratioEl.textContent =
+        `Push/Pull desbalanceado (${pushSets}:0). Sumá volumen de espalda para prevenir sobrecarga anterior.`;
+      return;
+    }
+
+    if (pushSets > pullSets * 1.8 && pullSets > 0) {
+      ratioEl.className =
+        'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-warning/10 text-warning border border-warning/30';
+      ratioEl.textContent = `Push/Pull ratio: ${pushSets}:${pullSets} (alto empuje).`;
+      return;
+    }
+
+    ratioEl.className =
+      'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+    ratioEl.textContent = `Push/Pull ratio balanceado: ${pushSets}:${pullSets}`;
   }
 
   /* ─── Load DB ────────────────────────────────────────── */
@@ -856,6 +882,16 @@
         <span></span>
       </div>
 
+      <div class="quick-fill-row">
+        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Set 1 →</span>
+        <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="weight_kg" title="Aplicar peso del Set 1 a todos">
+          <span class="material-symbols-rounded" style="font-size:12px">fitness_center</span> Aplicar peso a todos
+        </button>
+        <button type="button" class="btn-apply-all" data-day-id="${dayId}" data-ex-id="${ex._id}" data-field="reps" title="Aplicar reps del Set 1 a todos">
+          <span class="material-symbols-rounded" style="font-size:12px">repeat</span> Aplicar reps a todos
+        </button>
+      </div>
+
       ${setsHTML}
 
       <div class="ex-footer">
@@ -994,7 +1030,7 @@
 
     const btnApplyAll = e.target.closest('.btn-apply-all');
     if (btnApplyAll) {
-      applyFieldToAllSets(btnApplyAll.dataset.dayId, btnApplyAll.dataset.exId, btnApplyAll.dataset.field);
+      applyToAllSets(btnApplyAll.dataset.dayId, btnApplyAll.dataset.exId, btnApplyAll.dataset.field);
       return;
     }
   });
@@ -1028,7 +1064,16 @@
     const val = e.target.value.trim();
     if (field === 'weight_kg') s.weight_kg = val ? parseFloat(val) : null;
     if (field === 'reps') s.reps = val || null;
-    if (field === 'rpe_target') s.rpe_target = val ? parseFloat(val) : null;
+    if (field === 'rpe_target') {
+      const parsed = val ? parseFloat(val) : null;
+      if (parsed != null && parsed > 10) {
+        s.rpe_target = 10;
+        e.target.value = '10';
+        toast('RPE máximo permitido: 10', 'error');
+      } else {
+        s.rpe_target = parsed;
+      }
+    }
     if (field === 'rir_target') s.rir_target = val ? parseInt(val) : null;
   });
 
@@ -1385,7 +1430,7 @@
     renderDays();
   }
 
-  function applyFieldToAllSets(dayId, exId, field) {
+  function applyToAllSets(dayId, exId, field) {
     const ex = findExercise(dayId, exId);
     if (!ex || !ex.sets_detail?.length) return;
     const sourceValue = ex.sets_detail[0]?.[field];

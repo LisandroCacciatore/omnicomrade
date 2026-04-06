@@ -24,6 +24,9 @@
     let editingId = null;
     let selectedObjetivo = null;
     let selectedDiff = null;
+    let assigningRoutineId = null;
+    let assignStudents = [];
+    let pendingReplacement = null;
 
     /* ─── DOM refs ───────────────────────────────────────────── */
     const grid = document.getElementById('routines-grid');
@@ -33,7 +36,10 @@
     const modalRutina = document.getElementById('modal-rutina');
     const formRutina = document.getElementById('form-rutina');
     const modalEliminar = document.getElementById('modal-eliminar');
+    const modalAsignar = document.getElementById('modal-asignar-rutina');
+    const modalConfirmReplace = document.getElementById('modal-confirm-replace-routine');
     const modalError = document.getElementById('modal-error');
+    const modalAsignarError = document.getElementById('modal-asignar-error');
 
     // Inputs
     const inputId = document.getElementById('rutina-id');
@@ -41,6 +47,9 @@
     const inputDesc = document.getElementById('rutina-descripcion');
     const inputSemanas = document.getElementById('rutina-semanas');
     const inputDias = document.getElementById('rutina-dias');
+    const inputAsignarStudent = document.getElementById('asignar-student-id');
+    const inputAsignarSearch = document.getElementById('asignar-student-search');
+    const assignNoResults = document.getElementById('asignar-no-results');
 
     /* ─── Fetch data ─────────────────────────────────────────── */
     // studentCounts: { routine_id → count }
@@ -131,6 +140,9 @@
               </div>
             </div>
             <div class="flex gap-1 shrink-0">
+              <button type="button" data-action="assign" data-id="${r.id}" data-name="${escHtml(r.name)}" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-emerald-500/15 hover:text-emerald-400 transition-colors" title="Asignar a alumno">
+                <span class="material-symbols-rounded text-[16px] pointer-events-none">person_add</span>
+              </button>
               <button type="button" data-action="edit" data-id="${r.id}" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-[#1E293B] hover:text-white transition-colors" title="Editar">
                 <span class="material-symbols-rounded text-[16px] pointer-events-none">edit</span>
               </button>
@@ -157,10 +169,14 @@
 
     /* ─── EVENT DELEGATION ───────────────────────────────────── */
     grid.addEventListener('click', (e) => {
+        const assignBtn = e.target.closest('button[data-action="assign"]');
         const editBtn = e.target.closest('button[data-action="edit"]');
         const deleteBtn = e.target.closest('button[data-action="delete"]');
 
-        if (editBtn) {
+        if (assignBtn) {
+            e.preventDefault();
+            openAssignModal(assignBtn.dataset.id, assignBtn.dataset.name);
+        } else if (editBtn) {
             e.preventDefault();
             openEdit(editBtn.dataset.id);
         } else if (deleteBtn) {
@@ -203,6 +219,51 @@
     function openEdit(id) {
         // Ir al builder en modo edición
         window.location.href = `routine-builder.html?id=${id}`;
+    }
+
+    function renderAssignStudentOptions(query = '') {
+        const term = query.trim().toLowerCase();
+        const filtered = !term
+            ? assignStudents
+            : assignStudents.filter((s) => (s.full_name || '').toLowerCase().includes(term));
+
+        inputAsignarStudent.innerHTML = '<option value="">Seleccioná un alumno...</option>';
+        filtered.forEach((student) => {
+            inputAsignarStudent.innerHTML += `<option value="${student.id}">${escHtml(student.full_name || 'Sin nombre')}</option>`;
+        });
+
+        const noResults = term && filtered.length === 0;
+        assignNoResults?.classList.toggle('hidden', !noResults);
+    }
+
+    async function loadStudentsForAssign() {
+        const { data, error } = await db
+            .from('students')
+            .select('id, full_name')
+            .eq('gym_id', gymId)
+            .is('deleted_at', null)
+            .order('full_name', { ascending: true });
+
+        if (error) throw error;
+        assignStudents = data || [];
+        renderAssignStudentOptions('');
+    }
+
+    async function openAssignModal(routineId, routineName) {
+        assigningRoutineId = routineId;
+        modalAsignarError?.classList.add('hidden');
+        document.getElementById('asignar-rutina-nombre').textContent = routineName || 'Rutina';
+        inputAsignarStudent.value = '';
+        if (inputAsignarSearch) inputAsignarSearch.value = '';
+
+        try {
+            await loadStudentsForAssign();
+        } catch (error) {
+            toast('No se pudo cargar la lista de alumnos', 'error');
+            return;
+        }
+
+        openModal(modalAsignar);
     }
 
     /* ─── Botones de selección UI ────────────────────────────── */
@@ -305,12 +366,107 @@
     });
 
     /* ─── Cerrar Modales ─────────────────────────────────────── */
-    [modalRutina, modalEliminar].forEach(m => {
+    [modalRutina, modalEliminar, modalAsignar, modalConfirmReplace].forEach(m => {
         m.addEventListener('click', e => { if (e.target === m) closeModal(m); });
     });
     document.getElementById('close-modal-rutina').addEventListener('click', () => closeModal(modalRutina));
     document.getElementById('cancel-modal-rutina').addEventListener('click', () => closeModal(modalRutina));
     document.getElementById('cancel-delete').addEventListener('click', () => closeModal(modalEliminar));
+    document.getElementById('close-modal-asignar')?.addEventListener('click', () => closeModal(modalAsignar));
+    document.getElementById('cancel-modal-asignar')?.addEventListener('click', () => closeModal(modalAsignar));
+    document.getElementById('cancel-replace-routine')?.addEventListener('click', () => {
+        pendingReplacement = null;
+        closeModal(modalConfirmReplace);
+        openModal(modalAsignar);
+    });
+    document.getElementById('confirm-replace-routine')?.addEventListener('click', async () => {
+        if (!pendingReplacement) return;
+        await assignRoutineToStudent({
+            studentId: pendingReplacement.studentId,
+            oldRoutineId: pendingReplacement.oldRoutineId,
+            newRoutineId: pendingReplacement.newRoutineId
+        });
+    });
+
+    inputAsignarSearch?.addEventListener(
+        'input',
+        debounce((e) => renderAssignStudentOptions(e.target.value), 150)
+    );
+    document.getElementById('btn-invite-student')?.addEventListener('click', () => {
+        window.location.href = 'student-list.html';
+    });
+
+    document.getElementById('form-asignar-rutina')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!assigningRoutineId) return;
+
+        const studentId = inputAsignarStudent.value;
+        if (!studentId) {
+            modalAsignarError.textContent = 'Seleccioná un alumno para asignar la rutina.';
+            modalAsignarError.classList.remove('hidden');
+            return;
+        }
+
+        const { data: student, error: studentError } = await db
+            .from('students')
+            .select('id, full_name, routine_id')
+            .eq('id', studentId)
+            .eq('gym_id', gymId)
+            .maybeSingle();
+
+        if (studentError || !student) {
+            modalAsignarError.textContent = 'No se pudo validar el alumno seleccionado.';
+            modalAsignarError.classList.remove('hidden');
+            return;
+        }
+
+        const hasActiveRoutine = student.routine_id && student.routine_id !== assigningRoutineId;
+        if (hasActiveRoutine) {
+            pendingReplacement = {
+                studentId: student.id,
+                studentName: student.full_name || 'Alumno',
+                oldRoutineId: student.routine_id,
+                newRoutineId: assigningRoutineId
+            };
+            document.getElementById('replace-routine-student-name').textContent = pendingReplacement.studentName;
+            closeModal(modalAsignar);
+            openModal(modalConfirmReplace);
+            return;
+        }
+
+        await assignRoutineToStudent({ studentId: student.id, oldRoutineId: student.routine_id, newRoutineId: assigningRoutineId });
+    });
+
+    async function assignRoutineToStudent({ studentId, oldRoutineId = null, newRoutineId }) {
+        if (oldRoutineId && oldRoutineId !== newRoutineId) {
+            await db.from('student_routine_history').insert({
+                gym_id: gymId,
+                student_id: studentId,
+                old_routine_id: oldRoutineId,
+                new_routine_id: newRoutineId,
+                replaced_at: new Date().toISOString()
+            });
+        }
+
+        const { error } = await db
+            .from('students')
+            .update({ routine_id: newRoutineId, updated_at: new Date().toISOString() })
+            .eq('id', studentId)
+            .eq('gym_id', gymId);
+
+        if (error) {
+            modalAsignarError.textContent = `No se pudo asignar la rutina: ${error.message}`;
+            modalAsignarError.classList.remove('hidden');
+            openModal(modalAsignar);
+            return;
+        }
+
+        closeModal(modalAsignar);
+        closeModal(modalConfirmReplace);
+        pendingReplacement = null;
+        toast('Rutina asignada al alumno');
+        await loadRoutines();
+    }
 
     /* ─── Filtros (En Memoria) ───────────────────────────────── */
     document.querySelectorAll('.filter-chip[data-objetivo]').forEach(btn => {

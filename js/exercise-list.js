@@ -396,6 +396,14 @@
   });
 
   /* ─── Load & Render ─────────────────────────────────────── */
+  async function saveExercise(payload) {
+    const query = editingId
+      ? db.from('exercises').update(payload).eq('id', editingId)
+      : db.from('exercises').insert(payload);
+    const { error } = await query;
+    return { error };
+  }
+
   async function loadExercises() {
     const [{ data: gymEx }, { data: globalEx }] = await Promise.all([
       db.from('exercises').select('*').eq('gym_id', gymId).is('deleted_at', null).order('name'),
@@ -411,7 +419,6 @@
     const items = allExercises.filter((ex) => {
       const matchM = !filterMuscle || ex.muscle_group === filterMuscle;
       const matchCat = filterCat === 'all' || ex.category === filterCat;
-      // NOTE: main_goal and movement_pattern columns removed from schema
       const matchGoal = filterGoal === 'all' || !ex.main_goal || ex.main_goal === filterGoal;
       const matchPattern =
         filterPattern === 'all' || !ex.movement_pattern || ex.movement_pattern === filterPattern;
@@ -844,7 +851,11 @@
       muscle_group: selMuscle,
       category: selCat || null,
       difficulty: selDiff || null,
-      // NOTE: main_goal, movement_pattern, safety_level, complexity_level, technical_cue removed - columns don't exist
+      main_goal: selGoal || null,
+      movement_pattern: selPattern || null,
+      safety_level: selSafety || null,
+      complexity_level: selComplexity ? parseInt(selComplexity, 10) : null,
+      technical_cue: technicalCue,
       equipment: selEquip || null,
       video_url: document.getElementById('ex-video-url').value.trim() || null,
       is_global: false,
@@ -855,16 +866,18 @@
     btn.disabled = true;
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando…`;
 
-    const query = editingId
-      ? db.from('exercises').update(payload).eq('id', editingId)
-      : db.from('exercises').insert(payload);
-    const { error } = await query;
+    const { error } = await saveExercise(payload);
 
     btn.disabled = false;
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>${editingId ? 'Actualizar' : 'Guardar ejercicio'}`;
 
     if (error) {
-      errEl.textContent = 'Error al guardar en base de datos. Intentá de nuevo.';
+      console.error('Error guardando ejercicio', { error, payload, editingId });
+      const missingTechnicalCue =
+        error?.code === '42703' && (error?.message || '').toLowerCase().includes('technical_cue');
+      errEl.textContent = missingTechnicalCue
+        ? 'Error de sincronización de datos: contacte a soporte.'
+        : `Error al guardar en base de datos: ${error.message || 'error desconocido'}`;
       errEl.classList.remove('hidden');
       return;
     }

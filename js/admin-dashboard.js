@@ -22,6 +22,10 @@ let authUserId = null;
 let alertStudents = [];
 const alertSelectedStudentIds = new Set();
 let gymMembershipPlans = [];
+let painSummaryByZone = new Map();
+let latestPainZoneLogs = [];
+let selectedPainZone = '';
+let showSensitiveWellbeingNotes = false;
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initDashboard() {
@@ -63,12 +67,13 @@ async function initDashboard() {
         <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-32 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>
         <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-24 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>`;
 
-  await Promise.all([loadKPIs(), loadRecentStudents()]);
+  await Promise.all([loadKPIs(), loadRecentStudents(), initPainHeatmap()]);
   window.loadKPIs = loadKPIs;
   window.loadRecentStudents = loadRecentStudents;
   setupQuickActions();
   setupModals();
   setupDashboardButtons();
+  runSchemaHealthCheck();
 }
 
 window.addEventListener('onboarding:completed', async () => {
@@ -243,6 +248,343 @@ function setupDashboardButtons() {
   document.getElementById('btn-nueva-membresia')?.addEventListener('click', () => {
     window.openModalMembresia();
   });
+}
+
+async function runSchemaHealthCheck() {
+  try {
+    const { error } = await window.supabaseClient
+      .from('exercises')
+      .select('id, technical_cue, safety_level')
+      .limit(1);
+    if (!error) return;
+
+    const isSchemaMismatch = error.code === '42703';
+    if (!isSchemaMismatch) return;
+    toast('Error de sincronización de datos: columnas críticas faltantes en ejercicios.', 'error');
+    console.warn('Schema health-check failed for exercises columns:', error.message);
+  } catch (err) {
+    console.warn('Schema health-check error:', err?.message || err);
+  }
+}
+
+const PAIN_ZONE_ALIASES = {
+  cervical: ['cervical', 'cuello'],
+  hombro_izquierdo: ['hombro_izquierdo', 'hombro izquierdo'],
+  hombro_derecho: ['hombro_derecho', 'hombro derecho'],
+  espalda_alta: ['espalda_alta', 'dorsal', 'espalda alta'],
+  lumbar: ['lumbar', 'espalda_baja', 'espalda baja'],
+  cadera: ['cadera', 'caderas', 'gluteo', 'glúteo'],
+  rodilla_izquierda: ['rodilla_izquierda', 'rodilla izquierda'],
+  rodilla_derecha: ['rodilla_derecha', 'rodilla derecha'],
+  tobillo_izquierdo: ['tobillo_izquierdo', 'tobillo izquierdo'],
+  tobillo_derecho: ['tobillo_derecho', 'tobillo derecho'],
+  muneca_izquierda: ['muneca_izquierda', 'muñeca_izquierda', 'muñeca izquierda'],
+  muneca_derecha: ['muneca_derecha', 'muñeca_derecha', 'muñeca derecha']
+};
+
+function normalizePainZone(zoneRaw) {
+  if (!zoneRaw) return '';
+  const zone = String(zoneRaw)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  for (const [canonical, aliases] of Object.entries(PAIN_ZONE_ALIASES)) {
+    if (aliases.some((alias) => zone === alias)) return canonical;
+  }
+  return zone.replace(/\s+/g, '_');
+}
+
+function getPainSeverity(intensityPct = 0) {
+  if (intensityPct >= 22) return 'critical';
+  if (intensityPct >= 12) return 'high';
+  if (intensityPct >= 5) return 'medium';
+  return 'low';
+}
+
+function formatPainZoneLabel(zone) {
+  return (zone || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function paintRegion(regionEl, row) {
+  const classes = ['pain-level-low', 'pain-level-medium', 'pain-level-high', 'pain-level-critical'];
+  regionEl.classList.remove(...classes, 'pain-interactive');
+  if (!row) {
+    regionEl.classList.add('pain-level-low');
+    regionEl.removeAttribute('title');
+    return;
+  }
+  const severity = getPainSeverity(Number(row.intensity_pct || 0));
+  regionEl.classList.add(`pain-level-${severity}`);
+  const isActionable = severity === 'high' || severity === 'critical';
+  if (isActionable) regionEl.classList.add('pain-interactive');
+  regionEl.title = `${formatPainZoneLabel(row.zone)} · ${Number(row.intensity_pct || 0).toFixed(1)}% intensidad`;
+}
+
+async function initPainHeatmap() {
+  const statusEl = document.getElementById('pain-map-status');
+  const zoneListEl = document.getElementById('pain-zone-risk-list');
+  const sensitiveNotesToggle = document.getElementById('pain-show-sensitive-notes');
+  if (!statusEl || !zoneListEl) return;
+
+  if (sensitiveNotesToggle) {
+    sensitiveNotesToggle.checked = false;
+    sensitiveNotesToggle.addEventListener('change', (evt) => {
+      showSensitiveWellbeingNotes = !!evt.target.checked;
+      if (selectedPainZone) renderPainZoneDetailList(selectedPainZone, latestPainZoneLogs);
+    });
+  }
+
+  statusEl.textContent = 'Cargando…';
+  zoneListEl.innerHTML = '<p class="text-slate-500 text-xs">Analizando reportes…</p>';
+
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('v_gym_pain_summary')
+      .select('pain_zone, reports, students_affected, avg_pain, intensity_pct')
+      .eq('gym_id', gymId)
+      .order('intensity_pct', { ascending: false });
+    if (error) throw error;
+
+    renderAnatomicalHeatmap(data || []);
+    await renderPriorityAttention(data || []);
+    statusEl.textContent = 'Actualizado';
+  } catch (err) {
+    console.error('Error loading pain heatmap:', err);
+    statusEl.textContent = 'Sin datos';
+    zoneListEl.innerHTML =
+      '<p class="text-slate-500 text-xs">No pudimos cargar el mapa de dolor para este gimnasio.</p>';
+    document.getElementById('pain-high-risk-list').innerHTML =
+      '<li class="text-slate-500">Sin información disponible.</li>';
+    document.getElementById('pain-zone-detail-list').innerHTML =
+      '<li class="text-slate-500">Seleccioná una zona para ver detalle.</li>';
+  }
+}
+
+function renderAnatomicalHeatmap(rows) {
+  const statusEl = document.getElementById('pain-map-status');
+  const zoneListEl = document.getElementById('pain-zone-risk-list');
+  const regions = document.querySelectorAll('.muscle-region[data-zone]');
+  painSummaryByZone = new Map();
+
+  (rows || []).forEach((row) => {
+    const zone = normalizePainZone(row.pain_zone);
+    if (!zone) return;
+    const current = painSummaryByZone.get(zone);
+    if (!current || Number(row.intensity_pct || 0) > Number(current.intensity_pct || 0)) {
+      painSummaryByZone.set(zone, { ...row, zone });
+    }
+  });
+
+  regions.forEach((regionEl) => {
+    const zone = regionEl.dataset.zone;
+    const row = painSummaryByZone.get(zone);
+    paintRegion(regionEl, row);
+  });
+
+  const sortedZones = Array.from(painSummaryByZone.values()).sort(
+    (a, b) => Number(b.intensity_pct || 0) - Number(a.intensity_pct || 0)
+  );
+  if (!sortedZones.length) {
+    zoneListEl.innerHTML =
+      '<p class="text-slate-500 text-xs">Aún no hay reportes suficientes (dolor ≥3) en los últimos 30 días.</p>';
+    document.getElementById('pain-zone-detail-list').innerHTML =
+      '<li class="text-slate-500">Cuando haya zonas en riesgo, aparecerán aquí.</li>';
+    if (statusEl) statusEl.textContent = 'Sin alertas';
+  } else {
+    zoneListEl.innerHTML = sortedZones
+      .map((row) => {
+        const severity = getPainSeverity(Number(row.intensity_pct || 0));
+        const badgeClass =
+          severity === 'critical'
+            ? 'text-danger bg-danger/10'
+            : severity === 'high'
+              ? 'text-warning bg-warning/10'
+              : severity === 'medium'
+                ? 'text-primary bg-primary/10'
+                : 'text-slate-300 bg-slate-700/50';
+        return `
+        <div class="rounded-xl border border-border-dark bg-slate-900/40 p-2.5 flex items-center justify-between gap-3">
+          <div>
+            <p class="font-semibold text-slate-100">${formatPainZoneLabel(row.zone)}</p>
+            <p class="text-[11px] text-slate-500">${Number(row.students_affected || 0)} atletas · dolor prom ${Number(row.avg_pain || 0).toFixed(1)}</p>
+          </div>
+          <span class="px-2 py-1 rounded-lg text-[10px] font-bold ${badgeClass}">${Number(row.intensity_pct || 0).toFixed(1)}%</span>
+        </div>`;
+      })
+      .join('');
+  }
+
+  setupPainRegionInteractions();
+}
+
+function setupPainRegionInteractions() {
+  document.querySelectorAll('.muscle-region[data-zone]').forEach((regionEl) => {
+    const zone = regionEl.dataset.zone;
+    const row = painSummaryByZone.get(zone);
+    const severity = getPainSeverity(Number(row?.intensity_pct || 0));
+    regionEl.onclick = null;
+    if (severity !== 'high' && severity !== 'critical') return;
+    regionEl.onclick = () => {
+      loadPainZoneDetails(zone);
+    };
+  });
+}
+
+async function loadPainZoneDetails(zone) {
+  const detailEl = document.getElementById('pain-zone-detail-list');
+  const labelEl = document.getElementById('pain-selected-zone-label');
+  if (!detailEl || !labelEl) return;
+
+  selectedPainZone = zone;
+  labelEl.textContent = formatPainZoneLabel(zone);
+  detailEl.innerHTML = '<li class="text-slate-500">Cargando detalle…</li>';
+
+  try {
+    const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await window.supabaseClient
+      .from('wellbeing_logs')
+      .select('student_id, pain_zone, pain, checked_at, wellbeing_notes, students(full_name)')
+      .eq('gym_id', gymId)
+      .gte('checked_at', fromDate)
+      .gte('pain', 3)
+      .order('checked_at', { ascending: false })
+      .limit(120);
+    if (error) throw error;
+
+    const byStudent = new Map();
+    (data || []).forEach((log) => {
+      const logZone = normalizePainZone(log.pain_zone);
+      if (logZone !== zone) return;
+      const previous = byStudent.get(log.student_id);
+      if (!previous || Number(log.pain || 0) > Number(previous.pain || 0)) byStudent.set(log.student_id, log);
+    });
+
+    const rows = Array.from(byStudent.values()).sort(
+      (a, b) => Number(b.pain || 0) - Number(a.pain || 0)
+    );
+    latestPainZoneLogs = rows;
+    renderPainZoneDetailList(zone, rows);
+    document
+      .getElementById('pain-insight-panel')
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  } catch (err) {
+    console.error('Error loading pain zone detail:', err);
+    latestPainZoneLogs = [];
+    detailEl.innerHTML =
+      '<li class="text-danger">No se pudo cargar el detalle de la zona seleccionada.</li>';
+  }
+}
+
+function renderPainZoneDetailList(zone, rows) {
+  const detailEl = document.getElementById('pain-zone-detail-list');
+  const labelEl = document.getElementById('pain-selected-zone-label');
+  if (!detailEl || !labelEl) return;
+
+  labelEl.textContent = formatPainZoneLabel(zone);
+  if (!rows?.length) {
+    detailEl.innerHTML = '<li class="text-slate-500">No hay registros recientes para esta zona.</li>';
+    return;
+  }
+
+  detailEl.innerHTML = rows
+    .slice(0, 8)
+    .map((row) => {
+      const studentName = escHtml(row.students?.full_name || 'Atleta');
+      const note = showSensitiveWellbeingNotes
+        ? escHtml(row.wellbeing_notes || 'Sin notas')
+        : 'Nota sensible oculta. Activá “Mostrar notas sensibles” para verla.';
+      const checkDate = new Date(row.checked_at).toLocaleDateString('es-AR');
+      return `<li class="rounded-lg border border-border-dark bg-slate-900/50 p-2.5">
+        <p class="font-semibold text-slate-100">${studentName} · dolor ${Number(row.pain || 0)}/5</p>
+        <p class="text-[11px] text-slate-400">${note}</p>
+        <p class="text-[10px] text-slate-500 mt-1">${checkDate}</p>
+      </li>`;
+    })
+    .join('');
+}
+
+async function renderPriorityAttention(summaryRows) {
+  const listEl = document.getElementById('pain-high-risk-list');
+  if (!listEl) return;
+
+  const criticalZones = new Set(
+    (summaryRows || [])
+      .map((row) => ({
+        zone: normalizePainZone(row.pain_zone),
+        avgPain: Number(row.avg_pain || 0),
+        intensity: Number(row.intensity_pct || 0)
+      }))
+      .filter((row) => row.zone && (row.avgPain >= 4 || row.intensity >= 12))
+      .map((row) => row.zone)
+  );
+
+  if (!criticalZones.size) {
+    listEl.innerHTML = '<li class="text-slate-500">Sin atletas en prioridad de intervención.</li>';
+    return;
+  }
+
+  try {
+    const fromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const [painRes, stagnationRes] = await Promise.all([
+      window.supabaseClient
+        .from('wellbeing_logs')
+        .select('student_id, pain, pain_zone, checked_at, students(full_name)')
+        .eq('gym_id', gymId)
+        .gte('checked_at', fromDate)
+        .gte('pain', 4)
+        .order('checked_at', { ascending: false })
+        .limit(300),
+      window.supabaseClient
+        .from('v_stagnation_check')
+        .select('student_id, is_stagnant')
+        .eq('gym_id', gymId)
+        .eq('is_stagnant', true)
+    ]);
+
+    if (painRes.error) throw painRes.error;
+    const stagnationStudents = new Set(
+      ((stagnationRes.data || []).filter((s) => s.is_stagnant).map((s) => s.student_id) || []).filter(Boolean)
+    );
+    const candidates = new Map();
+    (painRes.data || []).forEach((row) => {
+      const zone = normalizePainZone(row.pain_zone);
+      if (!criticalZones.has(zone)) return;
+      if (!stagnationStudents.has(row.student_id)) return;
+      const prev = candidates.get(row.student_id);
+      if (!prev || Number(row.pain || 0) > Number(prev.pain || 0)) {
+        candidates.set(row.student_id, { ...row, zone });
+      }
+    });
+
+    const top = Array.from(candidates.values())
+      .sort((a, b) => Number(b.pain || 0) - Number(a.pain || 0))
+      .slice(0, 6);
+
+    if (!top.length) {
+      listEl.innerHTML = '<li class="text-slate-500">No hay cruces dolor + estancamiento hoy.</li>';
+      return;
+    }
+
+    listEl.innerHTML = top
+      .map((row) => {
+        const studentName = escHtml(row.students?.full_name || 'Atleta');
+        const intensity = Number(painSummaryByZone.get(row.zone)?.intensity_pct || 0).toFixed(1);
+        return `<li class="rounded-lg border border-danger/30 bg-danger/5 p-2.5">
+          <p class="font-semibold text-slate-100">${studentName}</p>
+          <p class="text-[11px] text-slate-300">${formatPainZoneLabel(row.zone)} · dolor ${Number(row.pain || 0)}/5 · intensidad ${intensity}%</p>
+        </li>`;
+      })
+      .join('');
+  } catch (err) {
+    console.error('Error rendering priority attention:', err);
+    listEl.innerHTML = '<li class="text-slate-500">No se pudo calcular prioridad automáticamente.</li>';
+  }
 }
 
 // ─── ALERT MODAL ──────────────────────────────────────────
