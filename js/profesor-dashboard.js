@@ -1,6 +1,6 @@
 /**
  * profesor-dashboard.js
- * TechFitness — Dashboard del Semáforo (Traffic Light)
+ * TechFitness — Dashboard del Profesor con semáforo de riesgo
  */
 
 await import('./auth-guard.js');
@@ -9,11 +9,17 @@ await import('./auth-guard.js');
   const session = await window.authGuard(['profesor', 'gim_admin']);
   if (!session) return;
 
+  const role = session.user.raw_app_meta_data?.role || session.user.app_metadata?.role;
+  if (role === 'gim_admin') {
+    window.location.href = 'admin-dashboard.html';
+    return;
+  }
+
   const db = window.supabaseClient;
   const gymId = session.user.app_metadata.gym_id;
   const { toast, escHtml, debounce, logout } = window.tfUtils;
 
-  // Header date
+  /* ─── Header Setup ───────────────────────────────────────── */
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
   document.getElementById('header-date').textContent = new Date().toLocaleDateString(
     'es-AR',
@@ -21,18 +27,14 @@ await import('./auth-guard.js');
   );
   document.getElementById('user-name').textContent =
     session.user.user_metadata?.full_name || 'Profesor';
-  document.getElementById('logout-btn').addEventListener('click', logout);
 
   /* ─── State ──────────────────────────────────────────────── */
-  let studentsWithStatus = [];
+  let riskData = [];
+  let todaySessions = [];
+  let activeSessionIds = new Set();
   let currentFilter = 'all';
-  let searchQuery = '';
 
-  /* ─── DOM Elements ───────────────────────────────────────── */
-  const listEl = document.getElementById('students-list');
-  const drawer = document.getElementById('drawer');
-  const backdrop = document.getElementById('drawer-backdrop');
-
+  /* ─── Helpers ────────────────────────────────────────────── */
   function sanitizeImageSrc(url) {
     if (!url) return '';
     const value = String(url).trim();
@@ -46,441 +48,272 @@ await import('./auth-guard.js');
     return '';
   }
 
-  /* ─── Carga y Cálculo de Semáforo ────────────────────────── */
-  async function loadDashboard() {
-    const db = window.supabaseClient;
+  function getRiskColor(level) {
+    const colors = { red: '#ef4444', yellow: '#f59e0b', green: '#10b981' };
+    return colors[level] || colors.green;
+  }
 
-    // Una sola query que ya trae risk_level, risk_reason y datos de bienestar
-    const { data: riskData, error } = await db
-      .from('v_athlete_risk')
-      .select(
-        `
-                student_id, full_name, avatar_url,
-                risk_level, risk_reason, risk_score,
-                wellbeing_score, avg_sleep, avg_pain, avg_energy,
-                wellbeing_checks, last_check_at,
-                current_week_sets, avg_weekly_sets, volume_spike_pct,
-                days_since_last, last_completed_at,
-                stagnant_exercises
-            `
-      )
+  function getWellbeingLabel(score) {
+    if (!score || score === 0) return { label: 'Sin datos', color: '#64748b' };
+    if (score >= 7) return { label: `${score}/10`, color: '#10b981' };
+    if (score >= 4) return { label: `${score}/10`, color: '#f59e0b' };
+    return { label: `${score}/10`, color: '#ef4444' };
+  }
+
+  function getInactivityColor(days) {
+    if (days > 14) return { text: `${days}d`, color: '#ef4444' };
+    if (days > 7) return { text: `${days}d`, color: '#f59e0b' };
+    return { text: `${days}d`, color: '#64748b' };
+  }
+
+  /* ─── Data Loading ───────────────────────────────────────── */
+  async function loadRiskData(gymId) {
+    const { data: students } = await db
+      .from('students')
+      .select('id')
       .eq('gym_id', gymId)
+      .is('deleted_at', null);
+
+    const studentIds = students?.map((s) => s.id) || [];
+    if (!studentIds.length) return [];
+
+    const { data } = await db
+      .from('v_athlete_risk')
+      .select('*')
+      .in('student_id', studentIds)
       .order('risk_score', { ascending: false });
 
-    if (error || !riskData) {
-      toast('Error al cargar datos', 'error');
+    return data || [];
+  }
+
+  async function loadTodaySessions(gymId) {
+    const today = new Date();
+    const startOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    ).toISOString();
+    const endOfDay = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59
+    ).toISOString();
+
+    const { data: sessions } = await db
+      .from('workout_sessions')
+      .select('id, student_id, routine_name, day_name, started_at, completed_at')
+      .eq('gym_id', gymId)
+      .gte('started_at', startOfDay)
+      .lte('started_at', endOfDay)
+      .order('started_at', { ascending: false });
+
+    return sessions || [];
+  }
+
+  async function loadActiveSessionIds(gymId) {
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+
+    const { data } = await db
+      .from('workout_sessions')
+      .select('student_id')
+      .eq('gym_id', gymId)
+      .is('completed_at', null)
+      .gte('started_at', threeHoursAgo);
+
+    const ids = new Set();
+    (data || []).forEach((s) => ids.add(s.student_id));
+    return ids;
+  }
+
+  async function loadKPIs() {
+    const [risk, today, inactive] = await Promise.all([
+      loadRiskData(gymId),
+      loadTodaySessions(gymId),
+      loadActiveSessionIds(gymId)
+    ]);
+
+    riskData = risk;
+    todaySessions = today;
+    activeSessionIds = inactive;
+
+    const riskCount = risk.filter((r) => r.risk_level === 'red').length;
+    const todayCount = new Set(today.filter((s) => s.completed_at).map((s) => s.student_id)).size;
+    const inactiveCount = risk.filter((r) => r.days_inactive > 7).length;
+
+    document.getElementById('kpi-risk-count').textContent = riskCount;
+    document.getElementById('kpi-risk-count').classList.toggle('text-danger', riskCount > 0);
+    document.getElementById('kpi-risk-count').classList.toggle('text-slate-400', riskCount === 0);
+
+    document.getElementById('kpi-today-count').textContent = todayCount;
+
+    document.getElementById('kpi-inactive-count').textContent = inactiveCount;
+    document
+      .getElementById('kpi-inactive-count')
+      .classList.toggle('text-warning', inactiveCount > 0);
+    document
+      .getElementById('kpi-inactive-count')
+      .classList.toggle('text-slate-400', inactiveCount === 0);
+
+    renderRiskTable();
+    renderTodayActivity();
+  }
+
+  /* ─── Renderizado de la tabla de riesgo ──────────────────── */
+  function renderRiskTable() {
+    const tbody = document.getElementById('risk-table-body');
+    const emptyState = document.getElementById('risk-empty-state');
+    const noAthletes = document.getElementById('risk-no-athletes');
+    const badge = document.getElementById('risk-badge');
+
+    if (!riskData.length) {
+      tbody.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      noAthletes.classList.remove('hidden');
+      badge.textContent = '0 requieren atención';
       return;
     }
 
-    // Mapear al formato que espera renderList()
-    const STATUS_MAP = {
-      red: {
-        color: 'red',
-        label: 'Riesgo / Sobrecarga',
-        textClass: 'text-[#EF4444]',
-        bgClass: 'bg-[#EF4444]/10 border-[#EF4444]/30'
-      },
-      yellow: {
-        color: 'yellow',
-        label: 'Requiere atención',
-        textClass: 'text-[#F59E0B]',
-        bgClass: 'bg-[#F59E0B]/10 border-[#F59E0B]/30'
-      },
-      green: {
-        color: 'green',
-        label: 'Progresando bien',
-        textClass: 'text-[#10B981]',
-        bgClass: 'bg-[#10B981]/10 border-[#10B981]/30'
-      }
-    };
-
-    studentsWithStatus = riskData.map((r) => ({
-      id: r.student_id,
-      full_name: r.full_name,
-      avatar_url: r.avatar_url,
-      coach_notes: '', // se carga al abrir el drawer
-      // Datos de riesgo
-      risk_level: r.risk_level,
-      risk_reason: r.risk_reason,
-      risk_score: r.risk_score,
-      // Bienestar
-      wellbeing_score: r.wellbeing_score,
-      avg_sleep: r.avg_sleep,
-      avg_pain: r.avg_pain,
-      avg_energy: r.avg_energy,
-      wellbeing_checks: r.wellbeing_checks,
-      last_check_at: r.last_check_at,
-      // Carga
-      volume_spike_pct: r.volume_spike_pct,
-      current_week_sets: r.current_week_sets,
-      days_since_last: r.days_since_last,
-      last_completed_at: r.last_completed_at,
-      stagnant_exercises: r.stagnant_exercises,
-      // Compatibilidad con renderList()
-      status: STATUS_MAP[r.risk_level] || STATUS_MAP.green,
-      activeProgName: r.risk_reason || '—',
-      sessions: [] // historial se carga al abrir drawer
-    }));
-
-    updateKPIs();
-    renderList();
-  }
-
-  function updateKPIs() {
-    document.getElementById('kpi-total').textContent = studentsWithStatus.length;
-    document.getElementById('kpi-red').textContent = studentsWithStatus.filter(
-      (s) => s.status.color === 'red'
-    ).length;
-    document.getElementById('kpi-yellow').textContent = studentsWithStatus.filter(
-      (s) => s.status.color === 'yellow'
-    ).length;
-    document.getElementById('kpi-green').textContent = studentsWithStatus.filter(
-      (s) => s.status.color === 'green'
-    ).length;
-  }
-
-  /* ─── Renderizado de la Lista ────────────────────────────── */
-  function renderList() {
-    // Sort: Red first, then Yellow, then Green
     const colorWeight = { red: 1, yellow: 2, green: 3 };
+    let filtered = riskData;
 
-    let filtered = studentsWithStatus.filter((s) => {
-      const matchFilter = currentFilter === 'all' || s.status.color === currentFilter;
-      const matchSearch = !searchQuery || s.full_name.toLowerCase().includes(searchQuery);
-      return matchFilter && matchSearch;
-    });
+    if (currentFilter !== 'all') {
+      filtered = riskData.filter((r) => r.risk_level === currentFilter);
+    }
 
-    filtered.sort((a, b) => colorWeight[a.status.color] - colorWeight[b.status.color]);
+    filtered.sort((a, b) => colorWeight[a.risk_level] - colorWeight[b.risk_level]);
 
-    if (filtered.length === 0) {
-      listEl.innerHTML = `<div class="text-center py-12 text-slate-500">No hay alumnos que coincidan con la búsqueda.</div>`;
+    const needsAttention = riskData.filter(
+      (r) => r.risk_level === 'red' || r.risk_level === 'yellow'
+    ).length;
+    badge.textContent = `${needsAttention} requieren atención`;
+
+    if (!filtered.length) {
+      tbody.classList.add('hidden');
+      noAthletes.classList.add('hidden');
+      emptyState.classList.remove('hidden');
       return;
     }
 
-    listEl.innerHTML = filtered
-      .map((s) => {
-        const initials = s.full_name.substring(0, 2).toUpperCase();
-        const lastSess = s.last_completed_at
-          ? new Date(s.last_completed_at).toLocaleDateString('es-AR', {
-              day: '2-digit',
-              month: 'short'
-            })
-          : 'Nunca';
-        const avatarSrc = sanitizeImageSrc(s.avatar_url);
+    tbody.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    noAthletes.classList.add('hidden');
+
+    tbody.innerHTML = filtered
+      .map((r) => {
+        const initials = (r.full_name || '??').substring(0, 2).toUpperCase();
+        const avatarSrc = sanitizeImageSrc(r.avatar_url);
+        const riskColor = getRiskColor(r.risk_level);
+        const inact = getInactivityColor(r.days_inactive || 0);
+        const wellbeing = getWellbeingLabel(r.wellbeing_score);
+        const isStagnant = r.stagnant_exercises > 0;
+        const isActive = activeSessionIds.has(r.student_id);
 
         return `
-            <div class="student-row" data-id="${s.id}">
-                <div class="w-12 h-12 rounded-full bg-[#1E293B] flex items-center justify-center font-bold text-slate-400 shrink-0 overflow-hidden">
-                    ${avatarSrc ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(s.full_name || 'Atleta')}">` : escHtml(initials)}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-bold text-white truncate">${escHtml(s.full_name)}</h3>
-                    <p class="text-xs text-slate-500 truncate">${escHtml(s.activeProgName)}</p>
-                </div>
-                <div class="text-right hidden sm:block mr-4">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Última sesión</p>
-                    <p class="text-sm font-bold text-white">${lastSess}</p>
-                </div>
-                <div class="shrink-0">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full border text-[11px] font-bold uppercase tracking-widest ${s.status.bgClass} ${s.status.textClass}">
-                        ${s.status.label}
-                    </span>
-                </div>
-            </div>`;
+        <div class="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer items-center"
+             data-student-id="${r.student_id}">
+          <div class="col-span-4 flex items-center gap-3">
+            <div class="relative">
+              <div class="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center font-bold text-slate-400 shrink-0 overflow-hidden ${isActive ? 'ring-2 ring-success animate-pulse' : ''}">
+                ${avatarSrc ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(r.full_name)}">` : escHtml(initials)}
+              </div>
+              ${isActive ? '<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-bg-dark"></div>' : ''}
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-bold text-white truncate">${escHtml(r.full_name)}</p>
+              ${isActive ? '<p class="text-[10px] text-success font-bold">En sesión</p>' : ''}
+            </div>
+          </div>
+          <div class="col-span-2 text-center">
+            <span class="font-mono text-sm font-bold" style="color:${inact.color}">${inact.text}</span>
+          </div>
+          <div class="col-span-2 text-center">
+            <span class="text-xs font-bold ${isStagnant ? 'text-warning' : 'text-success'}">
+              ${isStagnant ? 'Estancado' : 'Progresando'}
+            </span>
+          </div>
+          <div class="col-span-2 text-center">
+            <span class="font-mono text-sm font-bold" style="color:${wellbeing.color}">${wellbeing.label}</span>
+          </div>
+          <div class="col-span-2 text-right">
+            <span class="status-pill" style="background:${riskColor}20;color:${riskColor};border:1px solid ${riskColor}30">
+              ${r.risk_level === 'red' ? 'Rojo' : r.risk_level === 'yellow' ? 'Amarillo' : 'Verde'}
+            </span>
+            <span class="text-[10px] text-slate-500 ml-1 font-mono">${r.risk_score}</span>
+          </div>
+        </div>
+      `;
       })
       .join('');
   }
 
-  /* ─── Eventos de Filtros y Búsqueda ──────────────────────── */
+  /* ─── Renderizado de actividad de hoy ──────────────────────── */
+  function renderTodayActivity() {
+    const listEl = document.getElementById('today-activity-list');
+    const emptyEl = document.getElementById('today-activity-empty');
+    const viewAllEl = document.getElementById('today-activity-view-all');
+
+    if (!todaySessions.length) {
+      listEl.classList.add('hidden');
+      emptyEl.classList.remove('hidden');
+      viewAllEl.classList.add('hidden');
+      return;
+    }
+
+    listEl.classList.remove('hidden');
+    emptyEl.classList.add('hidden');
+
+    const recentSessions = todaySessions.slice(0, 5);
+
+    listEl.innerHTML = recentSessions
+      .map((s) => {
+        const time = new Date(s.started_at).toLocaleTimeString('es-AR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const initials = (s.student_id?.substring(0, 2) || '??').toUpperCase();
+        return `
+        <div class="mini-session-card">
+          <div class="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
+            ${initials}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-white truncate">Atleta</p>
+            <p class="text-[10px] text-slate-500">${time}</p>
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+
+    if (todaySessions.length > 5) {
+      viewAllEl.classList.remove('hidden');
+    } else {
+      viewAllEl.classList.add('hidden');
+    }
+  }
+
+  /* ─── Event Handlers ──────────────────────────────────────── */
   document.querySelectorAll('.filter-chip').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-chip').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       currentFilter = btn.dataset.filter;
-      renderList();
+      renderRiskTable();
     });
   });
 
-  document.getElementById('search-input').addEventListener(
-    'input',
-    debounce((e) => {
-      searchQuery = e.target.value.toLowerCase().trim();
-      renderList();
-    }, 200)
-  );
-
-  /* ─── Drawer / Panel Lateral (Event Delegation) ──────────── */
-  listEl.addEventListener('click', (e) => {
-    const row = e.target.closest('.student-row');
-    if (!row) return;
-
-    const s = studentsWithStatus.find((x) => x.id === row.dataset.id);
-    if (s) openStudentDrawer(s);
-  });
-
-  async function openStudentDrawer(student) {
-    const initials = student.full_name.substring(0, 2).toUpperCase();
-    const avatarEl = document.getElementById('drawer-avatar');
-    const avatarSrc = sanitizeImageSrc(student.avatar_url);
-    avatarEl.innerHTML = avatarSrc
-      ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(student.full_name || 'Atleta')}">`
-      : escHtml(initials);
-
-    document.getElementById('drawer-name').textContent = student.full_name;
-    document.getElementById('drawer-student-id').value = student.id;
-
-    // Cargar coach_notes y sesiones al abrir
-    const { data: detailData } = await db
-      .from('students')
-      .select('coach_notes')
-      .eq('id', student.id)
-      .single();
-    document.getElementById('drawer-notes').value = detailData?.coach_notes || '';
-
-    const { data: sessions } = await db
-      .from('workout_sessions')
-      .select(
-        'id, routine_name, day_name, completed_at, duration_minutes, workout_exercise_logs(status)'
-      )
-      .eq('student_id', student.id)
-      .not('completed_at', 'is', null)
-      .order('completed_at', { ascending: false })
-      .limit(5);
-
-    document.getElementById('drawer-status-badge').innerHTML = `
-            <span class="inline-flex items-center px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-widest ${student.status.bgClass} ${student.status.textClass}">
-                ${student.status.label}
-            </span>
-        `;
-
-    // Render mini history
-    const sessContainer = document.getElementById('drawer-sessions');
-    if (!sessions || sessions.length === 0) {
-      sessContainer.innerHTML = `<p class="text-xs text-slate-500 italic bg-[#0B1218] p-3 rounded-xl border border-[#1E293B]">Sin sesiones registradas recientemente.</p>`;
-    } else {
-      sessContainer.innerHTML = sessions
-        .map((sess) => {
-          const date = new Date(sess.completed_at).toLocaleDateString('es-AR', {
-            day: '2-digit',
-            month: 'short'
-          });
-          const dur = sess.duration_minutes ? `${sess.duration_minutes} min` : '';
-          const logsCount = (sess.workout_exercise_logs || []).length;
-          return `
-                <div class="session-mini-card flex items-center justify-between">
-                    <div>
-                        <p class="text-[11px] font-bold text-white">${escHtml(sess.routine_name)} <span class="text-slate-500 font-normal ml-1">— ${escHtml(sess.day_name)}</span></p>
-                        <p class="text-[10px] text-slate-500 mt-0.5">${logsCount} ejercicios logueados</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-[11px] font-mono font-bold text-[#3B82F6]">${date}</p>
-                        <p class="text-[10px] text-slate-500">${dur}</p>
-                    </div>
-                </div>`;
-        })
-        .join('');
+  document.getElementById('risk-table-body').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-student-id]');
+    if (row) {
+      const studentId = row.dataset.studentId;
+      window.location.href = `progress.html?student=${studentId}`;
     }
-
-    // ─── BIENESTAR ───────────────────────────────────────────
-    const wellbeingHTML = buildWellbeingPanel(student);
-    sessContainer.insertAdjacentHTML('afterend', wellbeingHTML);
-
-    drawer.classList.add('open');
-    backdrop.classList.add('open');
-  }
-
-  function closeDrawer() {
-    drawer.classList.remove('open');
-    backdrop.classList.remove('open');
-  }
-
-  backdrop.addEventListener('click', closeDrawer);
-  document.getElementById('close-drawer').addEventListener('click', closeDrawer);
-
-  /* ─── Guardar Notas (Form Submit) ────────────────────────── */
-  document.getElementById('drawer').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const sId = document.getElementById('drawer-student-id').value;
-    const notes = document.getElementById('drawer-notes').value.trim();
-    const btn = document.getElementById('btn-save-notes');
-
-    btn.disabled = true;
-    btn.innerHTML = `<span class="material-symbols-rounded animate-spin">progress_activity</span> Guardando...`;
-
-    const { error } = await db
-      .from('students')
-      .update({
-        coach_notes: notes,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', sId);
-
-    btn.disabled = false;
-    btn.innerHTML = `<span class="material-symbols-rounded text-[18px]">save</span> Guardar Notas`;
-
-    if (error) {
-      toast('Error al guardar notas', 'error');
-      return;
-    }
-
-    // Actualizar estado en memoria
-    const s = studentsWithStatus.find((x) => x.id === sId);
-    if (s) s.coach_notes = notes;
-
-    toast('Notas guardadas correctamente');
-    closeDrawer();
   });
 
   /* ─── Init ───────────────────────────────────────────────── */
-  await loadDashboard();
-  loadActiveSessions();
-  setInterval(loadActiveSessions, 60000);
-
-  /* ─── Sesiones activas en tiempo real ─────────────────── */
-  async function loadActiveSessions() {
-    const db = window.supabaseClient;
-
-    // Sesiones con started_at pero sin completed_at = activas ahora
-    const { data: active } = await db
-      .from('workout_sessions')
-      .select('id, student_id, routine_name, day_name, started_at, students(full_name)')
-      .eq('gym_id', gymId)
-      .is('completed_at', null)
-      .not('started_at', 'is', null)
-      .gte('started_at', new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()) // últimas 3hs
-      .order('started_at', { ascending: false });
-
-    const section = document.getElementById('active-sessions-section');
-    const listEl2 = document.getElementById('active-sessions-list');
-    const countEl = document.getElementById('active-count');
-
-    if (!active || active.length === 0) {
-      section?.classList.add('hidden');
-      return;
-    }
-
-    section?.classList.remove('hidden');
-    if (countEl) countEl.textContent = active.length;
-
-    // Para cada sesión activa, obtener cuántos sets tiene el día
-    const sessionIds = active.map((s) => s.id);
-    const { data: logCounts } = await db
-      .from('workout_exercise_logs')
-      .select('session_id')
-      .in('session_id', sessionIds);
-
-    const setsBySession = {};
-    (logCounts || []).forEach((l) => {
-      setsBySession[l.session_id] = (setsBySession[l.session_id] || 0) + 1;
-    });
-
-    // Estimar total de sets del día (desde workoutData no lo tenemos, usamos 20 como promedio)
-    const EST_TOTAL = 20;
-
-    if (listEl2) {
-      listEl2.innerHTML = active
-        .map((s) => {
-          const doneSets = setsBySession[s.id] || 0;
-          const pct = Math.min(100, Math.round((doneSets / EST_TOTAL) * 100));
-          const name = s.students?.full_name || 'Atleta';
-          const elapsed = Math.floor((Date.now() - new Date(s.started_at)) / 60000);
-          const initials = name.substring(0, 2).toUpperCase();
-
-          return `
-                <div class="flex items-center gap-3 py-1">
-                    <div class="w-8 h-8 rounded-full bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center text-[10px] font-black text-[#10B981] shrink-0">
-                        ${initials}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between mb-1">
-                            <span class="text-xs font-bold text-white truncate">${window.tfUtils.escHtml(name)}</span>
-                            <span class="text-[9px] text-slate-500 shrink-0 ml-2">${elapsed} min · ${doneSets} sets</span>
-                        </div>
-                        <div class="h-1.5 bg-[#1E293B] rounded-full overflow-hidden">
-                            <div class="h-full rounded-full bg-[#10B981] transition-all duration-500" style="width:${pct}%"></div>
-                        </div>
-                    </div>
-                </div>`;
-        })
-        .join('');
-    }
-  }
+  await loadKPIs();
+  setInterval(loadKPIs, 60000);
 })();
-
-function buildWellbeingPanel(student) {
-  const score = student.wellbeing_score;
-  const scoreColor = score >= 7 ? '#10B981' : score >= 4 ? '#F59E0B' : '#EF4444';
-
-  const sleepEmojis = ['', '😫', '😔', '😐', '😊', '🤩'];
-  const painEmojis = ['', '✅', '🟡', '🟠', '🔴', '🚨'];
-  const energyEmojis = ['', '🪫', '😴', '👍', '💪', '🔥'];
-
-  const hasData = student.wellbeing_checks > 0;
-
-  return `
-    <div class="mt-4 pt-4 border-t border-[#1E293B]">
-        <div class="flex items-center justify-between mb-3">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Bienestar (últimos 7 días)</p>
-            <a href="wellbeing-check.html" class="text-[10px] text-[#3B82F6] font-bold hover:underline">ver historial →</a>
-        </div>
-
-        ${
-          !hasData
-            ? `
-            <div class="bg-[#0B1218] border border-[#1E293B] rounded-xl p-4 text-center">
-                <p class="text-xs text-slate-500">Sin checks de bienestar esta semana.</p>
-            </div>
-        `
-            : `
-            <div class="bg-[#0B1218] border border-[#1E293B] rounded-xl p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-slate-400">Score promedio</span>
-                    <span class="font-mono font-bold text-lg" style="color:${scoreColor}">${score}/10</span>
-                </div>
-                <div class="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                        <div class="text-xl mb-0.5">${sleepEmojis[Math.round(student.avg_sleep)] || '—'}</div>
-                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Sueño</div>
-                        <div class="font-mono text-xs font-bold text-white">${student.avg_sleep}/5</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">${painEmojis[Math.round(student.avg_pain)] || '—'}</div>
-                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Dolor</div>
-                        <div class="font-mono text-xs font-bold text-white">${student.avg_pain}/5</div>
-                    </div>
-                    <div>
-                        <div class="text-xl mb-0.5">${energyEmojis[Math.round(student.avg_energy)] || '—'}</div>
-                        <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Energía</div>
-                        <div class="font-mono text-xs font-bold text-white">${student.avg_energy}/5</div>
-                    </div>
-                </div>
-                ${
-                  student.avg_pain >= 4
-                    ? `
-                    <div class="mt-3 flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                        <span class="material-symbols-rounded text-[#EF4444] text-[16px]">warning</span>
-                        <span class="text-xs font-bold text-[#EF4444]">Dolor elevado — revisar antes de entrenar</span>
-                    </div>
-                `
-                    : ''
-                }
-            </div>
-        `
-        }
-
-        <!-- Razón del riesgo -->
-        <div class="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg"
-             style="background:rgba(${student.risk_level === 'red' ? '239,68,68' : student.risk_level === 'yellow' ? '245,158,11' : '16,185,129'},.08);
-                    border:1px solid rgba(${student.risk_level === 'red' ? '239,68,68' : student.risk_level === 'yellow' ? '245,158,11' : '16,185,129'},.25)">
-            <span class="material-symbols-rounded text-[15px]"
-                  style="color:${student.risk_level === 'red' ? '#EF4444' : student.risk_level === 'yellow' ? '#F59E0B' : '#10B981'}">
-                ${student.risk_level === 'red' ? 'warning' : student.risk_level === 'yellow' ? 'info' : 'check_circle'}
-            </span>
-            <span class="text-xs font-bold"
-                  style="color:${student.risk_level === 'red' ? '#F87171' : student.risk_level === 'yellow' ? '#FCD34D' : '#34D399'}">
-                ${window.tfUtils.escHtml(student.risk_reason || 'Sin alertas')}
-            </span>
-            <span class="ml-auto font-mono text-[10px] text-slate-600">Score: ${student.risk_score}</span>
-        </div>
-    </div>`;
-}
