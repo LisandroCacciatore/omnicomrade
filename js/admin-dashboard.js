@@ -106,6 +106,7 @@ async function loadRecentStudents() {
     const { data: students, error } = await window.supabaseClient
       .from('students')
       .select('id, full_name, email, membership_status, created_at')
+      .eq('gym_id', gymId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(5);
@@ -113,7 +114,7 @@ async function loadRecentStudents() {
     if (error) throw error;
 
     if (!students?.length) {
-      recentStudentsTable.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">No hay alumnos registrados todavía.</td></tr>`;
+      recentStudentsTable.innerHTML = `<tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">No hay atletas registrados todavía.</td></tr>`;
       return;
     }
 

@@ -14,7 +14,12 @@ class OnboardingWizard {
       program: null
     };
     this._el = null;
+    this._session = null;
     this._inject();
+  }
+
+  setSession(session) {
+    this._session = session;
   }
 
   get STEPS() {
@@ -468,9 +473,14 @@ class OnboardingWizard {
     if (skipBtn) skipBtn.disabled = true;
 
     try {
-      const gymId = window.gymId || localStorage.getItem('gym_id');
+      const gymId =
+        this._session?.user?.raw_app_meta_data?.gym_id ||
+        this._session?.user?.app_metadata?.gym_id ||
+        window.gymId ||
+        localStorage.getItem('gym_id');
+
       if (!gymId) {
-        throw new Error('No se encontró gym_id para completar el onboarding');
+        throw new Error('Error de configuración: contactá al soporte');
       }
       const requestId = crypto.randomUUID();
 
@@ -564,7 +574,10 @@ class OnboardingWizard {
 
     let membershipId = null;
     if (payload.membership) {
-      const endDate = this._calculateEndDate(payload.membership.start_date, payload.membership.plan);
+      const endDate = this._calculateEndDate(
+        payload.membership.start_date,
+        payload.membership.plan
+      );
       const { data: membershipRow, error: membershipErr } = await db
         .from('memberships')
         .insert({
@@ -668,3 +681,10 @@ class OnboardingWizard {
 }
 
 window.onboardingWizard = new OnboardingWizard();
+
+// Auto-set session when auth-guard loads
+window.addEventListener('auth:session-loaded', (e) => {
+  if (e.detail?.session) {
+    window.onboardingWizard.setSession(e.detail.session);
+  }
+});
