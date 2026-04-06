@@ -312,6 +312,25 @@ function setupPlanPricing() {
       };
     });
 
+    // Ensure profile exists before upserting (FK on changed_by)
+    const session = await window.supabaseClient.auth.getSession();
+    const userId = session?.data?.session?.user?.id;
+    if (userId) {
+      const { data: profile } = await window.supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!profile) {
+        await window.supabaseClient
+          .from('profiles')
+          .insert({ id: userId })
+          .select('id')
+          .single()
+          .catch(() => {});
+      }
+    }
+
     const { data, error } = await window.supabaseClient
       .from('gym_membership_plans')
       .upsert(rows, { onConflict: 'gym_id,plan_key' })
@@ -319,7 +338,12 @@ function setupPlanPricing() {
 
     if (feedback) {
       if (error) {
-        feedback.textContent = `No se pudieron guardar los valores: ${error.message}`;
+        if (error.code === '23503' && error.message.includes('changed_by')) {
+          feedback.textContent =
+            'Error de configuración: perfil de usuario no encontrado en la base de datos.';
+        } else {
+          feedback.textContent = `No se pudieron guardar los valores: ${error.message}`;
+        }
         feedback.className = 'text-xs font-bold text-danger';
       } else {
         feedback.textContent = 'Valores de planes guardados.';

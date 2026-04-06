@@ -694,7 +694,7 @@ function setupModalAtleta() {
   const submitBtn = document.getElementById('modal-alumno-submit');
 
   window.openNewAtleta = function () {
-    document.getElementById('modal-alumno-title').innerHTML =
+    document.getElementById('modal-title-alumno').innerHTML =
       'Nuevo <span class="text-primary">Atleta</span>';
     document.getElementById('alumno-id').value = '';
     document.getElementById('form-alumno').reset();
@@ -705,7 +705,7 @@ function setupModalAtleta() {
   window.openEditAtleta = function (id) {
     const s = allStudents.find((x) => x.id === id);
     if (!s) return;
-    document.getElementById('modal-alumno-title').innerHTML =
+    document.getElementById('modal-title-alumno').innerHTML =
       'Editar <span class="text-warning">Atleta</span>';
     document.getElementById('alumno-id').value = s.id;
     document.getElementById('alumno-full-name').value = s.full_name || '';
