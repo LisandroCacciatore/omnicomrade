@@ -8,13 +8,25 @@
 
 window.tfUtils = {
   /* ═══════════════════════════════════════════════════════
-     UI HELPERS (Delegan a tfUiUtils)
+     UI HELPERS (Delegan a tfUiUtils con fallback)
   ═══════════════════════════════════════════════════════ */
 
-  toast: (m, t) => window.tfUiUtils?.toast(m, t),
-  escHtml: (s) => window.tfUiUtils?.escHtml(s),
-  debounce: (f, w) => window.tfUiUtils?.debounce(f, w),
-  setBtnLoading: (id, l, t) => window.tfUiUtils?.setBtnLoading(id, l, t),
+  toast: (m, t) => window.tfUiUtils?.toast?.(m, t) || console.log(`[toast] ${m}`),
+  escHtml: (s) => {
+    if (window.tfUiUtils?.escHtml) return window.tfUiUtils.escHtml(s);
+    if (!s) return '';
+    return String(s).replace(
+      /[&<>"']/g,
+      (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]
+    );
+  },
+  debounce: (f, w) =>
+    window.tfUiUtils?.debounce?.(f, w) ||
+    ((...args) => {
+      clearTimeout(window._dbT);
+      window._dbT = setTimeout(() => f(...args), w);
+    }),
+  setBtnLoading: (id, l, t) => window.tfUiUtils?.setBtnLoading?.(id, l, t),
   setLoading: (btn, l, t) => window.tfUiUtils?.setBtnLoading(btn, l, t), // Alias
   showModal: (id) => window.tfUiUtils?.showModal(id),
   hideModal: (id) => window.tfUiUtils?.hideModal(id),
@@ -39,7 +51,9 @@ window.tfUtils = {
 
   round: (v, s) => window.tfTrainingEngine?.round(v, s),
   pct: (b, p) => window.tfTrainingEngine?.pct(b, p),
-  get PROGRAMS() { return window.tfTrainingEngine?.PROGRAMS || []; },
+  get PROGRAMS() {
+    return window.tfTrainingEngine?.PROGRAMS || [];
+  },
 
   /* ═══════════════════════════════════════════════════════
      INIT
@@ -51,13 +65,15 @@ window.tfUtils = {
     if (logoutBtn) logoutBtn.addEventListener('click', () => this.logout());
 
     // Accesibilidad de modales conocidos
-    ['modal-nuevo-alumno', 'modal-nueva-membresia', 'modal-alumno', 'modal-eliminar'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        const backdrop = el.querySelector('[id*="-backdrop"]');
-        if (backdrop) backdrop.onclick = () => this.hideModal(id);
+    ['modal-nuevo-alumno', 'modal-nueva-membresia', 'modal-alumno', 'modal-eliminar'].forEach(
+      (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          const backdrop = el.querySelector('[id*="-backdrop"]');
+          if (backdrop) backdrop.onclick = () => this.hideModal(id);
+        }
       }
-    });
+    );
   }
 };
 

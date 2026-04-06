@@ -28,7 +28,7 @@ router.post('/transition', async (req, res) => {
       .single();
 
     if (fetchError || !student) {
-      return res.status(404).json({ error: 'Alumno no encontrado' });
+      return res.status(404).json({ error: 'Atleta no encontrado' });
     }
 
     const currentState = student.membership_status;
@@ -86,7 +86,6 @@ router.post('/transition', async (req, res) => {
   }
 });
 
-
 router.post('/recompute/:studentId', async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -119,7 +118,9 @@ router.post('/recompute-all', async (req, res) => {
     return res.json({ success: true, gym_id, updated: data });
   } catch (error) {
     console.error('Membership recompute gym error:', error);
-    return res.status(500).json({ error: 'No se pudo recomputar estados del gym', detail: error.message });
+    return res
+      .status(500)
+      .json({ error: 'No se pudo recomputar estados del gym', detail: error.message });
   }
 });
 

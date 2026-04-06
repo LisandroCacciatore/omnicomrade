@@ -6,10 +6,6 @@
 await import('./auth-guard.js');
 
 // ─── DOM refs ─────────────────────────────────────────────
-const kpiTotalStudents = document.getElementById('kpi-total-students');
-const kpiActiveMemberships = document.getElementById('kpi-active-memberships');
-const kpiExpiringSoon = document.getElementById('kpi-expiring-soon');
-const kpiExpired = document.getElementById('kpi-expired');
 const recentStudentsTable = document.getElementById('recent-students-table');
 const userNameEl = document.getElementById('user-name');
 const { escHtml, toast } = window.tfUtils;
@@ -54,6 +50,8 @@ async function initDashboard() {
   window.loadRecentStudents = loadRecentStudents;
   setupQuickActions();
   setupModals();
+  setupMembershipModal();
+  setupDashboardButtons();
 }
 
 window.addEventListener('onboarding:completed', async () => {
@@ -65,37 +63,46 @@ async function loadKPIs() {
   try {
     const db = window.supabaseClient;
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
-    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0];
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0];
 
-    const [
-      { count: activeStudents },
-      { count: expiringSoon },
-      { data: monthIncomeData }
-    ] = await Promise.all([
-      // Atletas activos (membership_status = 'activa')
-      db.from('students').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('membership_status', 'activa'),
-      // Membresías por vencer (próximos 7 días)
-      db.from('memberships').select('*', { count: 'exact', head: true }).gte('end_date', today.toISOString().split('T')[0]).lte('end_date', sevenDaysFromNow),
-      // Ingresos del mes (suma de amount de memberships iniciadas este mes)
-      db.from('memberships').select('amount').gte('start_date', startOfMonth).lte('start_date', endOfMonth)
-    ]);
+    const [{ count: activeStudents }, { count: expiringSoon }, { data: monthIncomeData }] =
+      await Promise.all([
+        db
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .is('deleted_at', null)
+          .eq('membership_status', 'activa'),
+        db
+          .from('memberships')
+          .select('*', { count: 'exact', head: true })
+          .gte('end_date', today.toISOString().split('T')[0])
+          .lte('end_date', sevenDaysFromNow),
+        db
+          .from('memberships')
+          .select('amount')
+          .gte('start_date', startOfMonth)
+          .lte('start_date', endOfMonth)
+      ]);
 
     const monthlyIncome = (monthIncomeData || []).reduce((sum, m) => sum + (m.amount || 0), 0);
 
-    // Update DOM
     const kpiActiveStudents = document.getElementById('kpi-active-students');
     const kpiExpiringSoon = document.getElementById('kpi-expiring-soon');
     const kpiMonthlyIncome = document.getElementById('kpi-monthly-income');
 
     if (kpiActiveStudents) kpiActiveStudents.textContent = activeStudents || 0;
     if (kpiExpiringSoon) kpiExpiringSoon.textContent = expiringSoon || 0;
-    if (kpiMonthlyIncome) kpiMonthlyIncome.textContent = '$' + (monthlyIncome || 0).toLocaleString('es-AR');
+    if (kpiMonthlyIncome)
+      kpiMonthlyIncome.textContent = '$' + (monthlyIncome || 0).toLocaleString('es-AR');
   } catch (err) {
-    console.error('Error loading KPIs:', err);
-  }
-}
     console.error('Error loading KPIs:', err);
   }
 }
@@ -167,12 +174,11 @@ function getStatusClass(status) {
 function setupQuickActions() {
   const db = window.supabaseClient;
 
-  // Asignar programa — solo alumnos con membresía activa
   if (window.ProgramAssignModal && !assignProgramModal) {
     assignProgramModal = new window.ProgramAssignModal({
       gymId,
       db,
-      studentFilter: { membership_status: 'activa' }, // solo activos
+      studentFilter: { membership_status: 'activa' },
       onSuccess: async () => {
         toast('Programa asignado con éxito');
         await Promise.all([loadKPIs(), loadRecentStudents()]);
@@ -192,6 +198,19 @@ function setupQuickActions() {
   document.getElementById('btn-enviar-alerta')?.addEventListener('click', openAlertModal);
 }
 
+// ─── DASHBOARD BUTTONS ────────────────────────────────────
+function setupDashboardButtons() {
+  document.getElementById('btn-nuevo-alumno')?.addEventListener('click', () => {
+    window.openNewAtleta();
+  });
+
+  document.getElementById('btn-nueva-membresia')?.addEventListener('click', () => {
+    if (typeof window.openModalMembresia === 'function') window.openModalMembresia();
+    else toast('No se pudo abrir el modal de membresía', 'error');
+  });
+}
+
+// ─── ALERT MODAL ──────────────────────────────────────────
 async function loadStudentsForAlerts() {
   const { data, error } = await window.supabaseClient
     .from('students')
@@ -393,92 +412,9 @@ function setupModals() {
     renderMultiStudentOptions(alertSearchEl?.value || '');
   });
   alertForm?.addEventListener('submit', handleAlertSubmit);
-
-  window._validateName = window.tfUtils.setupValidation(
-    document.getElementById('input-full-name'),
-    document.getElementById('error-input-name'),
-    (val) => (!val.trim() ? 'El nombre es requerido.' : null)
-  );
-  window._validateEmail = window.tfUtils.setupValidation(
-    document.getElementById('input-email'),
-    document.getElementById('error-input-email'),
-    (val) => {
-      if (!val) return null;
-      return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? 'Email inválido.' : null;
-    }
-  );
-  window._validateBirthDate = window.tfUtils.setupValidation(
-    document.getElementById('input-birth-date'),
-    document.getElementById('error-input-birth'),
-    (val) => {
-      if (!val) return null;
-      const age = Math.floor((Date.now() - new Date(val)) / (365.25 * 24 * 60 * 60 * 1000));
-      return age < 18 ? 'Debe ser mayor de 18 años.' : null;
-    }
-  );
 }
 
 window.openNewAtleta = () => window.onboardingWizard.open();
-
-window.closeModalAtleta = () => {
-  document.getElementById('modal-nuevo-alumno').classList.remove('open');
-  ['input-full-name', 'input-email', 'input-phone', 'input-birth-date'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.value = '';
-      el.classList.remove('input-error');
-    }
-  });
-  ['error-input-name', 'error-input-email', 'error-input-birth', 'modal-error'].forEach((id) =>
-    document.getElementById(id)?.classList.add('hidden')
-  );
-};
-
-async function saveNewStudent() {
-  const isNameValid = window._validateName?.() ?? true;
-  const isEmailValid = window._validateEmail?.() ?? true;
-  const isBirthValid = window._validateBirthDate?.() ?? true;
-
-  if (!isNameValid || !isEmailValid || !isBirthValid) {
-    if (!isNameValid) document.getElementById('input-full-name').focus();
-    else if (!isEmailValid) document.getElementById('input-email').focus();
-    else document.getElementById('input-birth-date').focus();
-    return;
-  }
-
-  const submitBtn = document.getElementById('modal-submit-btn');
-  window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
-
-  try {
-    const { error } = await window.supabaseClient.from('students').insert({
-      gym_id: gymId,
-      full_name: document.getElementById('input-full-name').value.trim(),
-      email: document.getElementById('input-email').value.trim() || null,
-      phone: document.getElementById('input-phone').value.trim() || null,
-      birth_date: document.getElementById('input-birth-date').value || null,
-      membership_status: 'pendiente'
-    });
-
-    if (error) throw error;
-
-    toast('Atleta creado con éxito');
-    window.closeModalAtleta();
-    await Promise.all([loadKPIs(), loadRecentStudents()]);
-  } catch (err) {
-    const modalError = document.getElementById('modal-error');
-    if (modalError) {
-      modalError.textContent = 'Error: ' + err.message;
-      modalError.classList.remove('hidden');
-    }
-  } finally {
-    window.tfUtils.setBtnLoading(submitBtn, false);
-  }
-}
-
-document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAtleta);
-document.getElementById('modal-close-btn')?.addEventListener('click', window.closeModalAtleta);
-document.getElementById('modal-backdrop')?.addEventListener('click', window.closeModalAtleta);
-document.getElementById('modal-submit-btn')?.addEventListener('click', saveNewStudent);
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
 async function loadGymMembershipPlans() {
@@ -530,7 +466,6 @@ window.openModalMembresia = async () => {
   document.getElementById('modal-nueva-membresia').classList.add('open');
   document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
 
-  // Solo alumnos con membresía activa
   const { data: students } = await window.supabaseClient
     .from('students')
     .select('id, full_name')
@@ -565,12 +500,6 @@ window.closeModalMembresia = () => {
     .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
   document.getElementById('modal-membresia-error')?.classList.add('hidden');
 };
-
-document.querySelectorAll('.plan-btn').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    selectGymMembershipPlan(btn.dataset.plan, btn.dataset.amount);
-  });
-});
 
 async function saveMembresia() {
   const studentId = document.getElementById('membresia-student-id').value;
@@ -616,13 +545,21 @@ async function saveMembresia() {
   }
 }
 
-document
-  .getElementById('modal-membresia-backdrop')
-  ?.addEventListener('click', window.closeModalMembresia);
-document
-  .getElementById('modal-membresia-close')
-  ?.addEventListener('click', window.closeModalMembresia);
-document.getElementById('modal-membresia-submit')?.addEventListener('click', saveMembresia);
+function setupMembershipModal() {
+  document
+    .getElementById('modal-membresia-backdrop')
+    ?.addEventListener('click', window.closeModalMembresia);
+  document
+    .getElementById('modal-membresia-close')
+    ?.addEventListener('click', window.closeModalMembresia);
+  document.getElementById('modal-membresia-submit')?.addEventListener('click', saveMembresia);
+
+  document.getElementById('membresia-plan-buttons')?.addEventListener('click', (evt) => {
+    const btn = evt.target.closest('.plan-btn');
+    if (!btn) return;
+    selectGymMembershipPlan(btn.dataset.plan, btn.dataset.amount);
+  });
+}
 
 // ─── ARRANCAR ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', initDashboard);

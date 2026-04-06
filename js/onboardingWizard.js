@@ -473,14 +473,39 @@ class OnboardingWizard {
     if (skipBtn) skipBtn.disabled = true;
 
     try {
-      const gymId =
+      let gymId =
         this._session?.user?.raw_app_meta_data?.gym_id ||
         this._session?.user?.app_metadata?.gym_id ||
         window.gymId ||
         localStorage.getItem('gym_id');
 
+      if (!gymId && this._session) {
+        const userId = this._session.user.id;
+        const { data: profile } = await window.supabaseClient
+          .from('profiles')
+          .select('gym_id')
+          .eq('id', userId)
+          .maybeSingle();
+        if (profile?.gym_id) {
+          gymId = profile.gym_id;
+          localStorage.setItem('gym_id', gymId);
+        }
+      }
+
+      if (!gymId && window.supabaseClient) {
+        const { data: gym } = await window.supabaseClient
+          .from('gyms')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        if (gym?.id) {
+          gymId = gym.id;
+          localStorage.setItem('gym_id', gymId);
+        }
+      }
+
       if (!gymId) {
-        throw new Error('Error de configuración: contactá al soporte');
+        throw new Error('No se encontró gym_id para completar el onboarding');
       }
       const requestId = crypto.randomUUID();
 

@@ -30,20 +30,20 @@ function addDays(date, days) {
 export const KPI_DEFINITIONS = {
   ACTIVA: {
     status: 'activa',
-    description: 'Alumnos con membresía vigente'
+    description: 'Atletas con membresía vigente'
   },
   POR_VENCER: {
     status: 'por_vencer',
     daysUntilExpiry: 7,
-    description: 'Alumnos cuya membresía vence en los próximos 7 días'
+    description: 'Atletas cuya membresía vence en los próximos 7 días'
   },
   VENCIDA: {
     status: 'vencida',
-    description: 'Alumnos cuya membresía ya venció'
+    description: 'Atletas cuya membresía ya venció'
   },
   PENDIENTE: {
     status: 'pendiente',
-    description: 'Alumnos sin membresía activa (alta reciente)'
+    description: 'Atletas sin membresía activa (alta reciente)'
   }
 };
 

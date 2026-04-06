@@ -21,7 +21,9 @@
     if (text) text.textContent = msg;
 
     el.className = `show ${type}`;
-    setTimeout(() => { el.className = ''; }, 3200);
+    setTimeout(() => {
+      el.className = '';
+    }, 3200);
   }
 
   /**
@@ -29,13 +31,17 @@
    */
   function escHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>"']/g, (m) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    }[m]));
+    return String(str).replace(
+      /[&<>"']/g,
+      (m) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[m]
+    );
   }
 
   /**
@@ -61,12 +67,10 @@
     if (!btn) return;
 
     // BUSCA SPAN PARA EL TEXTO (compatible con múltiples templates)
-    const textEl = btn.querySelector('[id$="-text"]') ||
-                   btn.querySelector('span:not(.animate-spin)') ||
-                   btn;
+    const textEl =
+      btn.querySelector('[id$="-text"]') || btn.querySelector('span:not(.animate-spin)') || btn;
 
-    const spinner = btn.querySelector('[id$="-spinner"]') ||
-                    btn.querySelector('.animate-spin');
+    const spinner = btn.querySelector('[id$="-spinner"]') || btn.querySelector('.animate-spin');
 
     if (isLoading) {
       btn.disabled = true;
@@ -97,7 +101,9 @@
       modal._opener = document.activeElement;
 
       // Auto-focus al primer elemento
-      const first = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      const first = modal.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
       if (first) setTimeout(() => first.focus(), 150);
     });
   }
@@ -179,7 +185,9 @@
           <div id="cp-results" class="max-h-[400px] overflow-y-auto p-2 flex flex-col gap-1"></div>
         </div>`;
       document.body.appendChild(cp);
-      document.getElementById('cp-search-input').addEventListener('input', (e) => filterPalette(e.target.value));
+      document
+        .getElementById('cp-search-input')
+        .addEventListener('input', (e) => filterPalette(e.target.value));
     }
     cp.classList.remove('hidden');
     const input = document.getElementById('cp-search-input');
@@ -191,16 +199,28 @@
   function filterPalette(query) {
     const results = document.getElementById('cp-results');
     const items = [
-      { label: 'Ir a Dashboard', icon: 'dashboard', action: () => window.location.href = 'admin-dashboard.html' },
-      { label: 'Ver Alumnos', icon: 'people', action: () => window.location.href = 'student-list.html' },
+      {
+        label: 'Ir a Dashboard',
+        icon: 'dashboard',
+        action: () => (window.location.href = 'admin-dashboard.html')
+      },
+      {
+        label: 'Ver Atletas',
+        icon: 'people',
+        action: () => (window.location.href = 'student-list.html')
+      },
       { label: 'Cerrar Sesión', icon: 'logout', action: () => window.tfUtils?.logout() }
     ];
-    const filtered = items.filter(i => i.label.toLowerCase().includes(query.toLowerCase()));
-    results.innerHTML = filtered.map(i => `
+    const filtered = items.filter((i) => i.label.toLowerCase().includes(query.toLowerCase()));
+    results.innerHTML = filtered
+      .map(
+        (i) => `
       <div class="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-800 transition-colors cp-item">
         <span class="material-symbols-rounded text-slate-400">${i.icon}</span>
         <span class="text-sm font-bold text-slate-300">${i.label}</span>
-      </div>`).join('');
+      </div>`
+      )
+      .join('');
 
     results.querySelectorAll('.cp-item').forEach((el, idx) => {
       el.onclick = () => {
