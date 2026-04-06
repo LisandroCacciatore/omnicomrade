@@ -12,88 +12,124 @@
  */
 
 (function () {
-
   const NAV_ITEMS = [
     {
       section: 'Principal',
       items: [
-        { href: 'admin-dashboard.html',  icon: 'dashboard',       label: 'Dashboard',     roles: ['gim_admin'] },
-        { href: 'profesor-dashboard.html',icon: 'dashboard',      label: 'Dashboard',     roles: ['profesor'] },
-        { href: 'attendance.html',        icon: 'how_to_reg',     label: 'Asistencia' },
-        { href: 'student-list.html',      icon: 'people',         label: 'Alumnos' },
-        { href: 'membership-list.html',   icon: 'card_membership', label: 'Membresías',   roles: ['gim_admin'] },
-        { href: 'routine-list.html',      icon: 'fitness_center', label: 'Rutinas' },
+        {
+          href: 'admin-dashboard.html',
+          icon: 'dashboard',
+          label: 'Dashboard',
+          roles: ['gim_admin']
+        },
+        {
+          href: 'profesor-dashboard.html',
+          icon: 'dashboard',
+          label: 'Dashboard',
+          roles: ['profesor']
+        },
+        { href: 'attendance.html', icon: 'how_to_reg', label: 'Asistencia' },
+        { href: 'student-list.html', icon: 'people', label: 'Atletas' },
+        {
+          href: 'membership-list.html',
+          icon: 'card_membership',
+          label: 'Membresías',
+          roles: ['gim_admin']
+        },
+        { href: 'routine-list.html', icon: 'fitness_center', label: 'Rutinas' }
       ]
     },
     {
       section: 'Entrenamiento',
       items: [
-        { href: 'exercise-list.html',     icon: 'exercise',       label: 'Ejercicios' },
-        { href: 'routine-programs.html',  icon: 'auto_awesome',   label: 'Programas' },
-        { href: 'routine-builder.html',   icon: 'edit_note',      label: 'Crear rutina' },
+        { href: 'exercise-list.html', icon: 'exercise', label: 'Ejercicios' },
+        { href: 'routine-programs.html', icon: 'auto_awesome', label: 'Programas' },
+        { href: 'routine-builder.html', icon: 'edit_note', label: 'Crear rutina' }
       ]
     },
     {
       section: 'Analítica',
+      items: [{ href: 'progress.html', icon: 'trending_up', label: 'Progreso' }]
+    },
+    {
+      section: 'Profesor',
       items: [
-        { href: 'progress.html',          icon: 'trending_up',    label: 'Progreso' },
+        { href: 'student-list.html', icon: 'people', label: 'Atletas' },
+        { href: 'progress.html', icon: 'trending_up', label: 'Progreso y analítica' },
+        { href: 'routine-builder.html', icon: 'edit_note', label: 'Constructor de rutinas' },
+        { href: 'exercise-list.html', icon: 'exercise', label: 'Biblioteca' },
+        { href: 'attendance.html', icon: 'how_to_reg', label: 'Asistencia' }
       ]
     },
     {
       section: 'Config',
       items: [
-        { href: 'gym-setting.html',       icon: 'settings',       label: 'Configuración', roles: ['gim_admin'] },
-        { href: 'access-requests.html',   icon: 'how_to_reg',     label: 'Accesos OAuth', roles: ['gim_admin'] },
+        {
+          href: 'gym-setting.html',
+          icon: 'settings',
+          label: 'Configuración',
+          roles: ['gim_admin']
+        },
+        {
+          href: 'access-requests.html',
+          icon: 'how_to_reg',
+          label: 'Accesos OAuth',
+          roles: ['gim_admin']
+        }
       ]
-    },
-  ]
+    }
+  ];
 
   function getCurrentPage() {
-    return window.location.pathname.split('/').pop() || 'admin-dashboard.html'
+    return window.location.pathname.split('/').pop() || 'admin-dashboard.html';
   }
 
   async function getUserRole() {
     try {
-      const stored = localStorage.getItem('tf_role')
-      if (stored) return stored
+      const stored = localStorage.getItem('tf_role');
+      if (stored) return stored;
 
-      const { data } = await window.supabaseClient.auth.getSession()
-      return data?.session?.user?.app_metadata?.role ?? null
-    } catch { return null }
+      const { data } = await window.supabaseClient.auth.getSession();
+      return data?.session?.user?.app_metadata?.role ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async function buildSidebar(gymName, logoUrl) {
-    const currentPage = getCurrentPage()
-    const role = await getUserRole()
+    const currentPage = getCurrentPage();
+    const role = await getUserRole();
 
-    const navHTML = NAV_ITEMS.map(group => {
-      const visibleItems = group.items.filter(item =>
-        !item.roles || !role || item.roles.includes(role)
-      )
-      if (visibleItems.length === 0) return ''
+    const navHTML = NAV_ITEMS.map((group) => {
+      const visibleItems = group.items.filter(
+        (item) => !item.roles || !role || item.roles.includes(role)
+      );
+      if (visibleItems.length === 0) return '';
 
-      const itemsHTML = visibleItems.map(item => {
-        const isActive = currentPage === item.href
-        return `
+      const itemsHTML = visibleItems
+        .map((item) => {
+          const isActive = currentPage === item.href;
+          return `
         <a href="${item.href}"
            class="nav-link${isActive ? ' active' : ''}">
           <span class="material-symbols-rounded">${item.icon}</span>
           ${item.label}
-        </a>`
-      }).join('')
+        </a>`;
+        })
+        .join('');
 
       return `
       <div class="mt-4 mb-2">
         <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest px-3">${group.section}</p>
       </div>
-      ${itemsHTML}`
-    }).join('')
+      ${itemsHTML}`;
+    }).join('');
 
     const logoHTML = logoUrl
       ? `<img src="${logoUrl}" class="w-full h-full object-contain rounded-lg" alt="Logo" onerror="this.onerror=null; this.outerHTML='<span class=\'text-[10px] font-black text-white\'>TF</span>'" />`
-      : `<span class="material-symbols-rounded text-white text-[18px]" style="font-variation-settings:'FILL' 1">bolt</span>`
+      : `<span class="material-symbols-rounded text-white text-[18px]" style="font-variation-settings:'FILL' 1">bolt</span>`;
 
-    const dashboardHref = role === 'profesor' ? 'profesor-dashboard.html' : 'admin-dashboard.html'
+    const dashboardHref = role === 'profesor' ? 'profesor-dashboard.html' : 'admin-dashboard.html';
 
     return `
     <a href="${dashboardHref}" class="h-16 flex items-center px-5 border-b border-[#1E293B] gap-3 hover:bg-white/5 transition-colors shrink-0">
@@ -115,56 +151,57 @@
         <span class="material-symbols-rounded">logout</span>
         Cerrar sesión
       </button>
-    </div>`
+    </div>`;
   }
 
   function toggle() {
-    const target = document.getElementById('app-sidebar')
-    const backdrop = document.getElementById('sidebar-backdrop')
-    if (!target) return
+    const target = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (!target) return;
 
-    const isOpen = target.classList.contains('translate-x-0')
+    const isOpen = target.classList.contains('translate-x-0');
     if (isOpen) {
-      target.classList.remove('translate-x-0')
-      target.classList.add('-translate-x-full')
-      if (backdrop) backdrop.classList.add('hidden')
+      target.classList.remove('translate-x-0');
+      target.classList.add('-translate-x-full');
+      if (backdrop) backdrop.classList.add('hidden');
     } else {
-      target.classList.add('translate-x-0')
-      target.classList.remove('-translate-x-full')
-      if (backdrop) backdrop.classList.remove('hidden')
+      target.classList.add('translate-x-0');
+      target.classList.remove('-translate-x-full');
+      if (backdrop) backdrop.classList.remove('hidden');
     }
   }
 
   async function inject(gymName, logoUrl) {
-    const target = document.getElementById('app-sidebar')
-    if (!target) return
+    const target = document.getElementById('app-sidebar');
+    if (!target) return;
 
     // Create backdrop if not exists
     if (!document.getElementById('sidebar-backdrop')) {
-      const b = document.createElement('div')
-      b.id = 'sidebar-backdrop'
-      b.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden'
-      b.onclick = toggle
-      document.body.appendChild(b)
+      const b = document.createElement('div');
+      b.id = 'sidebar-backdrop';
+      b.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden';
+      b.onclick = toggle;
+      document.body.appendChild(b);
     }
 
     // Clases del aside - Drawer por defecto en móvil, fijo en desktop
-    target.className = 'w-64 shrink-0 bg-[#161E26] border-r border-[#1E293B] flex flex-col fixed lg:sticky top-0 h-screen z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300'
-    target.innerHTML = await buildSidebar(gymName, logoUrl)
-    
+    target.className =
+      'w-64 shrink-0 bg-[#161E26] border-r border-[#1E293B] flex flex-col fixed lg:sticky top-0 h-screen z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300';
+    target.innerHTML = await buildSidebar(gymName, logoUrl);
+
     // Bind logout
-    target.querySelector('#logout-btn')?.addEventListener('click', window.tfUtils.logout)
+    target.querySelector('#logout-btn')?.addEventListener('click', window.tfUtils.logout);
 
     // Close on navigation in mobile & prevent current page reload
-    target.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            const href = link.getAttribute('href')
-            if (href === getCurrentPage()) {
-                e.preventDefault()
-            }
-            if (window.innerWidth < 1024) toggle()
-        })
-    })
+    target.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        const href = link.getAttribute('href');
+        if (href === getCurrentPage()) {
+          e.preventDefault();
+        }
+        if (window.innerWidth < 1024) toggle();
+      });
+    });
   }
 
   /**
@@ -177,36 +214,37 @@
    */
   window.TFSidebar = {
     async init(gymName, logoUrl) {
-      await inject(gymName, logoUrl)
+      await inject(gymName, logoUrl);
     },
     toggle() {
-        toggle()
+      toggle();
     },
     updateGymName(name) {
-      const el = document.getElementById('sidebar-gym-name')
-      if (el) el.textContent = name
+      const el = document.getElementById('sidebar-gym-name');
+      if (el) el.textContent = name;
     },
     updateLogo(url) {
-      const el = document.getElementById('sidebar-logo-icon')
-      if (el) el.innerHTML = `<img src="${url}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`
+      const el = document.getElementById('sidebar-logo-icon');
+      if (el)
+        el.innerHTML = `<img src="${url}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
     },
     setRole(role) {
-      try { localStorage.setItem('tf_role', role) } catch {}
+      try {
+        localStorage.setItem('tf_role', role);
+      } catch {}
     }
-  }
+  };
 
   // Auto-inject en DOMContentLoaded si existe el target
   document.addEventListener('DOMContentLoaded', async () => {
     if (document.getElementById('app-sidebar')) {
-      await inject()
+      await inject();
     }
-    
+
     // Auto-bind a cualquier botón con id "hamburger-btn"
-    const hamb = document.getElementById('hamburger-btn')
+    const hamb = document.getElementById('hamburger-btn');
     if (hamb) {
-        hamb.onclick = toggle
+      hamb.onclick = toggle;
     }
-  })
-
-})()
-
+  });
+})();

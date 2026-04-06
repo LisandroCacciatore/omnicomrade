@@ -171,7 +171,7 @@ await import('./auth-guard.js');
         return `
             <div class="student-row" data-id="${s.id}">
                 <div class="w-12 h-12 rounded-full bg-[#1E293B] flex items-center justify-center font-bold text-slate-400 shrink-0 overflow-hidden">
-                    ${avatarSrc ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(s.full_name || 'Alumno')}">` : escHtml(initials)}
+                    ${avatarSrc ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(s.full_name || 'Atleta')}">` : escHtml(initials)}
                 </div>
                 <div class="flex-1 min-w-0">
                     <h3 class="text-base font-bold text-white truncate">${escHtml(s.full_name)}</h3>
@@ -223,7 +223,7 @@ await import('./auth-guard.js');
     const avatarEl = document.getElementById('drawer-avatar');
     const avatarSrc = sanitizeImageSrc(student.avatar_url);
     avatarEl.innerHTML = avatarSrc
-      ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(student.full_name || 'Alumno')}">`
+      ? `<img src="${avatarSrc}" class="w-full h-full object-cover" alt="${escHtml(student.full_name || 'Atleta')}">`
       : escHtml(initials);
 
     document.getElementById('drawer-name').textContent = student.full_name;
@@ -382,7 +382,7 @@ await import('./auth-guard.js');
         .map((s) => {
           const doneSets = setsBySession[s.id] || 0;
           const pct = Math.min(100, Math.round((doneSets / EST_TOTAL) * 100));
-          const name = s.students?.full_name || 'Alumno';
+          const name = s.students?.full_name || 'Atleta';
           const elapsed = Math.floor((Date.now() - new Date(s.started_at)) / 60000);
           const initials = name.substring(0, 2).toUpperCase();
 

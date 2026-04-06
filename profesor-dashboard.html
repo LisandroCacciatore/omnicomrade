@@ -1,7 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es" class="dark">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard Profesor — TechFitness</title>
@@ -9,378 +8,438 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+
     <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        rel="stylesheet" />
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="js/tailwind-config.js"></script>
 
     <style>
-        * {
-            font-family: 'Space Grotesk', sans-serif;
+      * {
+        font-family: 'Space Grotesk', sans-serif;
+      }
+
+      body {
+        background-color: #0b1218;
+        color: #e2e8f0;
+        overflow-x: hidden;
+      }
+
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+      }
+
+      .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.18s;
+      }
+
+      .nav-link:hover {
+        background: rgba(59, 130, 246, 0.08);
+        color: #93c5fd;
+      }
+
+      .nav-link.active {
+        background: rgba(59, 130, 246, 0.14);
+        color: #3b82f6;
+      }
+
+      /* KPI Cards */
+      .kpi-card {
+        background: #161e26;
+        border: 1px solid #1e293b;
+        border-radius: 16px;
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      /* Filter Chips */
+      .filter-chip {
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        border: 1px solid #1e293b;
+        background: #0b1218;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+
+      .filter-chip:hover:not(.active) {
+        border-color: #334155;
+        color: #94a3b8;
+      }
+
+      .filter-chip.active {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.12);
+        color: #60a5fa;
+      }
+
+      /* Student Row */
+      .student-row {
+        background: #161e26;
+        border: 1px solid #1e293b;
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .student-row:hover {
+        border-color: #334155;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Drawer */
+      #drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(7, 11, 16, 0.7);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+
+      #drawer-backdrop.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      #drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 41;
+        width: 480px;
+        max-width: 96vw;
+        background: #161e26;
+        border-left: 1px solid #1e293b;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      #drawer.open {
+        transform: translateX(0);
+      }
+
+      .session-mini-card {
+        background: #0b1218;
+        border: 1px solid #1e293b;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      /* Toast */
+      #toast {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        z-index: 100;
+        background: #161e26;
+        border: 1px solid #1e293b;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.28s;
+        pointer-events: none;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+
+      #toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      #toast.success {
+        border-color: #10b981;
+      }
+
+      #toast.error {
+        border-color: #ef4444;
+      }
+
+      .skeleton {
+        background: #1e293b;
+        border-radius: 8px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
         }
 
-        body {
-            background-color: #0B1218;
-            color: #E2E8F0;
-            overflow-x: hidden;
+        50% {
+          opacity: 0.4;
         }
-
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #1E293B;
-            border-radius: 4px;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: 10px;
-            color: #64748B;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all .18s;
-        }
-
-        .nav-link:hover {
-            background: rgba(59, 130, 246, .08);
-            color: #93C5FD;
-        }
-
-        .nav-link.active {
-            background: rgba(59, 130, 246, .14);
-            color: #3B82F6;
-        }
-
-        /* KPI Cards */
-        .kpi-card {
-            background: #161E26;
-            border: 1px solid #1E293B;
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        /* Filter Chips */
-        .filter-chip {
-            padding: 6px 14px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            border: 1px solid #1E293B;
-            background: #0B1218;
-            color: #64748B;
-            cursor: pointer;
-            transition: all .15s;
-            white-space: nowrap;
-        }
-
-        .filter-chip:hover:not(.active) {
-            border-color: #334155;
-            color: #94A3B8;
-        }
-
-        .filter-chip.active {
-            border-color: #3B82F6;
-            background: rgba(59, 130, 246, .12);
-            color: #60A5FA;
-        }
-
-        /* Student Row */
-        .student-row {
-            background: #161E26;
-            border: 1px solid #1E293B;
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            cursor: pointer;
-            transition: all .2s;
-        }
-
-        .student-row:hover {
-            border-color: #334155;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
-        }
-
-        /* Drawer */
-        #drawer-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 40;
-            background: rgba(7, 11, 16, .7);
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .25s;
-        }
-
-        #drawer-backdrop.open {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        #drawer {
-            position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 41;
-            width: 480px;
-            max-width: 96vw;
-            background: #161E26;
-            border-left: 1px solid #1E293B;
-            display: flex;
-            flex-direction: column;
-            transform: translateX(100%);
-            transition: transform .28s cubic-bezier(.16, 1, .3, 1);
-        }
-
-        #drawer.open {
-            transform: translateX(0);
-        }
-
-        .session-mini-card {
-            background: #0B1218;
-            border: 1px solid #1E293B;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 8px;
-        }
-
-        /* Toast */
-        #toast {
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
-            z-index: 100;
-            background: #161E26;
-            border: 1px solid #1E293B;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            transform: translateY(20px);
-            opacity: 0;
-            transition: all .28s;
-            pointer-events: none;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, .5);
-        }
-
-        #toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        #toast.success {
-            border-color: #10B981;
-        }
-
-        #toast.error {
-            border-color: #EF4444;
-        }
-
-        .skeleton {
-            background: #1E293B;
-            border-radius: 8px;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1
-            }
-
-            50% {
-                opacity: .4
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body class="min-h-screen flex">
-
+  <body class="min-h-screen flex">
     <aside id="app-sidebar"></aside>
 
     <div class="flex-1 flex flex-col min-w-0">
-        <header
-            class="h-16 sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B] flex items-center justify-between px-6">
-            <button id="hamburger-btn"
-                class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2">
-                <span class="material-symbols-rounded text-slate-400">menu</span>
-            </button>
+      <header
+        class="h-16 sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B] flex items-center justify-between px-6"
+      >
+        <button
+          id="hamburger-btn"
+          class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2"
+        >
+          <span class="material-symbols-rounded text-slate-400">menu</span>
+        </button>
+        <div>
+          <h1 class="text-lg font-bold text-white leading-none">Dashboard Profesor</h1>
+          <p class="text-xs text-slate-500 mt-0.5" id="header-date">Monitoreo de entrenamiento</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-bold text-white" id="user-name">Cargando...</p>
+            <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Profesor</p>
+          </div>
+          <div
+            class="w-10 h-10 rounded-full bg-[#1E293B] flex items-center justify-center text-slate-400"
+          >
+            <span class="material-symbols-rounded">person</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 p-6 space-y-6 max-w-5xl mx-auto w-full">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="kpi-card">
+            <div
+              class="w-12 h-12 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-[#3B82F6] shrink-0"
+            >
+              <span class="material-symbols-rounded">group</span>
+            </div>
             <div>
-                <h1 class="text-lg font-bold text-white leading-none">Dashboard Profesor</h1>
-                <p class="text-xs text-slate-500 mt-0.5" id="header-date">Monitoreo de entrenamiento</p>
+              <p class="text-2xl font-black text-white" id="kpi-total">-</p>
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Mis Atletas
+              </p>
             </div>
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-xs font-bold text-white" id="user-name">Cargando...</p>
-                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Profesor</p>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-[#1E293B] flex items-center justify-center text-slate-400">
-                    <span class="material-symbols-rounded">person</span>
-                </div>
+          </div>
+          <div class="kpi-card border-[#EF4444]/30 bg-[#EF4444]/5">
+            <div
+              class="w-12 h-12 rounded-xl bg-[#EF4444]/10 flex items-center justify-center text-[#EF4444] shrink-0"
+            >
+              <span class="material-symbols-rounded">warning</span>
             </div>
-        </header>
-
-        <main class="flex-1 p-6 space-y-6 max-w-5xl mx-auto w-full">
-
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="kpi-card">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-[#3B82F6] shrink-0">
-                        <span class="material-symbols-rounded">group</span></div>
-                    <div>
-                        <p class="text-2xl font-black text-white" id="kpi-total">-</p>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mis Alumnos</p>
-                    </div>
-                </div>
-                <div class="kpi-card border-[#EF4444]/30 bg-[#EF4444]/5">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-[#EF4444]/10 flex items-center justify-center text-[#EF4444] shrink-0">
-                        <span class="material-symbols-rounded">warning</span></div>
-                    <div>
-                        <p class="text-2xl font-black text-white" id="kpi-red">-</p>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Atención (Rojo)</p>
-                    </div>
-                </div>
-                <div class="kpi-card border-[#F59E0B]/30 bg-[#F59E0B]/5">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center text-[#F59E0B] shrink-0">
-                        <span class="material-symbols-rounded">schedule</span></div>
-                    <div>
-                        <p class="text-2xl font-black text-white" id="kpi-yellow">-</p>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inactivos (Amarillo)
-                        </p>
-                    </div>
-                </div>
-                <div class="kpi-card border-[#10B981]/30 bg-[#10B981]/5">
-                    <div
-                        class="w-12 h-12 rounded-xl bg-[#10B981]/10 flex items-center justify-center text-[#10B981] shrink-0">
-                        <span class="material-symbols-rounded">check_circle</span></div>
-                    <div>
-                        <p class="text-2xl font-black text-white" id="kpi-green">-</p>
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Al Día (Verde)</p>
-                    </div>
-                </div>
+            <div>
+              <p class="text-2xl font-black text-white" id="kpi-red">-</p>
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Atención (Rojo)
+              </p>
             </div>
-
-            <!-- Entrenando ahora -->
-            <div id="active-sessions-section" class="hidden bg-[#0B1218] border border-[#10B981]/30 rounded-2xl p-4">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></div>
-                    <p class="text-xs font-black text-[#10B981] uppercase tracking-widest">Entrenando ahora</p>
-                    <span id="active-count"
-                        class="ml-auto text-xs font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-2 py-0.5 rounded-full">0</span>
-                </div>
-                <div id="active-sessions-list" class="space-y-2"></div>
+          </div>
+          <div class="kpi-card border-[#F59E0B]/30 bg-[#F59E0B]/5">
+            <div
+              class="w-12 h-12 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center text-[#F59E0B] shrink-0"
+            >
+              <span class="material-symbols-rounded">schedule</span>
             </div>
-
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
-                    <button type="button" class="filter-chip active" data-filter="all">Todos</button>
-                    <button type="button" class="filter-chip flex items-center gap-1.5" data-filter="red">
-                        <div class="w-2 h-2 rounded-full bg-[#EF4444]"></div> Críticos
-                    </button>
-                    <button type="button" class="filter-chip flex items-center gap-1.5" data-filter="yellow">
-                        <div class="w-2 h-2 rounded-full bg-[#F59E0B]"></div> Inactivos
-                    </button>
-                    <button type="button" class="filter-chip flex items-center gap-1.5" data-filter="green">
-                        <div class="w-2 h-2 rounded-full bg-[#10B981]"></div> Óptimos
-                    </button>
-                </div>
-                <div class="relative w-full sm:w-64 shrink-0">
-                    <span
-                        class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]">search</span>
-                    <input id="search-input" type="text"
-                        class="w-full bg-[#161E26] border border-[#1E293B] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:border-[#3B82F6] outline-none transition-colors"
-                        placeholder="Buscar alumno..." autocomplete="off" />
-                </div>
+            <div>
+              <p class="text-2xl font-black text-white" id="kpi-yellow">-</p>
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Inactivos (Amarillo)
+              </p>
             </div>
-
-            <div id="students-list" class="space-y-3">
-                <div class="skeleton h-24 rounded-2xl w-full"></div>
-                <div class="skeleton h-24 rounded-2xl w-full"></div>
-                <div class="skeleton h-24 rounded-2xl w-full"></div>
+          </div>
+          <div class="kpi-card border-[#10B981]/30 bg-[#10B981]/5">
+            <div
+              class="w-12 h-12 rounded-xl bg-[#10B981]/10 flex items-center justify-center text-[#10B981] shrink-0"
+            >
+              <span class="material-symbols-rounded">check_circle</span>
             </div>
+            <div>
+              <p class="text-2xl font-black text-white" id="kpi-green">-</p>
+              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                Al Día (Verde)
+              </p>
+            </div>
+          </div>
+        </div>
 
-        </main>
+        <!-- Entrenando ahora -->
+        <div
+          id="active-sessions-section"
+          class="hidden bg-[#0B1218] border border-[#10B981]/30 rounded-2xl p-4"
+        >
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></div>
+            <p class="text-xs font-black text-[#10B981] uppercase tracking-widest">
+              Entrenando ahora
+            </p>
+            <span
+              id="active-count"
+              class="ml-auto text-xs font-bold text-[#10B981] bg-[#10B981]/10 border border-[#10B981]/20 px-2 py-0.5 rounded-full"
+              >0</span
+            >
+          </div>
+          <div id="active-sessions-list" class="space-y-2"></div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
+            <button type="button" class="filter-chip active" data-filter="all">Todos</button>
+            <button type="button" class="filter-chip flex items-center gap-1.5" data-filter="red">
+              <div class="w-2 h-2 rounded-full bg-[#EF4444]"></div>
+              Críticos
+            </button>
+            <button
+              type="button"
+              class="filter-chip flex items-center gap-1.5"
+              data-filter="yellow"
+            >
+              <div class="w-2 h-2 rounded-full bg-[#F59E0B]"></div>
+              Inactivos
+            </button>
+            <button type="button" class="filter-chip flex items-center gap-1.5" data-filter="green">
+              <div class="w-2 h-2 rounded-full bg-[#10B981]"></div>
+              Óptimos
+            </button>
+          </div>
+          <div class="relative w-full sm:w-64 shrink-0">
+            <span
+              class="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[18px]"
+              >search</span
+            >
+            <input
+              id="search-input"
+              type="text"
+              class="w-full bg-[#161E26] border border-[#1E293B] rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:border-[#3B82F6] outline-none transition-colors"
+              placeholder="Buscar alumno..."
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div id="students-list" class="space-y-3">
+          <div class="skeleton h-24 rounded-2xl w-full"></div>
+          <div class="skeleton h-24 rounded-2xl w-full"></div>
+          <div class="skeleton h-24 rounded-2xl w-full"></div>
+        </div>
+      </main>
     </div>
 
     <div id="drawer-backdrop"></div>
-    <form id="drawer" onsubmit="event.preventDefault();">
-        <div class="flex items-center justify-between px-6 py-5 border-b border-[#1E293B] shrink-0">
-            <div class="flex items-center gap-3">
-                <div id="drawer-avatar"
-                    class="w-10 h-10 rounded-full bg-[#1E293B] flex items-center justify-center font-bold text-slate-400 shrink-0 overflow-hidden">
-                </div>
-                <div>
-                    <h2 id="drawer-name" class="text-base font-bold text-white leading-tight">Cargando...</h2>
-                    <div id="drawer-status-badge" class="mt-1"></div>
-                </div>
-            </div>
-            <button type="button" id="close-drawer"
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-[#1A2330] hover:text-white transition-colors">
-                <span class="material-symbols-rounded text-[18px]">close</span>
-            </button>
+    <form id="drawer" onsubmit="event.preventDefault()">
+      <div class="flex items-center justify-between px-6 py-5 border-b border-[#1E293B] shrink-0">
+        <div class="flex items-center gap-3">
+          <div
+            id="drawer-avatar"
+            class="w-10 h-10 rounded-full bg-[#1E293B] flex items-center justify-center font-bold text-slate-400 shrink-0 overflow-hidden"
+          ></div>
+          <div>
+            <h2 id="drawer-name" class="text-base font-bold text-white leading-tight">
+              Cargando...
+            </h2>
+            <div id="drawer-status-badge" class="mt-1"></div>
+          </div>
+        </div>
+        <button
+          type="button"
+          id="close-drawer"
+          class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-[#1A2330] hover:text-white transition-colors"
+        >
+          <span class="material-symbols-rounded text-[18px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <div>
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+            Últimas sesiones
+          </p>
+          <div id="drawer-sessions" class="space-y-2">
+            <p class="text-sm text-slate-500 text-center py-4">Cargando historial...</p>
+          </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-6 space-y-6">
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Últimas sesiones</p>
-                <div id="drawer-sessions" class="space-y-2">
-                    <p class="text-sm text-slate-500 text-center py-4">Cargando historial...</p>
-                </div>
-            </div>
+        <hr class="border-[#1E293B]" />
 
-            <hr class="border-[#1E293B]" />
-
-            <div>
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Notas del Entrenador</p>
-                <input type="hidden" id="drawer-student-id" />
-                <textarea id="drawer-notes" rows="6"
-                    class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl p-4 text-sm text-white focus:border-[#3B82F6] outline-none transition-colors resize-none"
-                    placeholder="Anotá ajustes, dolores, o progreso general..."></textarea>
-            </div>
+        <div>
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+            Notas del Entrenador
+          </p>
+          <input type="hidden" id="drawer-student-id" />
+          <textarea
+            id="drawer-notes"
+            rows="6"
+            class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl p-4 text-sm text-white focus:border-[#3B82F6] outline-none transition-colors resize-none"
+            placeholder="Anotá ajustes, dolores, o progreso general..."
+          ></textarea>
         </div>
+      </div>
 
-        <div class="p-4 border-t border-[#1E293B] shrink-0">
-            <button type="submit" id="btn-save-notes"
-                class="w-full flex items-center justify-center gap-2 bg-[#3B82F6] hover:bg-blue-500 transition-colors text-white text-sm font-bold py-3 rounded-xl">
-                <span class="material-symbols-rounded text-[18px]">save</span> Guardar Notas
-            </button>
-        </div>
+      <div class="p-4 border-t border-[#1E293B] shrink-0">
+        <button
+          type="submit"
+          id="btn-save-notes"
+          class="w-full flex items-center justify-center gap-2 bg-[#3B82F6] hover:bg-blue-500 transition-colors text-white text-sm font-bold py-3 rounded-xl"
+        >
+          <span class="material-symbols-rounded text-[18px]">save</span> Guardar Notas
+        </button>
+      </div>
     </form>
 
-    <div id="toast"
-        class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl">
-        <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
-            <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]">check_circle</span>
-            <span id="toast-msg" class="text-sm font-medium text-white"></span>
-        </div>
+    <div
+      id="toast"
+      class="fixed bottom-7 right-7 z-[100] translate-y-[150%] transition-all duration-300 opacity-0 pointer-events-none shadow-2xl"
+    >
+      <div class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-2">
+        <span id="toast-icon" class="material-symbols-rounded text-success text-[18px]"
+          >check_circle</span
+        >
+        <span id="toast-msg" class="text-sm font-medium text-white"></span>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -390,11 +449,5 @@
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/profesor-dashboard.js"></script>
-</body>
-
+  </body>
 </html>
-
-
-
-
-
