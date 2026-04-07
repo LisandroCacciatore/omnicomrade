@@ -5,39 +5,47 @@
  */
 
 (async () => {
-    /* ─── Auth ──────────────────────────────────────────────── */
-    const session = await window.authGuard(['gim_admin', 'profesor']);
-    if (!session) return;
-    
-    const db = window.supabaseClient;
-    const { toast, escHtml, PROGRAMS } = window.tfUtils;
+  /* ─── Auth ──────────────────────────────────────────────── */
+  const session = await window.authGuard(['gim_admin', 'profesor']);
+  if (!session) return;
 
-    /* ─── State ──────────────────────────────────────────────── */
-    let currentProgram = null;
-    let currentRMs = {};
-    let assignModal = null;
+  const db = window.supabaseClient;
+  const { toast, escHtml, PROGRAMS } = window.tfUtils;
 
-    /* ─── DOM Elements ───────────────────────────────────────── */
-    const grid = document.getElementById('programs-grid');
-    const drawer = document.getElementById('drawer');
-    const backdrop = document.getElementById('drawer-backdrop');
-    const rmGrid = document.getElementById('rm-inputs-grid');
-    const programOutput = document.getElementById('program-output');
+  /* ─── State ──────────────────────────────────────────────── */
+  let currentProgram = null;
+  let currentRMs = {};
+  let assignModal = null;
 
-    /* ══════════════════════════════════════════════════════════
+  /* ─── DOM Elements ───────────────────────────────────────── */
+  const grid = document.getElementById('programs-grid');
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawer-backdrop');
+  const rmGrid = document.getElementById('rm-inputs-grid');
+  const programOutput = document.getElementById('program-output');
+
+  /* ══════════════════════════════════════════════════════════
        RENDER PROGRAM CARDS
     ══════════════════════════════════════════════════════════ */
-    function renderCards() {
-        grid.innerHTML = PROGRAMS.map(p => {
-            const diffPips = [1, 2, 3, 4].map(i => `
+  function renderCards() {
+    grid.innerHTML = PROGRAMS.map((p) => {
+      const diffPips = [1, 2, 3, 4]
+        .map(
+          (i) => `
               <span class="diff-pip" style="background:${i <= p.difficulty ? p.color : '#1E293B'}"></span>
-            `).join('');
-            
-            const focusBadges = p.focus.map(f => `
-              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid ${p.color}30;background:${p.glowColor};color:${p.color};text-transform:uppercase;letter-spacing:.05em">${f}</span>
-            `).join('');
+            `
+        )
+        .join('');
 
-            return `
+      const focusBadges = p.focus
+        .map(
+          (f) => `
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid ${p.color}30;background:${p.glowColor};color:${p.color};text-transform:uppercase;letter-spacing:.05em">${f}</span>
+            `
+        )
+        .join('');
+
+      return `
             <div class="program-card group" data-id="${p.id}">
               <div class="card-glow" style="box-shadow:inset 0 0 0 1px ${p.color}55, 0 0 40px ${p.glowColor}"></div>
               <div style="height:3px;background:${p.gradient}"></div>
@@ -81,92 +89,117 @@
                 </button>
               </div>
             </div>`;
-        }).join('');
-    }
+    }).join('');
+  }
 
-    // DELEGACIÓN: Abrir programa desde la grilla
-    grid.addEventListener('click', e => {
-        const card = e.target.closest('.program-card');
-        if (card) openProgram(card.dataset.id);
-    });
+  // DELEGACIÓN: Abrir programa desde la grilla
+  grid.addEventListener('click', (e) => {
+    const card = e.target.closest('.program-card');
+    if (card) openProgram(card.dataset.id);
+  });
 
-    /* ══════════════════════════════════════════════════════════
+  /* ══════════════════════════════════════════════════════════
        DRAWER LOGIC
     ══════════════════════════════════════════════════════════ */
-    function openDrawer() { drawer.classList.add('open'); backdrop.classList.add('open'); }
-    function closeDrawer() { drawer.classList.remove('open'); backdrop.classList.remove('open'); }
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
 
-    backdrop.addEventListener('click', closeDrawer);
-    document.getElementById('close-drawer').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.getElementById('close-drawer').addEventListener('click', closeDrawer);
 
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  });
+
+  function openProgram(id) {
+    const p = PROGRAMS.find((x) => x.id === id);
+    if (!p) return;
+    currentProgram = p;
+    currentRMs = {};
+    p.inputs.forEach((i) => {
+      currentRMs[i.id] = i.default;
     });
 
-    function openProgram(id) {
-        const p = PROGRAMS.find(x => x.id === id);
-        if (!p) return;
-        currentProgram = p;
-        currentRMs = {};
-        p.inputs.forEach(i => { currentRMs[i.id] = i.default; });
+    // Populate Header & Info
+    document.getElementById('drawer-icon').textContent = p.icon;
+    document.getElementById('drawer-icon').style.background = p.glowColor;
+    document.getElementById('drawer-icon').style.border = `1px solid ${p.color}30`;
+    document.getElementById('drawer-title').textContent = p.name;
+    document.getElementById('drawer-author').textContent = p.author;
+    document.getElementById('drawer-header-strip').style.background = p.gradient;
+    document.getElementById('drawer-description').textContent = p.description;
 
-        // Populate Header & Info
-        document.getElementById('drawer-icon').textContent = p.icon;
-        document.getElementById('drawer-icon').style.background = p.glowColor;
-        document.getElementById('drawer-icon').style.border = `1px solid ${p.color}30`;
-        document.getElementById('drawer-title').textContent = p.name;
-        document.getElementById('drawer-author').textContent = p.author;
-        document.getElementById('drawer-header-strip').style.background = p.gradient;
-        document.getElementById('drawer-description').textContent = p.description;
-
-        document.getElementById('drawer-stats').innerHTML = p.stats.map(s => `
+    document.getElementById('drawer-stats').innerHTML = p.stats
+      .map(
+        (s) => `
           <div class="stat-chip">
             <span class="material-symbols-rounded" style="color:${p.color};font-variation-settings:'FILL' 1">${s.icon}</span>
             ${s.label}
-          </div>`).join('');
+          </div>`
+      )
+      .join('');
 
-        // Populate 1RM Inputs
-        rmGrid.innerHTML = p.inputs.map(i => `
+    // Populate 1RM Inputs
+    rmGrid.innerHTML = p.inputs
+      .map(
+        (i) => `
           <div>
             <label class="form-label">${i.label}</label>
             <div class="rm-input-wrap">
               <input type="number" class="rm-input" data-rm-id="${i.id}" value="${i.default}" min="0" max="999" step="2.5" />
               <span class="unit">KG</span>
             </div>
-          </div>`).join('');
+          </div>`
+      )
+      .join('');
 
-        renderOutput();
-        openDrawer();
-        document.getElementById('drawer-body').scrollTop = 0;
+    renderOutput();
+    openDrawer();
+    document.getElementById('drawer-body').scrollTop = 0;
+  }
+
+  // DELEGACIÓN: Capturar cambios en inputs de 1RM
+  rmGrid.addEventListener('input', (e) => {
+    if (e.target.classList.contains('rm-input')) {
+      currentRMs[e.target.dataset.rmId] = parseFloat(e.target.value) || 0;
+      renderOutput(); // Recalcula instantáneamente
     }
+  });
 
-    // DELEGACIÓN: Capturar cambios en inputs de 1RM
-    rmGrid.addEventListener('input', e => {
-        if (e.target.classList.contains('rm-input')) {
-            currentRMs[e.target.dataset.rmId] = parseFloat(e.target.value) || 0;
-            renderOutput(); // Recalcula instantáneamente
-        }
-    });
-
-    /* ══════════════════════════════════════════════════════════
+  /* ══════════════════════════════════════════════════════════
        RENDER PROGRAM OUTPUT
     ══════════════════════════════════════════════════════════ */
-    function renderOutput() {
-        const p = currentProgram;
-        if (!p) return;
-        const weeks = p.generate(currentRMs);
+  function renderOutput() {
+    const p = currentProgram;
+    if (!p) return;
+    const weeks = p.generate(currentRMs);
 
-        programOutput.innerHTML = weeks.map((wk, wi) => {
-            const daysHTML = wk.days.map(day => {
-                const liftsHTML = day.lifts.map(l => {
-                    const isACC = l.type === 'ACC';
-                    const weightStr = l.w > 0 ? `<span class="lift-weight" style="color:${l.color || p.color}">${l.w} kg</span>` : '';
-                    const typeTag = l.type && !isACC
-                        ? `<span class="phase-badge font-mono" style="background:${l.color || p.color}20;color:${l.color || p.color};border:1px solid ${l.color || p.color}30">${l.type}</span>`
-                        : '';
-                    const sublabel = l.sublabel ? `<span class="text-[10px] text-slate-600 font-mono">${l.sublabel}</span>` : '';
+    programOutput.innerHTML = weeks
+      .map((wk, wi) => {
+        const daysHTML = wk.days
+          .map((day) => {
+            const liftsHTML = day.lifts
+              .map((l) => {
+                const isACC = l.type === 'ACC';
+                const weightStr =
+                  l.w > 0
+                    ? `<span class="lift-weight" style="color:${l.color || p.color}">${l.w} kg</span>`
+                    : '';
+                const typeTag =
+                  l.type && !isACC
+                    ? `<span class="phase-badge font-mono" style="background:${l.color || p.color}20;color:${l.color || p.color};border:1px solid ${l.color || p.color}30">${l.type}</span>`
+                    : '';
+                const sublabel = l.sublabel
+                  ? `<span class="text-[10px] text-slate-600 font-mono">${l.sublabel}</span>`
+                  : '';
 
-                    return `
+                return `
                     <div class="lift-line ${isACC ? 'opacity-50' : ''}">
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -181,19 +214,23 @@
                         <span class="lift-scheme">${escHtml(l.sets)}</span>
                       </div>
                     </div>`;
-                }).join('');
+              })
+              .join('');
 
-                return `
+            return `
                 <div class="session-row">
                   <div class="text-[10px] font-700 text-slate-500 uppercase tracking-widest mb-2">${escHtml(day.label)}</div>
                   <div class="space-y-1">${liftsHTML}</div>
                 </div>`;
-            }).join('');
+          })
+          .join('');
 
-            const metaHTML = wk.meta ? `<div class="px-4 pb-3 font-mono text-[10px] text-slate-600">${escHtml(wk.meta)}</div>` : '';
+        const metaHTML = wk.meta
+          ? `<div class="px-4 pb-3 font-mono text-[10px] text-slate-600">${escHtml(wk.meta)}</div>`
+          : '';
 
-            return `
-            <div class="week-block mb-3" style="animation-delay:${wi * .04}s">
+        return `
+            <div class="week-block mb-3" style="animation-delay:${wi * 0.04}s">
               <div class="week-header">
                 <div class="flex items-center gap-3 pointer-events-none">
                   <span class="phase-badge font-mono" style="background:${wk.phaseColor}20;color:${wk.phaseColor};border:1px solid ${wk.phaseColor}30">
@@ -206,45 +243,74 @@
               ${metaHTML}
               <div class="session-body" style="max-height: 9999px;">${daysHTML}</div>
             </div>`;
-        }).join('');
-    }
+      })
+      .join('');
+  }
 
-    // DELEGACIÓN: Collapsible weeks
-    programOutput.addEventListener('click', e => {
-        const header = e.target.closest('.week-header');
-        if (!header) return;
-        
-        const body = header.closest('.week-block').querySelector('.session-body');
-        const icon = header.querySelector('.expand-icon');
-        const isOpen = body.style.maxHeight !== '0px';
-        
-        body.style.maxHeight = isOpen ? '0px' : '9999px';
-        icon.textContent = isOpen ? 'chevron_right' : 'expand_more';
-    });
+  // DELEGACIÓN: Collapsible weeks
+  programOutput.addEventListener('click', (e) => {
+    const header = e.target.closest('.week-header');
+    if (!header) return;
 
-    /* ─── Assign / Save ──────────────────────────────────────── */
-    function getOrCreateModal(session, db) {
-        if (!assignModal) {
-            assignModal = new window.ProgramAssignModal({
-                gymId: session.user.app_metadata.gym_id,
-                db,
-                onSuccess: ({ student, program }) => {
-                    toast(`${program.name} asignado a ${student.full_name} ✓`);
-                }
-            });
+    const body = header.closest('.week-block').querySelector('.session-body');
+    const icon = header.querySelector('.expand-icon');
+    const isOpen = body.style.maxHeight !== '0px';
+
+    body.style.maxHeight = isOpen ? '0px' : '9999px';
+    icon.textContent = isOpen ? 'chevron_right' : 'expand_more';
+  });
+
+  /* ─── Assign / Save ──────────────────────────────────────── */
+  function getOrCreateModal(session, db) {
+    if (!assignModal) {
+      assignModal = new window.ProgramAssignModal({
+        gymId: session.user.app_metadata.gym_id,
+        db,
+        onSuccess: ({ student, program }) => {
+          toast(`${program.name} asignado a ${student.full_name} ✓`);
         }
-        return assignModal;
+      });
     }
+    return assignModal;
+  }
 
-    document.getElementById('btn-assign').addEventListener('click', () => {
-        if (!currentProgram) return;
-        const modal = getOrCreateModal(session, db);
-        modal.open({ preProgram: currentProgram });
-    });
+  document.getElementById('btn-assign').addEventListener('click', () => {
+    if (!currentProgram) return;
+    const modal = getOrCreateModal(session, db);
+    modal.open({ preProgram: currentProgram });
+  });
 
-    /* ─── Init ────────────────────────────────────────────────── */
-    renderCards();
+  document.getElementById('btn-save-template')?.addEventListener('click', async () => {
+    if (!currentProgram) return;
+    const btn = document.getElementById('btn-save-template');
+    const gymId = session.user.app_metadata.gym_id;
 
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando...`;
+
+    try {
+      const { error } = await db.from('program_templates').insert({
+        gym_id: gymId,
+        slug: `${currentProgram.id}-${Date.now()}`,
+        name: currentProgram.name,
+        description: currentProgram.description,
+        weeks: currentProgram.weeks,
+        days_per_week: currentProgram.daysPerWeek,
+        level: currentProgram.level,
+        config: { rms: { ...currentRMs }, program_id: currentProgram.id }
+      });
+
+      if (error) throw error;
+      toast('Programa guardado como plantilla');
+    } catch (err) {
+      console.error('Error saving template:', err);
+      toast('No se pudo guardar la plantilla', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">bookmark</span>Guardar`;
+    }
+  });
+
+  /* ─── Init ────────────────────────────────────────────────── */
+  renderCards();
 })();
-
-

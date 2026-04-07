@@ -378,4 +378,9 @@
 
   /* ─── Init ───────────────────────────────────────────────── */
   await Promise.all([loadGym(), loadProfile()]);
+
+  /* ─── Ir a Premium ──────────────────────────────────────── */
+  document.getElementById('btn-go-premium')?.addEventListener('click', () => {
+    toast('Funcionalidad Premium próximamente', 'info');
+  });
 })();
