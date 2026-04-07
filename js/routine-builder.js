@@ -194,6 +194,7 @@
       const { data, error } = await dbApi.exercises.getGlobalAndGym(gymId);
       if (error) {
         console.error('❌ Error cargando ejercicios via dbApi:', error.message || error);
+        toast('No se pudo cargar el catálogo de ejercicios', 'error');
         exercises = [];
         return;
       }

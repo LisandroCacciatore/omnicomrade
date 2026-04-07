@@ -65,6 +65,7 @@ async function loadMemberships() {
 
   if (error) {
     console.error('Error cargando membresías:', error);
+    window.tfUtils.toast('Error al cargar las membresías', 'error');
     return;
   }
 
@@ -83,6 +84,7 @@ async function ensurePlanCatalog() {
 
   if (error && error.code !== '42P01') {
     console.error('Error cargando catálogo de planes:', error);
+    window.tfUtils.toast('Error al cargar el catálogo de planes', 'error');
     return;
   }
 

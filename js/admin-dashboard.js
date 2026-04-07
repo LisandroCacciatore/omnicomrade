@@ -127,6 +127,7 @@ async function loadKPIs() {
       kpiMonthlyIncome.textContent = '$' + (monthlyIncome || 0).toLocaleString('es-AR');
   } catch (err) {
     console.error('Error loading KPIs:', err);
+    toast('Error al cargar los indicadores del dashboard', 'error');
   }
 }
 
@@ -178,6 +179,7 @@ async function loadRecentStudents() {
       .join('');
   } catch (err) {
     console.error('Error loading students:', err);
+    toast('Error al cargar los atletas recientes', 'error');
     recentStudentsTable.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-danger text-xs">Error al cargar datos</td></tr>`;
   }
 }
