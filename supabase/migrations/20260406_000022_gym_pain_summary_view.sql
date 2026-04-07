@@ -7,7 +7,7 @@ WITH recent AS (
     pain_zone,
     pain,
     checked_at,
-    wellbeing_notes
+    notes
   FROM wellbeing_logs
   WHERE checked_at >= NOW() - INTERVAL '30 days'
 ),

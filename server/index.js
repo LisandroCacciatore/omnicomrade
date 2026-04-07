@@ -7,6 +7,7 @@ import progressRouter from './routes/progress.js';
 import messagesRouter from './routes/messages.js';
 import plansRouter from './routes/plans.js';
 import accessRouter from './routes/access.js';
+import seedRouter from './routes/seed.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -20,7 +21,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-
 app.use(express.json());
 
 app.use('/api/onboarding', onboardingRouter);
@@ -30,6 +30,7 @@ app.use('/api/progress', progressRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api', plansRouter);
 app.use('/api', accessRouter);
+app.use('/api', seedRouter);
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

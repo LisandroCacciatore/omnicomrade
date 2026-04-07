@@ -5,20 +5,63 @@ El proyecto se reinicia desde cero. Cada decisión que tomás tiene que ser cons
 
 ---
 
-## Contexto del Producto
+# TechFitness — Agent de Proyecto
+**Actualizado**: 2026-04-07
+**Estado**: Post-MVP — Motor de entrenamiento completo, listo para piloto
 
-**TechFitness** es una plataforma SaaS B2B que los dueños de gimnasios contratan para gestionar:
-- Alumnos y sus membresías
-- Rutinas y ejercicios asignados por profesores
-- Asistencia y métricas de rendimiento
-- Comunicación interna (notificaciones, alertas)
-- Configuración del gimnasio como tenant
+> ⚠️ Este documento reemplaza la versión anterior del AGENT.md.
+> El proyecto evolucionó significativamente más allá del MVP original.
 
-### Modelo de negocio
-- **Multitenant**: cada gimnasio es un tenant aislado
-- **Roles dentro de cada tenant**: `gim_admin`, `profesor`, `alumno`
-- **Planes de suscripción**: Free, Premium Analytics
-- **Stack de backend**: Supabase (Auth + Postgres + RLS + Realtime)
+---
+
+## Lo que realmente es TechFitness
+
+**No es** un CRM de gimnasio con rutinas.
+**Es** un motor de autorregulación deportiva con capa de gestión de gimnasio.
+
+La diferencia importa para priorizar: el valor competitivo está en el motor
+de entrenamiento (`training-engine`, `athlete-insights`, `workout-session`),
+no en los CRUDs operativos.
+
+---
+
+## Arquitectura Real del Sistema
+
+### Capas del producto
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  CAPA DE INTELIGENCIA (ventaja competitiva)             │
+│  training-engine.js  · athlete-insights.js              │
+│  training-math.js    · wellbeing-check.js               │
+│  4 Vistas SQL: v_athlete_risk, v_stagnation_check,      │
+│                v_exercise_progress, v_weekly_volume      │
+├─────────────────────────────────────────────────────────┤
+│  CAPA DE EJECUCIÓN                                      │
+│  workout-session.js  · routine-builder.js               │
+│  wellbeing-check.js  · workout-session.html             │
+├─────────────────────────────────────────────────────────┤
+│  CAPA DE INFRAESTRUCTURA                                │
+│  db.js · auth.js · auth-guard.js · supabase.js          │
+│  route-map.js · store.js · instrumentation.js           │
+├─────────────────────────────────────────────────────────┤
+│  CAPA OPERATIVA (gestión del gimnasio)                  │
+│  student-list · membership-list · routine-list          │
+│  attendance · gym-setting · exercise-list               │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Stack tecnológico
+
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | HTML + Tailwind CSS (config custom) + Vite |
+| JS | Vanilla JS modular (ESM en utils, legacy global en controllers) |
+| Backend | Express.js (`server/`) + Supabase como DB principal |
+| DB | PostgreSQL vía Supabase (RLS + vistas SQL analíticas) |
+| Auth | Supabase Auth + Google OAuth |
+| Deploy | Vercel (frontend) |
+| Tests | Playwright (E2E) + Jest (unit — pendiente en athlete-insights) |
 
 ---
 
@@ -26,133 +69,152 @@ El proyecto se reinicia desde cero. Cada decisión que tomás tiene que ser cons
 
 | Rol | Acceso | Dashboard |
 |-----|--------|-----------|
-| `gim_admin` | Gestión total del tenant | `admin_dashboard` |
-| `profesor` | Alumnos asignados + rutinas | `profesor_dashboard` |
-| `alumno` | Su perfil y rutina | `student_profile` |
+| `gim_admin` | Gestión total del tenant | `admin-dashboard.html` |
+| `profesor` | Alumnos asignados + rutinas + semáforo de riesgo | `profesor-dashboard.html` |
+| `alumno` | Su perfil, rutina, sesiones, progreso | `student-dashboard.html` |
+
+> **Nota de nomenclatura**: los archivos usan guión (`admin-dashboard.html`),
+> no underscore. Usar siempre la nomenclatura del árbol de archivos.
 
 ---
 
-## Stack Tecnológico
+## Design System
 
-### Frontend
-- **Framework**: HTML + Tailwind CSS (con config personalizada)
-- **Iconografía**: Material Symbols Outlined (Google)
-- **Tipografía**: Space Grotesk (Google Fonts)
-- **Modo**: Dark mode por defecto (`class="dark"` en `<html>`)
-
-### Design Tokens (Tailwind)
 ```js
+// tailwind.config.js (runtime via tailwind-config.js)
 colors: {
-  primary:           "#3B82F6",  // Azul — acción principal
-  success:           "#10B981",  // Verde — estados OK
-  danger:            "#EF4444",  // Rojo — errores / crítico
-  warning:           "#F59E0B",  // Amarillo — advertencias
-  secondary:         "#10B981",  // Alias de success
-  "background-dark": "#0B1218",  // Fondo principal dark
-  "surface-dark":    "#161E26",  // Cards/panels dark
-  "border-dark":     "#1E293B",  // Bordes dark
-  "border-muted":    "#334155",  // Bordes sutiles
-  "background-light":"#f1f5f9",  // Fondo light
+  primary:           "#3B82F6",
+  success:           "#10B981",
+  danger:            "#EF4444",
+  warning:           "#F59E0B",
+  "background-dark": "#0B1218",
+  "surface-dark":    "#161E26",
+  "border-dark":     "#1E293B",
+  "border-muted":    "#334155",
+  "background-light":"#f1f5f9",
 }
-```
-
-### Backend
-- **Auth**: Supabase Auth (email + password)
-- **DB**: PostgreSQL vía Supabase
-- **Row Level Security**: Activado — cada query está filtrada por tenant
-- **Realtime**: Para notificaciones y presencia
-- **Storage**: Para logos y assets de gimnasios
-
----
-
-## Pantallas Existentes (como referencia de diseño)
-
-| Archivo | Rol | Descripción |
-|---------|-----|-------------|
-| `login.html` | Todos | Autenticación, redirige por rol |
-| `admin_dashboard.html` | gim_admin | Overview con métricas y accesos rápidos |
-| `student_list.html` | gim_admin / profesor | Lista de alumnos con filtros |
-| `student_profile.html` | gim_admin / profesor | Perfil individual de alumno |
-| `routine_editor.html` | profesor | Editor de rutinas drag-and-drop |
-| `user_management.html` | gim_admin | CRUD de usuarios del tenant |
-| `profesor_dashboard.html` | profesor | Dashboard específico del profesor |
-| `gym_setting.html` | gim_admin | Config técnica del gimnasio |
-| `notification_center.html` | Todos | Panel lateral de notificaciones |
-| `empty_state_no_alert.html` | gim_admin | Estado vacío — sin alertas |
-| `empty_state_no_student.html` | gim_admin | Estado vacío — sin alumnos |
-
----
-
-## Principios No Negociables
-
-### Arquitectura
-1. **RLS siempre activo** — ninguna tabla es accesible sin política de seguridad por tenant
-2. **Un tenant, un schema lógico** — los datos nunca se mezclan entre gimnasios
-3. **Auth state global** — el rol del usuario se lee de `app_metadata.role` al login
-4. **Mobile-first** — todas las pantallas deben funcionar en móvil
-
-### Diseño
-1. **Dark mode es el default** — `class="dark"` en `<html>`, soporte light opcional
-2. **Design tokens de Tailwind** — no usar colores hardcodeados fuera del config
-3. **Material Symbols** — no mezclar con otras librerías de iconos
-4. **Space Grotesk** — tipografía única del sistema
-5. **Estados vacíos explícitos** — toda lista o sección que pueda estar vacía tiene su empty state
-
-### Desarrollo
-1. **Componentes primero** — antes de una pantalla, definir los componentes que la componen
-2. **TypeScript estricto** — si el proyecto evoluciona a un framework (React/Next), TS obligatorio
-3. **Sin lógica en el HTML** — la UI no hace consultas directas; toda data pasa por una capa de servicio
-4. **Tests de integración** — Playwright cubre los flujos críticos antes de mergear
-
-### Proceso
-1. **User stories antes de código** — el BA define el comportamiento antes de que el dev lo implemente
-2. **Diseño aprobado antes de código** — el UX/UI entrega mocks antes del sprint de desarrollo
-3. **QA bloquea el deploy** — si hay un test de Playwright roto, no se mergea
-4. **Lean primero** — no construir features que no tienen un usuario que la pidió
-
----
-
-## Flujo de Trabajo del Equipo
-
-```
-BA define historia
-     ↓
-UX/UI diseña pantalla / componente
-     ↓
-Arquitecto valida schema y API
-     ↓
-Dev implementa
-     ↓
-QA escribe test Playwright
-     ↓
-PM cierra historia en el tablero
+// Fuente: Space Grotesk
+// Iconos: Material Symbols Outlined
+// Modo: Dark por defecto (class="dark" en <html>)
 ```
 
 ---
 
-## Cómo Usar este Documento
+## Módulos Core — Referencia Rápida
 
-Este `AGENT.md` es la fuente de verdad del proyecto.
-Antes de tomar cualquier decisión técnica o de diseño, consultalo.
+### Motor de Entrenamiento (`training-engine.js`)
+- `window.tfTrainingEngine`
+- 6 programas: Starting Strength, StrongLifts 5×5, GZCLP, Wendler 5/3/1, Cube Method, PPL
+- Entrada: 1RMs por movimiento → Salida: semanas de entrenamiento con sets/reps/% carga
+- Dispatcher: `generateProgram(id, rms)` → busca en catálogo, fallback a legacy
 
-Cada rol tiene su propio `SKILL.md` con instrucciones específicas:
+### Matemática de Entrenamiento (`training-math.js`)
+- `tfTrainingMath.roundWeight(value, step=2.5)` — **fuente de verdad del redondeo**
+- `tfTrainingMath.pct(base, percent, step)` — % del 1RM redondeado
+- `tfTrainingMath.estimate1RM(weight, reps)` — Brzycki: `weight × 36 / (37 - reps)`
+- `tfTrainingMath.estimateRPE(reps, percentage)` — aproximación de RPE
+
+### Insights del Atleta (`athlete-insights.js`)
+- `AthleteInsights.calcAthleteScore({wbLogs, sessions, logs, daysPerWeek})`
+  → Score 0-100: bienestar 7d (30) + consistencia 30d (25) + progresión 30d (25) + fatiga 7d (20)
+- `AthleteInsights.predictSessionQuality({wbLogs, logs, sessions})`
+  → Predicción: 4 flags → risk 0-100 → mala/moderada/buena
+- `AthleteInsights.calcRisks(...)` → Riesgo sobrecarga + riesgo abandono
+- `AthleteInsights.calcAutoProgression({logs, sessions})`
+  → Por ejercicio: ≥2 fallidos→-5% / al fallo sin fallar→mantener / todo bien→+2.5kg
+
+### Capa de Datos (`db.js`)
+- `window.tfDb` — Fachada por tabla con retry automático
+- `runWithRetry(op, table, opType, maxRetries=3)` — backoff 1s→2s→4s
+- `DBError` — Clasificación semántica: schema / transitorio / auth / duplicado
+- **Usar siempre tfDb, nunca el cliente de Supabase directamente en los controllers**
+
+### Vistas SQL Analíticas
+| Vista | Propósito |
+|-------|-----------|
+| `v_exercise_progress` | Max weight por ejercicio por sesión |
+| `v_weekly_volume` | Sets semanales por grupo muscular |
+| `v_stagnation_check` | Estancamiento: 3+ sesiones sin mejora |
+| `v_athlete_risk` | Score compuesto 0-100 con 5 señales (5 CTEs) |
+
+---
+
+## Flujo Principal del Atleta
+
+```
+student-dashboard
+    → pendingWorkout (sessionStorage)
+        → wellbeing-check (score + bienestar)
+            → activeWorkout + wellbeing (sessionStorage)
+                → workout-session (card deck, carry-over, timer)
+                    → POST /api/workouts/sessions/:id/complete
+                    → fallback: INSERT directo Supabase
+                        → workout_sessions + workout_exercise_logs + wellbeing_logs
+                            → v_athlete_risk (5 CTEs)
+                                → athlete-insights.js (score, riesgo, auto-progression)
+                                    → progress.html / profesor-dashboard / student-dashboard
+```
+
+---
+
+## Cobertura Funcional Actual (~90%)
+
+### ✅ Implementado
+- Autenticación: email + Google OAuth, guard por rol, access requests
+- Onboarding: wizard 4 pasos (gym → atleta → membresía → programa)
+- Gestión: alumnos, membresías, rutinas, ejercicios, asistencia
+- Motor: 6 programas de entrenamiento con generación dinámica
+- Sesión activa: card deck, carry-over, timer con vibración, anti-fallback
+- Bienestar: check pre-entreno, score, integración con sesión
+- Analítica: 4 vistas SQL, gauges, sparklines, charts
+- Insights: score atleta, predicción sesión, riesgo, auto-progression
+- Semáforo de riesgo: panel profesor con alertas por atleta
+- Configuración: gym-setting, planes de membresía
+
+### ⬜ Faltante (~10%)
+- Feedback post-sesión al alumno (qué fue bien, qué ajustar)
+- Plan de recuperación automático (deload sugerido por sistema)
+- Comunicación coach-atleta dentro del flujo de entreno
+- Tests unitarios de `athlete-insights.js` (deuda crítica)
+
+---
+
+## Deuda Técnica — Top 3
+
+| # | Deuda | Impacto | Ubicación |
+|---|-------|---------|-----------|
+| 1 | `athlete-insights.js` sin tests | 🔴 Alto | 355 líneas de lógica crítica sin validación |
+| 2 | Thresholds hardcodeados en JS | 🔴 Alto | Reglas de riesgo/auto-progression no configurables sin deploy |
+| 3 | Redondeo duplicado | 🟡 Medio | `Math.round(x/2.5)*2.5` en workout-session y athlete-insights — usar `tfTrainingMath.roundWeight` |
+
+---
+
+## Reglas de Desarrollo — Actualización
+
+### Siempre
+- Redondeo de peso: `tfTrainingMath.roundWeight(value, step)` — nunca `Math.round(x/2.5)*2.5`
+- Acceso a datos: `tfDb.[tabla].[método]()` — nunca cliente Supabase directo en controllers
+- Escape de HTML: `tfUiUtils.escHtml()` — nunca `innerHTML` con datos de usuario
+- Toast: `tfUiUtils.toast(message, type)` — no implementar toasts propios
+
+### Nunca
+- Lógica de scoring o riesgo en los controllers — va en `athlete-insights.js`
+- Lógica de generación de programas fuera de `training-engine.js`
+- Queries directas al cliente Supabase en archivos de pantalla
+
+---
+
+## Skills del Equipo
 
 | Rol | Archivo |
 |-----|---------|
-| UX/UI Designer | `skills/ux-ui/SKILL.md` |
-| Product Manager | `skills/pm/SKILL.md` |
-| Business Analyst | `skills/ba/SKILL.md` |
+| UX/UI | `skills/ux-ui/SKILL.md` |
+| PM | `skills/pm/SKILL.md` |
+| BA | `skills/ba/SKILL.md` |
 | Arquitecto | `skills/arquitecto/SKILL.md` |
-| Desarrollador | `skills/dev/SKILL.md` |
-| QA (Playwright) | `skills/qa/SKILL.md` |
+| Dev | `skills/dev/SKILL.md` |
+| QA | `skills/qa/SKILL.md` |
 
----
-
-## Estado Actual del Proyecto
-
-El proyecto se reinicia desde cero. Las pantallas HTML existentes son **referencia de diseño**, no código de producción.
-
-**Lo que existe**: Mocks HTML estáticos con el design system definido.
-**Lo que falta**: Todo el resto.
-
-Empezar por: BA → arquitecto → dev (en ese orden).
+> Los skills fueron escritos para el MVP original.
+> Las convenciones de código del Dev skill siguen siendo válidas.
+> El schema del Arquitecto skill es referencia — el schema real está en `schema_complete.sql`.

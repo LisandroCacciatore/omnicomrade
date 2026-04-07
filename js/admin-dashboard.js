@@ -279,7 +279,9 @@ const PAIN_ZONE_ALIASES = {
   tobillo_izquierdo: ['tobillo_izquierdo', 'tobillo izquierdo'],
   tobillo_derecho: ['tobillo_derecho', 'tobillo derecho'],
   muneca_izquierda: ['muneca_izquierda', 'muñeca_izquierda', 'muñeca izquierda'],
-  muneca_derecha: ['muneca_derecha', 'muñeca_derecha', 'muñeca derecha']
+  muneca_derecha: ['muneca_derecha', 'muñeca_derecha', 'muñeca derecha'],
+  brazo_izquierdo: ['brazo_izquierdo', 'brazo izquierdo', 'biceps_izquierdo', 'triceps_izquierdo'],
+  brazo_derecho: ['brazo_derecho', 'brazo derecho', 'biceps_derecho', 'triceps_derecho']
 };
 
 function normalizePainZone(zoneRaw) {
@@ -306,9 +308,7 @@ function getPainSeverity(intensityPct = 0) {
 }
 
 function formatPainZoneLabel(zone) {
-  return (zone || '')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return (zone || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function paintRegion(regionEl, row) {
@@ -357,8 +357,11 @@ async function initPainHeatmap() {
   } catch (err) {
     console.error('Error loading pain heatmap:', err);
     statusEl.textContent = 'Sin datos';
-    zoneListEl.innerHTML =
-      '<p class="text-slate-500 text-xs">No pudimos cargar el mapa de dolor para este gimnasio.</p>';
+    zoneListEl.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-6 text-center">
+        <span class="material-symbols-rounded text-slate-700 text-3xl mb-2">warning</span>
+        <p class="text-slate-500 text-xs">No pudimos cargar el mapa de dolor para este gimnasio.</p>
+      </div>`;
     document.getElementById('pain-high-risk-list').innerHTML =
       '<li class="text-slate-500">Sin información disponible.</li>';
     document.getElementById('pain-zone-detail-list').innerHTML =
@@ -390,9 +393,22 @@ function renderAnatomicalHeatmap(rows) {
   const sortedZones = Array.from(painSummaryByZone.values()).sort(
     (a, b) => Number(b.intensity_pct || 0) - Number(a.intensity_pct || 0)
   );
+
+  const totalReports = sortedZones.reduce((sum, z) => sum + Number(z.reports || 0), 0);
+  const badgeEl = document.getElementById('pain-report-badge');
+  if (badgeEl && totalReports > 0) {
+    badgeEl.textContent = `${totalReports} reportes`;
+    badgeEl.classList.remove('hidden');
+  } else if (badgeEl) {
+    badgeEl.classList.add('hidden');
+  }
+
   if (!sortedZones.length) {
-    zoneListEl.innerHTML =
-      '<p class="text-slate-500 text-xs">Aún no hay reportes suficientes (dolor ≥3) en los últimos 30 días.</p>';
+    zoneListEl.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-6 text-center">
+        <span class="material-symbols-rounded text-slate-700 text-3xl mb-2">info</span>
+        <p class="text-slate-500 text-xs">Aún no hay reportes suficientes (dolor ≥3) en los últimos 30 días.</p>
+      </div>`;
     document.getElementById('pain-zone-detail-list').innerHTML =
       '<li class="text-slate-500">Cuando haya zonas en riesgo, aparecerán aquí.</li>';
     if (statusEl) statusEl.textContent = 'Sin alertas';
@@ -462,7 +478,8 @@ async function loadPainZoneDetails(zone) {
       const logZone = normalizePainZone(log.pain_zone);
       if (logZone !== zone) return;
       const previous = byStudent.get(log.student_id);
-      if (!previous || Number(log.pain || 0) > Number(previous.pain || 0)) byStudent.set(log.student_id, log);
+      if (!previous || Number(log.pain || 0) > Number(previous.pain || 0))
+        byStudent.set(log.student_id, log);
     });
 
     const rows = Array.from(byStudent.values()).sort(
@@ -488,7 +505,8 @@ function renderPainZoneDetailList(zone, rows) {
 
   labelEl.textContent = formatPainZoneLabel(zone);
   if (!rows?.length) {
-    detailEl.innerHTML = '<li class="text-slate-500">No hay registros recientes para esta zona.</li>';
+    detailEl.innerHTML =
+      '<li class="text-slate-500">No hay registros recientes para esta zona.</li>';
     return;
   }
 
@@ -549,7 +567,9 @@ async function renderPriorityAttention(summaryRows) {
 
     if (painRes.error) throw painRes.error;
     const stagnationStudents = new Set(
-      ((stagnationRes.data || []).filter((s) => s.is_stagnant).map((s) => s.student_id) || []).filter(Boolean)
+      (
+        (stagnationRes.data || []).filter((s) => s.is_stagnant).map((s) => s.student_id) || []
+      ).filter(Boolean)
     );
     const candidates = new Map();
     (painRes.data || []).forEach((row) => {
@@ -583,7 +603,8 @@ async function renderPriorityAttention(summaryRows) {
       .join('');
   } catch (err) {
     console.error('Error rendering priority attention:', err);
-    listEl.innerHTML = '<li class="text-slate-500">No se pudo calcular prioridad automáticamente.</li>';
+    listEl.innerHTML =
+      '<li class="text-slate-500">No se pudo calcular prioridad automáticamente.</li>';
   }
 }
 
