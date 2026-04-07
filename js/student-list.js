@@ -786,9 +786,7 @@ function setupModalAtleta() {
   }
 
   document.getElementById('btn-nuevo-alumno')?.addEventListener('click', window.openNewAtleta);
-  document
-    .getElementById('btn-empty-add-student')
-    ?.addEventListener('click', window.openNewAtleta);
+  document.getElementById('btn-empty-add-student')?.addEventListener('click', window.openNewAtleta);
   document.getElementById('modal-alumno-backdrop')?.addEventListener('click', closeModal);
   document.getElementById('modal-alumno-close')?.addEventListener('click', closeModal);
   document.getElementById('form-alumno')?.addEventListener('submit', handleSave);
@@ -956,10 +954,18 @@ function setupModalEliminar() {
 
   async function confirmarEliminar() {
     if (!studentToDelete) return;
+    const btn = document.getElementById('btn-confirmar-eliminar');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="material-symbols-rounded text-[16px] animate-spin inline-block mr-1">progress_activity</span>Eliminando...`;
+
     const { error } = await db
       .from('students')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', studentToDelete);
+
+    btn.disabled = false;
+    btn.textContent = originalText;
 
     if (!error) {
       window.tfUtils.toast('Atleta eliminado');

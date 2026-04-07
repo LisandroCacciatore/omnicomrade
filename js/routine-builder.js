@@ -354,9 +354,17 @@
       document
         .getElementById('cancel-confirm-generate')
         .addEventListener('click', () => modal.remove());
-      document.getElementById('confirm-generate').addEventListener('click', () => {
-        modal.remove();
-        doGenerateFromProgram();
+      document.getElementById('confirm-generate').addEventListener('click', async () => {
+        const btn = document.getElementById('confirm-generate');
+        btn.disabled = true;
+        btn.textContent = 'Generando...';
+        try {
+          modal.remove();
+          await doGenerateFromProgram();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Reemplazar';
+        }
       });
       modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.remove();

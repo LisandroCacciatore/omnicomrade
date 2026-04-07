@@ -481,8 +481,9 @@ function setupModal() {
 
       if (error) throw error;
 
+      window.tfUtils.toast('Membresía registrada correctamente');
       closeModal();
-      await loadMemberships(); // recarga todo
+      await loadMemberships();
     } catch (err) {
       errorEl.textContent = 'Error al guardar: ' + err.message;
       errorEl.classList.remove('hidden');
