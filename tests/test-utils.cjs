@@ -18,7 +18,9 @@ function loadTfScript(filename, dependencies = []) {
       querySelectorAll: () => []
     },
     requestAnimationFrame: (fn) => fn(),
-    MutationObserver: class { observe() {} },
+    MutationObserver: class {
+      observe() {}
+    },
     CustomEvent: class {},
     console,
     setTimeout,
@@ -41,10 +43,20 @@ function loadTfScript(filename, dependencies = []) {
   vm.runInContext(source, sandbox);
 
   // Heuristic to find the API object
-  // Expected forms: tfTrainingMath, tfUtils, tfTrainingEngine, tfUiUtils, tfDb
+  // Expected forms: tfTrainingMath, tfUtils, tfTrainingEngine, tfUiUtils, tfDb, AthleteInsights
   const possibleNames = [
-    'tfUtils', 'tfTrainingMath', 'tfTrainingEngine', 'tfUiUtils', 'tfDb',
-    'tf' + filename.replace('.js', '').split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('')
+    'tfUtils',
+    'tfTrainingMath',
+    'tfTrainingEngine',
+    'tfUiUtils',
+    'tfDb',
+    'AthleteInsights',
+    'tf' +
+      filename
+        .replace('.js', '')
+        .split('-')
+        .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+        .join('')
   ];
 
   for (const name of possibleNames) {
