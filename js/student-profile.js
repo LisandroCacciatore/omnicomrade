@@ -252,6 +252,108 @@
     areaStats?.classList.remove('hidden');
   });
 
+  document.getElementById('stats-exercise-select')?.addEventListener('change', (e) => {
+    const exerciseName = e.target.value;
+    if (exerciseName) {
+      renderExerciseChart(student.id, exerciseName);
+    } else {
+      loadStatsData(student.id);
+    }
+  });
+
+  async function renderExerciseChart(studentId, exerciseName) {
+    const statsArea = document.getElementById('stats-area');
+    const chartContainer = document.getElementById('chart-container');
+    const emptyStats = document.getElementById('empty-stats');
+    if (!statsArea || !chartContainer || !emptyStats) return;
+
+    const { data: sessions } = await db
+      .from('workout_sessions')
+      .select(
+        'id, completed_at, day_name, workout_exercise_logs(exercise_name, weight_used, set_number, status)'
+      )
+      .eq('student_id', studentId)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: true })
+      .limit(50);
+
+    const filtered = (sessions || [])
+      .map((s) => {
+        const logs = (s.workout_exercise_logs || []).filter(
+          (l) => l.exercise_name === exerciseName
+        );
+        if (!logs.length) return null;
+        const maxWeight = Math.max(...logs.map((l) => l.weight_used || 0));
+        return { date: s.completed_at, dayName: s.day_name, maxWeight };
+      })
+      .filter(Boolean);
+
+    if (!filtered.length) {
+      chartContainer.classList.add('hidden');
+      emptyStats.classList.remove('hidden');
+      emptyStats.querySelector('p:first-child').textContent = `Sin datos para "${exerciseName}"`;
+      return;
+    }
+
+    emptyStats.classList.add('hidden');
+    chartContainer.classList.remove('hidden');
+
+    const labels = filtered.map((f) =>
+      new Date(f.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })
+    );
+    const weights = filtered.map((f) => f.maxWeight);
+
+    if (chartInstance) chartInstance.destroy();
+    const ctx = document.getElementById('progressChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: exerciseName,
+            data: weights,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59,130,246,.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#3B82F6'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#161E26',
+            borderColor: '#1E293B',
+            borderWidth: 1,
+            titleColor: '#E2E8F0',
+            bodyColor: '#94A3B8',
+            callbacks: { label: (ctx) => `${ctx.parsed.y} kg` }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#475569', font: { size: 10 } }, grid: { color: '#1E293B20' } },
+          y: {
+            ticks: { color: '#475569', font: { size: 10 }, callback: (v) => v + 'kg' },
+            grid: { color: '#1E293B40' }
+          }
+        }
+      }
+    });
+
+    const select = document.getElementById('stats-exercise-select');
+    if (select && !select.querySelector(`option[value="${exerciseName}"]`)) {
+      select.innerHTML += `<option value="${escHtml(exerciseName)}">${escHtml(exerciseName)}</option>`;
+      select.value = exerciseName;
+    }
+  }
+
   /* ── Stats Logic (Chart.js) ── */
   // ── Stats tab: muestra el último entreno comparado con el anterior ──
   async function loadStatsData(studentId) {
@@ -330,6 +432,25 @@
           'Completá tu primer entrenamiento para ver el seguimiento aquí.'
         );
       return;
+    }
+
+    const exerciseNames = new Set();
+    sessions.forEach((s) => {
+      (s.workout_exercise_logs || []).forEach((l) => {
+        if (l.exercise_name) exerciseNames.add(l.exercise_name);
+      });
+    });
+
+    const select = document.getElementById('stats-exercise-select');
+    if (select && exerciseNames.size > 0) {
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">Seleccioná un ejercicio...</option>';
+      Array.from(exerciseNames)
+        .sort()
+        .forEach((ex) => {
+          select.innerHTML += `<option value="${escHtml(ex)}">${escHtml(ex)}</option>`;
+        });
+      if (currentVal && exerciseNames.has(currentVal)) select.value = currentVal;
     }
 
     // Peso máximo por ejercicio por sesión

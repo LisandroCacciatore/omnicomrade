@@ -72,6 +72,7 @@ async function initDashboard() {
   window.loadRecentStudents = loadRecentStudents;
   setupQuickActions();
   setupModals();
+  setupMembershipModal();
   setupDashboardButtons();
   runSchemaHealthCheck();
 }
@@ -243,10 +244,6 @@ function setupDashboardButtons() {
       console.error('❌ onboardingWizard no disponible');
       toast('Error: el wizard de onboarding no está disponible', 'error');
     }
-  });
-
-  document.getElementById('btn-nueva-membresia')?.addEventListener('click', () => {
-    window.openModalMembresia();
   });
 }
 

@@ -1,6 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es" class="dark">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mi Entrenamiento - TechFitness</title>
@@ -8,107 +8,224 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+      rel="stylesheet"
+    />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module" src="js/tailwind-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        * { font-family: 'Space Grotesk', sans-serif; }
-        .font-mono { font-family: 'IBM Plex Mono', monospace !important; }
-        body { background: #0B1218; color: #E2E8F0; min-height: 100vh; }
+      * {
+        font-family: 'Space Grotesk', sans-serif;
+      }
+      .font-mono {
+        font-family: 'IBM Plex Mono', monospace !important;
+      }
+      body {
+        background: #0b1218;
+        color: #e2e8f0;
+        min-height: 100vh;
+      }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 4px;
+      }
 
-        .day-tab { padding: 8px 16px; border-radius: 10px; border: 1px solid #1E293B; background: transparent; color: #475569; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s; white-space: nowrap; }
-        .day-tab:hover { border-color: #334155; color: #94A3B8; }
-        .day-tab.active { background: rgba(59, 130, 246, .12); border-color: #3B82F6; color: #60A5FA; }
+      .day-tab {
+        padding: 8px 16px;
+        border-radius: 10px;
+        border: 1px solid #1e293b;
+        background: transparent;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .day-tab:hover {
+        border-color: #334155;
+        color: #94a3b8;
+      }
+      .day-tab.active {
+        background: rgba(59, 130, 246, 0.12);
+        border-color: #3b82f6;
+        color: #60a5fa;
+      }
 
-        .day-tab.completed-day {
-          border-color: rgba(16,185,129,.35);
-          color: #10B981;
-          background: rgba(16,185,129,.06);
+      .day-tab.completed-day {
+        border-color: rgba(16, 185, 129, 0.35);
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.06);
+      }
+      .day-tab.completed-day.active {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.12);
+      }
+
+      .param-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 12px;
+        border-right: 1px solid #1e293b;
+        flex: 1;
+      }
+      .param-pill:last-child {
+        border-right: none;
+      }
+      .param-label {
+        font-size: 9px;
+        font-weight: 800;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 4px;
+      }
+
+      .progress-ring {
+        transform: rotate(-90deg);
+      }
+      .progress-ring-circle {
+        transition: stroke-dashoffset 0.4s ease;
+      }
+
+      .skeleton {
+        background: #1e293b;
+        border-radius: 8px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
         }
-        .day-tab.completed-day.active {
-          border-color: #10B981;
-          background: rgba(16,185,129,.12);
+        50% {
+          opacity: 0.4;
         }
+      }
 
-        .param-pill { display: flex; flex-direction: column; align-items: center; padding: 10px 12px; border-right: 1px solid #1E293B; flex: 1; }
-        .param-pill:last-child { border-right: none; }
-        .param-label { font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 4px; }
+      .btn-logout {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 10px;
+        border: 1px solid #1e293b;
+        background: transparent;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-logout:hover {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+      }
 
-        .progress-ring { transform: rotate(-90deg); }
-        .progress-ring-circle { transition: stroke-dashoffset .4s ease; }
-
-        .skeleton { background: #1E293B; border-radius: 8px; animation: pulse 1.5s ease-in-out infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
-        
-        .btn-logout { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 10px; border: 1px solid #1E293B; background: transparent; color: #64748B; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
-        .btn-logout:hover { background: rgba(239, 68, 68, .08); border-color: rgba(239, 68, 68, .3); color: #EF4444; }
-
-        /* Toggle Tabs */
-        .view-tab { flex: 1; padding: 8px 0; text-align: center; font-size: 13px; font-weight: 700; border-radius: 8px; transition: all 0.2s; color: #64748B; }
-        .view-tab.active { background: #1E293B; color: #E2E8F0; }
+      /* Toggle Tabs */
+      .view-tab {
+        flex: 1;
+        padding: 8px 0;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 8px;
+        transition: all 0.2s;
+        color: #64748b;
+      }
+      .view-tab.active {
+        background: #1e293b;
+        color: #e2e8f0;
+      }
     </style>
-</head>
-<body>
-
+  </head>
+  <body>
     <header class="sticky top-0 z-30 bg-[#0B1218]/90 backdrop-blur-md border-b border-[#1E293B]">
-        <button id="hamburger-btn" class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2">
-                <span class="material-symbols-rounded text-slate-400">menu</span>
-            </button><div class="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-[#3B82F6] flex items-center justify-center shrink-0">
-                <span class="material-symbols-rounded text-white text-[18px]" style="font-variation-settings:'FILL' 1">bolt</span>
-            </div>
-            <div class="flex-1">
-                <div id="gym-name-header" class="text-xs font-bold text-slate-500 leading-none">Cargando...</div>
-                <div id="student-name-header" class="text-sm font-bold text-white leading-tight mt-0.5">Mi entrenamiento</div>
-            </div>
-            <button type="button" id="logout-btn" class="btn-logout">
-                <span class="material-symbols-rounded text-[17px]">logout</span> Salir
-            </button>
+      <button
+        id="hamburger-btn"
+        class="lg:hidden size-10 flex items-center justify-center rounded-lg hover:bg-slate-800 transition-colors mr-2"
+      >
+        <span class="material-symbols-rounded text-slate-400">menu</span>
+      </button>
+      <div class="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[#3B82F6] flex items-center justify-center shrink-0">
+          <span
+            class="material-symbols-rounded text-white text-[18px]"
+            style="font-variation-settings: 'FILL' 1"
+            >bolt</span
+          >
         </div>
+        <div class="flex-1">
+          <div id="gym-name-header" class="text-xs font-bold text-slate-500 leading-none">
+            Cargando...
+          </div>
+          <div id="student-name-header" class="text-sm font-bold text-white leading-tight mt-0.5">
+            Mi entrenamiento
+          </div>
+        </div>
+        <button type="button" id="logout-btn" class="btn-logout">
+          <span class="material-symbols-rounded text-[17px]">logout</span> Salir
+        </button>
+      </div>
     </header>
 
     <main class="max-w-2xl mx-auto px-4 py-6 space-y-5">
-        
-        <div class="flex bg-[#0B1218] p-1 rounded-xl border border-[#1E293B] hidden" id="view-toggle">
-            <button id="tab-routine" class="view-tab active">Mi Rutina</button>
-            <button id="tab-stats" class="view-tab">Estadí­sticas Ÿ“ˆ</button>
-        </div>
+      <div class="flex bg-[#0B1218] p-1 rounded-xl border border-[#1E293B] hidden" id="view-toggle">
+        <button id="tab-routine" class="view-tab active">Mi Rutina</button>
+        <button id="tab-stats" class="view-tab">Estadí­sticas Ÿ“ˆ</button>
+      </div>
 
-        <div id="loading-state" class="space-y-4">
-            <div class="skeleton h-28 rounded-2xl"></div>
-            <div class="skeleton h-12 rounded-xl"></div>
-            <div class="skeleton h-48 rounded-2xl"></div>
-        </div>
-        
-        <div id="content-area" class="hidden space-y-5"></div>
+      <div id="loading-state" class="space-y-4">
+        <div class="skeleton h-28 rounded-2xl"></div>
+        <div class="skeleton h-12 rounded-xl"></div>
+        <div class="skeleton h-48 rounded-2xl"></div>
+      </div>
 
-        <div id="stats-area" class="hidden space-y-5">
-            <div class="bg-[#161E26] border border-[#1E293B] rounded-2xl p-5">
-                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Progreso Histórico (Pesos)</p>
-                
-                <select id="stats-exercise-select" class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#3B82F6] mb-6 appearance-none">
-                    <option value="">Seleccioná un ejercicio...</option>
-                </select>
+      <div id="content-area" class="hidden space-y-5"></div>
 
-                <div id="chart-container" class="relative h-64 w-full hidden">
-                    <canvas id="progressChart"></canvas>
-                </div>
-                
-                <div id="empty-stats" class="text-center py-10 hidden">
-                    <span class="material-symbols-rounded text-4xl text-slate-600 mb-2">query_stats</span>
-                    <p class="text-sm font-bold text-slate-400">No hay datos suficientes</p>
-                    <p class="text-xs text-slate-500 mt-1">Registrá tus entrenamientos para ver tu progreso.</p>
-                </div>
-            </div>
+      <div id="stats-area" class="hidden space-y-5">
+        <div class="bg-[#161E26] border border-[#1E293B] rounded-2xl p-5">
+          <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">
+            Progreso Histórico (Pesos)
+          </p>
+
+          <select
+            id="stats-exercise-select"
+            class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-[#3B82F6] mb-6 appearance-none"
+          >
+            <option value="">Seleccioná un ejercicio...</option>
+          </select>
+
+          <div id="chart-container" class="relative h-64 w-full hidden">
+            <canvas id="progressChart"></canvas>
+          </div>
+
+          <div id="empty-stats" class="text-center py-10 hidden">
+            <span class="material-symbols-rounded text-4xl text-slate-600 mb-2">query_stats</span>
+            <p class="text-sm font-bold text-slate-400">No hay datos suficientes</p>
+            <p class="text-xs text-slate-500 mt-1">
+              Registrá tus entrenamientos para ver tu progreso.
+            </p>
+          </div>
         </div>
+      </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -118,40 +235,51 @@
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/student-profile.js"></script>
 
-  
-  <nav class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40 lg:hidden">
-    <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-      <span class="material-symbols-rounded text-slate-500 text-[22px]" style="font-variation-settings:'FILL' 0">home</span>
-      <span class="text-[9px] font-bold text-slate-500">Inicio</span>
-    </a>
-    <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10">
-      <span class="material-symbols-rounded text-[#3B82F6] text-[22px]" style="font-variation-settings:'FILL' 1">fitness_center</span>
-      <span class="text-[9px] font-bold text-[#3B82F6]">Entrenar</span>
-    </a>
-    <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-      <span class="material-symbols-rounded text-slate-500 text-[22px]" style="font-variation-settings:'FILL' 0">trending_up</span>
-      <span class="text-[9px] font-bold text-slate-500">Progreso</span>
-    </a>
-    <a href="wellbeing-check.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-      <span class="material-symbols-rounded text-slate-500 text-[22px]" style="font-variation-settings:'FILL' 0">self_improvement</span>
-      <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
-    </a>
-  </nav>
-  <div class="h-20 lg:hidden"></div>
-
-</body>
+    <nav
+      class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40 lg:hidden"
+    >
+      <a
+        href="student-dashboard.html"
+        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl"
+      >
+        <span
+          class="material-symbols-rounded text-slate-500 text-[22px]"
+          style="font-variation-settings: 'FILL' 0"
+          >home</span
+        >
+        <span class="text-[9px] font-bold text-slate-500">Inicio</span>
+      </a>
+      <a
+        href="student-dashboard.html"
+        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10"
+      >
+        <span
+          class="material-symbols-rounded text-[#3B82F6] text-[22px]"
+          style="font-variation-settings: 'FILL' 1"
+          >fitness_center</span
+        >
+        <span class="text-[9px] font-bold text-[#3B82F6]">Entrenar</span>
+      </a>
+      <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
+        <span
+          class="material-symbols-rounded text-slate-500 text-[22px]"
+          style="font-variation-settings: 'FILL' 0"
+          >trending_up</span
+        >
+        <span class="text-[9px] font-bold text-slate-500">Progreso</span>
+      </a>
+      <a
+        href="wellbeing-check.html"
+        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl"
+      >
+        <span
+          class="material-symbols-rounded text-slate-500 text-[22px]"
+          style="font-variation-settings: 'FILL' 0"
+          >self_improvement</span
+        >
+        <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
+      </a>
+    </nav>
+    <div class="h-20 lg:hidden"></div>
+  </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-

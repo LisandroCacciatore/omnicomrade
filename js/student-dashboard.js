@@ -179,6 +179,24 @@
       ? `Semana ${week} · Día ${dayOfWeek} de ${daysPerWeek}${isLastDayOfWeek ? ' · ¡Última sesión de la semana!' : ''}`
       : 'Comenzá tu entrenamiento';
 
+  const btnEntrenar = document.getElementById('btn-entrenar');
+  if (btnEntrenar) {
+    btnEntrenar.addEventListener('click', (e) => {
+      e.preventDefault();
+      sessionStorage.setItem(
+        'pendingWorkout',
+        JSON.stringify({
+          week,
+          day: dayOfWeek,
+          daysPerWeek,
+          routineName,
+          source: 'student-dashboard'
+        })
+      );
+      window.location.href = btnEntrenar.href;
+    });
+  }
+
   /* ─── Membresía ─────────────────────────────────────── */
   if (membership) {
     const end = new Date(membership.end_date);
