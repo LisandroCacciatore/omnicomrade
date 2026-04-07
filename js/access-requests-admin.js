@@ -33,26 +33,35 @@
     try {
       const items = await fetchRequests();
       if (!items.length) {
-        bodyEl.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-slate-500">Sin solicitudes</td></tr>';
+        bodyEl.innerHTML =
+          '<tr><td colspan="5" class="px-4 py-6 text-slate-500">Sin solicitudes</td></tr>';
         return;
       }
 
-      bodyEl.innerHTML = items.map((r) => `
+      bodyEl.innerHTML = items
+        .map(
+          (r) => `
         <tr class="border-t border-border-dark">
           <td class="px-4 py-3">${window.tfUtils.escHtml(r.email || '—')}</td>
           <td class="px-4 py-3">${window.tfUtils.escHtml(r.full_name || '—')}</td>
           <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-1 rounded-full ${statusBadge(r.status)}">${window.tfUtils.escHtml(r.status)}</span></td>
           <td class="px-4 py-3 text-slate-400">${formatDate(r.requested_at)}</td>
           <td class="px-4 py-3">
-            ${r.status === 'pending' ? `
+            ${
+              r.status === 'pending'
+                ? `
               <div class="flex gap-2">
                 <button data-action="approve" data-id="${r.id}" class="px-3 py-1.5 rounded-lg bg-success/20 text-success font-bold text-xs">Aprobar</button>
                 <button data-action="reject" data-id="${r.id}" class="px-3 py-1.5 rounded-lg bg-danger/20 text-danger font-bold text-xs">Rechazar</button>
               </div>
-            ` : '<span class="text-slate-500 text-xs">Sin acciones</span>'}
+            `
+                : '<span class="text-slate-500 text-xs">Sin acciones</span>'
+            }
           </td>
         </tr>
-      `).join('');
+      `
+        )
+        .join('');
     } catch (err) {
       bodyEl.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-danger">${window.tfUtils.escHtml(err.message)}</td></tr>`;
     }
@@ -63,9 +72,9 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-actor-id': actorId,
+        'x-actor-id': actorId
       },
-      body: JSON.stringify({ role: 'alumno' }),
+      body: JSON.stringify({ role: 'alumno' })
     });
     const payload = await res.json();
     if (!res.ok) throw new Error(payload?.error || 'No se pudo aprobar');
@@ -76,9 +85,9 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-actor-id': actorId,
+        'x-actor-id': actorId
       },
-      body: JSON.stringify({ notes: 'Rechazado desde panel admin' }),
+      body: JSON.stringify({ notes: 'Rechazado desde panel admin' })
     });
     const payload = await res.json();
     if (!res.ok) throw new Error(payload?.error || 'No se pudo rechazar');
@@ -88,14 +97,19 @@
     const btn = evt.target.closest('button[data-action]');
     if (!btn) return;
     const { action, id } = btn.dataset;
+    const isApprove = action === 'approve';
+    if (!confirm(`¿${isApprove ? 'Aprobar' : 'Rechazar'} esta solicitud?`)) return;
     try {
       btn.disabled = true;
-      if (action === 'approve') await approveRequest(id);
-      if (action === 'reject') await rejectRequest(id);
+      btn.textContent = isApprove ? 'Aprobando...' : 'Rechazando...';
+      if (isApprove) await approveRequest(id);
+      else await rejectRequest(id);
+      window.tfUtils.toast(isApprove ? 'Solicitud aprobada' : 'Solicitud rechazada');
       await load();
     } catch (err) {
       window.tfUtils.toast(err.message || 'Error', 'error');
       btn.disabled = false;
+      btn.textContent = isApprove ? 'Aprobar' : 'Rechazar';
     }
   });
 

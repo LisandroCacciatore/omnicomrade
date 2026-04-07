@@ -465,39 +465,48 @@
       return;
     }
 
-    const { data: student, error: studentError } = await db
-      .from('students')
-      .select('id, full_name, routine_id')
-      .eq('id', studentId)
-      .eq('gym_id', gymId)
-      .maybeSingle();
+    const submitBtn = document.getElementById('btn-submit-asignar');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Asignando...';
 
-    if (studentError || !student) {
-      modalAsignarError.textContent = 'No se pudo validar el alumno seleccionado.';
-      modalAsignarError.classList.remove('hidden');
-      return;
-    }
+    try {
+      const { data: student, error: studentError } = await db
+        .from('students')
+        .select('id, full_name, routine_id')
+        .eq('id', studentId)
+        .eq('gym_id', gymId)
+        .maybeSingle();
 
-    const hasActiveRoutine = student.routine_id && student.routine_id !== assigningRoutineId;
-    if (hasActiveRoutine) {
-      pendingReplacement = {
+      if (studentError || !student) {
+        modalAsignarError.textContent = 'No se pudo validar el alumno seleccionado.';
+        modalAsignarError.classList.remove('hidden');
+        return;
+      }
+
+      const hasActiveRoutine = student.routine_id && student.routine_id !== assigningRoutineId;
+      if (hasActiveRoutine) {
+        pendingReplacement = {
+          studentId: student.id,
+          studentName: student.full_name || 'Alumno',
+          oldRoutineId: student.routine_id,
+          newRoutineId: assigningRoutineId
+        };
+        document.getElementById('replace-routine-student-name').textContent =
+          pendingReplacement.studentName;
+        closeModal(modalAsignar);
+        openModal(modalConfirmReplace);
+        return;
+      }
+
+      await assignRoutineToStudent({
         studentId: student.id,
-        studentName: student.full_name || 'Alumno',
         oldRoutineId: student.routine_id,
         newRoutineId: assigningRoutineId
-      };
-      document.getElementById('replace-routine-student-name').textContent =
-        pendingReplacement.studentName;
-      closeModal(modalAsignar);
-      openModal(modalConfirmReplace);
-      return;
+      });
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Asignar';
     }
-
-    await assignRoutineToStudent({
-      studentId: student.id,
-      oldRoutineId: student.routine_id,
-      newRoutineId: assigningRoutineId
-    });
   });
 
   async function assignRoutineToStudent({ studentId, oldRoutineId = null, newRoutineId }) {

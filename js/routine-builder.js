@@ -141,7 +141,9 @@
 
     const volumeEl = document.getElementById('summary-muscle-volume');
     if (!volumeEl) return;
-    const volumeEntries = Object.entries(byMuscle).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const volumeEntries = Object.entries(byMuscle)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
     if (!volumeEntries.length) {
       volumeEl.innerHTML =
         '<span class="text-[10px] text-slate-600">Sin volumen por músculo todavía</span>';
@@ -170,8 +172,7 @@
     if (pushSets > 0 && pullSets === 0) {
       ratioEl.className =
         'mt-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-warning/10 text-warning border border-warning/30';
-      ratioEl.textContent =
-        `Push/Pull desbalanceado (${pushSets}:0). Sumá volumen de espalda para prevenir sobrecarga anterior.`;
+      ratioEl.textContent = `Push/Pull desbalanceado (${pushSets}:0). Sumá volumen de espalda para prevenir sobrecarga anterior.`;
       return;
     }
 
@@ -501,11 +502,16 @@
     const dayIdx = days.findIndex((d) => d.id === id);
     if (dayIdx === -1) return;
     const removedDay = days[dayIdx];
-    // Check if has content for undo
     const hasContent =
       removedDay.exercises.length > 0 &&
       removedDay.exercises.some((ex) => (ex.sets_detail?.length || 0) > 0);
     if (hasContent) {
+      if (
+        !confirm(
+          `¿Eliminar "${removedDay.name}"? Tiene ${removedDay.exercises.length} ejercicio(s). Podrás deshacer con Ctrl+Z.`
+        )
+      )
+        return;
       pushUndo({ type: 'day', id, idx: dayIdx, data: removedDay });
     }
     days = days.filter((d) => d.id !== id);
@@ -550,9 +556,14 @@
     const exIdx = day.exercises.findIndex((ex) => ex._id === exId);
     if (exIdx === -1) return;
     const removedEx = day.exercises[exIdx];
-    // Check if has content for undo (sets with weight or reps)
     const hasContent = removedEx.sets_detail?.some((s) => s.weight_kg != null || s.reps);
     if (hasContent) {
+      if (
+        !confirm(
+          `¿Eliminar "${removedEx.name}"? Tiene ${removedEx.sets_detail.length} set(s). Podrás deshacer con Ctrl+Z.`
+        )
+      )
+        return;
       pushUndo({ type: 'exercise', id: exId, dayId, idx: exIdx, data: removedEx });
     }
     day.exercises = day.exercises.filter((ex) => ex._id !== exId);
@@ -577,11 +588,11 @@
     const ex = day.exercises.find((ex) => ex._id === exId);
     if (!ex || ex.sets_detail.length <= 1) return;
     ex.sets_detail = ex.sets_detail.filter((s) => s._sid !== sid);
-    // Renumerar
     ex.sets_detail.forEach((s, i) => {
       s.set_number = i + 1;
     });
     renderDays();
+    toast('Set eliminado');
   }
 
   function duplicateExercise(dayId, exId) {
@@ -1030,7 +1041,11 @@
 
     const btnApplyAll = e.target.closest('.btn-apply-all');
     if (btnApplyAll) {
-      applyToAllSets(btnApplyAll.dataset.dayId, btnApplyAll.dataset.exId, btnApplyAll.dataset.field);
+      applyToAllSets(
+        btnApplyAll.dataset.dayId,
+        btnApplyAll.dataset.exId,
+        btnApplyAll.dataset.field
+      );
       return;
     }
   });
@@ -1225,7 +1240,15 @@
       let routineId;
 
       if (editRoutineId) {
-        // ── EDITAR: UPDATE routine + borrar días viejos y reinsertar ──
+        if (
+          !confirm(
+            '¿Actualizar esta rutina? Se reemplazarán todos los días y ejercicios existentes.'
+          )
+        ) {
+          btn.disabled = false;
+          btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">save</span>${editRoutineId ? 'Actualizar' : 'Guardar'}`;
+          return;
+        }
         const { error: ue } = await db
           .from('routines')
           .update(routinePayload)
