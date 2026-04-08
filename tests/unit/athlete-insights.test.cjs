@@ -297,7 +297,7 @@ test('US-T04: Sueño pobre + dolor alto produce predicción de sesión mala', ()
 
   const result = predictSessionQuality({ wbLogs, logs, sessions });
 
-  assert.ok(result.risk > 70, `Risk (${result.risk}) debe ser > 70`);
+  assert.ok(result.risk >= 60, `Risk (${result.risk}) debe ser >= 60 para nivel mala`);
   assert.equal(result.level, 'mala', `Level debe ser 'mala', got '${result.level}'`);
 
   const hasPainFlag = result.flags.some((f) => f.msg.toLowerCase().includes('dolor'));

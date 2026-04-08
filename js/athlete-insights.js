@@ -230,7 +230,7 @@ window.AthleteInsights = (() => {
     // ── Flag 4: Dolor alto hoy ─────────────────────────────
     const todayWb = wbLogs.find((w) => daysDiff(now, new Date(w.checked_at)) === 0);
     if (todayWb?.pain >= 4) {
-      risk += 20;
+      risk += 30;
       const zone =
         todayWb.pain_zone && todayWb.pain_zone !== 'ninguno'
           ? ` (${todayWb.pain_zone.replace('_', ' ')})`

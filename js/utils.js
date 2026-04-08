@@ -83,7 +83,7 @@ window.tfUtils = {
 const EXTENSION_CHANNEL_CLOSED_ERROR =
   'A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received';
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
   window.addEventListener('unhandledrejection', (event) => {
     const reasonMessage = String(event?.reason?.message || event?.reason || '');
     if (!reasonMessage.includes(EXTENSION_CHANNEL_CLOSED_ERROR)) return;

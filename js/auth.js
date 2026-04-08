@@ -246,6 +246,9 @@ async function handleOAuthCallback() {
       return;
     }
 
+    const postAuthOk = await runPostAuthHook(session);
+    if (!postAuthOk) return;
+
     const role = await resolveUserRole(session.user);
 
     if (!role) {
@@ -255,6 +258,8 @@ async function handleOAuthCallback() {
     }
 
     const redirectUrl = getDashboardByRole(role, 'login.html');
+    if (window.TFSidebar) window.TFSidebar.setRole(role);
+    else localStorage.setItem('tf_role', role);
     window.location.href = redirectUrl;
   }
 }

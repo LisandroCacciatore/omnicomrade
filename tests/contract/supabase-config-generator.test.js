@@ -1,14 +1,12 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { spawnSync } = require('child_process');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import generateSupabaseModule from '../../scripts/generate-supabase-config.cjs';
 
-const {
-  buildSupabaseConfig,
-  writeConfigFile
-} = require('../../scripts/generate-supabase-config.cjs');
+const { buildSupabaseConfig, writeConfigFile } = generateSupabaseModule;
 
 test('writeConfigFile creates missing directories and writes valid JS file', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-config-'));
