@@ -1,5 +1,7 @@
 # OmniComrade — Pendientes de mejoras acordadas (2026-03-31)
 
+> ⚠️ Documento histórico (corte 2026-03-31). Para estado operativo validado más reciente ver `docs/OPERATIVE_STATUS_2026-04-08.md`.
+
 ## Resumen rápido
 Con los últimos cambios, quedó **cerrado** el problema de ruta de `alumno` y se agregó validación de env vars en build.
 Lo demás del plan de refactor/hardening sigue mayormente pendiente.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>Solicitudes de Acceso | TechFitness</title>
+  <title>Backoffice | TechFitness</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -13,10 +13,11 @@
   <aside id="app-sidebar"></aside>
 
   <main class="flex-1 p-6 lg:p-8 space-y-6">
-    <header class="flex items-center justify-between">
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div>
-        <h1 class="text-2xl font-black">Solicitudes de acceso</h1>
-        <p class="text-slate-400 text-sm">Invitaciones OAuth (cupo early adopters)</p>
+        <p class="text-xs uppercase tracking-widest text-slate-500">Panel interno</p>
+        <h1 class="text-2xl font-black">Backoffice de accesos</h1>
+        <p class="text-slate-400 text-sm">Alta y aprobación de cuentas Google con rol y gym asignado.</p>
       </div>
       <div class="flex gap-2">
         <select id="filter-status" class="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm">
@@ -28,6 +29,12 @@
         <button id="reload-btn" class="bg-slate-800 hover:bg-slate-700 rounded-lg px-4 py-2 text-sm font-bold">Actualizar</button>
       </div>
     </header>
+
+    <section class="bg-slate-900/40 border border-slate-800 rounded-xl p-4 text-sm text-slate-300">
+      <p>
+        <strong>Flujo:</strong> solicitud de acceso → aprobación en backoffice con <code>rol</code> y <code>gym_id</code> → post-login OAuth asigna perfil y redirige al dashboard correcto.
+      </p>
+    </section>
 
     <section class="bg-surface-dark border border-border-dark rounded-2xl overflow-hidden">
       <div class="overflow-x-auto">

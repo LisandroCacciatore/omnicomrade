@@ -1,15 +1,22 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('fs');
-const vm = require('vm');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
 
 function createSandbox(session, hasError = false) {
   const location = { href: 'initial.html' };
   const localStore = {};
 
   const sandbox = {
+    CustomEvent: class CustomEvent {
+      constructor(type, init = {}) {
+        this.type = type;
+        this.detail = init.detail;
+      }
+    },
     window: {
       location,
+      dispatchEvent: () => {},
       supabaseClient: {
         auth: {
           getSession: async () => ({

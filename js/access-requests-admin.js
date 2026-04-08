@@ -29,14 +29,22 @@
   }
 
   async function load() {
-    bodyEl.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-slate-400">Cargando...</td></tr>';
+    bodyEl.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-slate-400">Cargando...</td></tr>';
     try {
       const items = await fetchRequests();
       if (!items.length) {
         bodyEl.innerHTML =
-          '<tr><td colspan="5" class="px-4 py-6 text-slate-500">Sin solicitudes</td></tr>';
+          '<tr><td colspan="6" class="px-4 py-6 text-slate-500">Sin solicitudes</td></tr>';
         return;
       }
+
+      const roleOptions = (selected) =>
+        ['alumno', 'profesor', 'gim_admin']
+          .map(
+            (role) =>
+              `<option value="${role}" ${selected === role ? 'selected' : ''}>${window.tfUtils.escHtml(role)}</option>`
+          )
+          .join('');
 
       bodyEl.innerHTML = items
         .map(
@@ -46,6 +54,25 @@
           <td class="px-4 py-3">${window.tfUtils.escHtml(r.full_name || '—')}</td>
           <td class="px-4 py-3"><span class="text-xs font-bold px-2 py-1 rounded-full ${statusBadge(r.status)}">${window.tfUtils.escHtml(r.status)}</span></td>
           <td class="px-4 py-3 text-slate-400">${formatDate(r.requested_at)}</td>
+          <td class="px-4 py-3 min-w-[260px]">
+            ${
+              r.status === 'pending'
+                ? `
+              <div class="grid gap-2">
+                <select data-role-for="${r.id}" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs">
+                  ${roleOptions(r.role || 'alumno')}
+                </select>
+                <input data-gym-for="${r.id}" value="${window.tfUtils.escHtml(r.gym_id || '')}" placeholder="gym_id (opcional)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs" />
+              </div>
+            `
+                : `
+              <div class="text-xs text-slate-400">
+                <div>rol: <strong>${window.tfUtils.escHtml(r.role || '—')}</strong></div>
+                <div>gym: <strong>${window.tfUtils.escHtml(r.gym_id || '—')}</strong></div>
+              </div>
+            `
+            }
+          </td>
           <td class="px-4 py-3">
             ${
               r.status === 'pending'
@@ -63,18 +90,27 @@
         )
         .join('');
     } catch (err) {
-      bodyEl.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-danger">${window.tfUtils.escHtml(err.message)}</td></tr>`;
+      bodyEl.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-danger">${window.tfUtils.escHtml(err.message)}</td></tr>`;
     }
   }
 
   async function approveRequest(id) {
+    const roleEl = bodyEl.querySelector(`[data-role-for="${id}"]`);
+    const gymEl = bodyEl.querySelector(`[data-gym-for="${id}"]`);
+    const role = roleEl?.value || 'alumno';
+    const gymId = gymEl?.value?.trim() || null;
+
     const res = await fetch(`/api/access-requests/${id}/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-actor-id': actorId
       },
-      body: JSON.stringify({ role: 'alumno' })
+      body: JSON.stringify({
+        role,
+        gym_id: gymId,
+        notes: `Aprobado desde backoffice (${role}${gymId ? ` | gym ${gymId}` : ''})`
+      })
     });
     const payload = await res.json();
     if (!res.ok) throw new Error(payload?.error || 'No se pudo aprobar');
