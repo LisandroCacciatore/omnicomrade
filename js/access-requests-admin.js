@@ -6,15 +6,76 @@
   const filterEl = document.getElementById('filter-status');
   const reloadBtn = document.getElementById('reload-btn');
   const actorId = session.user.id;
+  let usingSupabaseFallback = false;
+
+  function markFallback() {
+    if (usingSupabaseFallback) return;
+    usingSupabaseFallback = true;
+    window.tfUtils.toast('API /api no disponible. Usando fallback directo a Supabase.', 'warning');
+  }
+
+  async function fetchViaSupabase(status) {
+    let query = window.supabaseClient
+      .from('access_requests')
+      .select('id, email, full_name, source, status, role, gym_id, notes, requested_at, approved_at, approved_by')
+      .order('requested_at', { ascending: false })
+      .limit(200);
+
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function approveViaSupabase(id, payload) {
+    const { role, gym_id, notes } = payload;
+    const { error } = await window.supabaseClient
+      .from('access_requests')
+      .update({
+        status: 'approved',
+        role,
+        gym_id,
+        notes,
+        approved_at: new Date().toISOString(),
+        approved_by: actorId
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async function rejectViaSupabase(id, payload) {
+    const { notes } = payload;
+    const { error } = await window.supabaseClient
+      .from('access_requests')
+      .update({
+        status: 'rejected',
+        notes,
+        approved_at: null,
+        approved_by: actorId
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
 
   async function fetchRequests() {
     const status = filterEl?.value || '';
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
-
-    const res = await fetch(`/api/access-requests${query}`);
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload?.error || 'No se pudieron cargar solicitudes');
-    return payload.items || [];
+    try {
+      const res = await fetch(`/api/access-requests${query}`);
+      if (res.status === 404) {
+        markFallback();
+        return await fetchViaSupabase(status);
+      }
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || 'No se pudieron cargar solicitudes');
+      return payload.items || [];
+    } catch (error) {
+      markFallback();
+      return await fetchViaSupabase(status);
+    }
   }
 
   function statusBadge(status) {
@@ -100,33 +161,56 @@
     const role = roleEl?.value || 'alumno';
     const gymId = gymEl?.value?.trim() || null;
 
-    const res = await fetch(`/api/access-requests/${id}/approve`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-actor-id': actorId
-      },
-      body: JSON.stringify({
-        role,
-        gym_id: gymId,
-        notes: `Aprobado desde backoffice (${role}${gymId ? ` | gym ${gymId}` : ''})`
-      })
-    });
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload?.error || 'No se pudo aprobar');
+    const payload = {
+      role,
+      gym_id: gymId,
+      notes: `Aprobado desde backoffice (${role}${gymId ? ` | gym ${gymId}` : ''})`
+    };
+
+    try {
+      const res = await fetch(`/api/access-requests/${id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-actor-id': actorId
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 404) {
+        markFallback();
+        await approveViaSupabase(id, payload);
+        return;
+      }
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || 'No se pudo aprobar');
+    } catch (error) {
+      markFallback();
+      await approveViaSupabase(id, payload);
+    }
   }
 
   async function rejectRequest(id) {
-    const res = await fetch(`/api/access-requests/${id}/reject`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-actor-id': actorId
-      },
-      body: JSON.stringify({ notes: 'Rechazado desde panel admin' })
-    });
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload?.error || 'No se pudo rechazar');
+    const payload = { notes: 'Rechazado desde panel admin' };
+    try {
+      const res = await fetch(`/api/access-requests/${id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-actor-id': actorId
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 404) {
+        markFallback();
+        await rejectViaSupabase(id, payload);
+        return;
+      }
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error || 'No se pudo rechazar');
+    } catch (error) {
+      markFallback();
+      await rejectViaSupabase(id, payload);
+    }
   }
 
   bodyEl?.addEventListener('click', async (evt) => {
