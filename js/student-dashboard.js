@@ -18,6 +18,7 @@
     return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
   }
   function logout() {
+    if (!confirm('¿Cerrar sesión?')) return;
     window.tfUtils?.logout?.();
   }
 
@@ -433,11 +434,18 @@
     if (!file) return;
 
     if (
-      student.medical_certificate_url &&
-      !confirm('Ya existe un certificado. ¿Reemplazar el actual?')
-    ) {
+    if (student.medical_certificate_url && !confirm('Ya existe un certificado. ¿Reemplazar el actual?')) {
       e.target.value = '';
       return;
+    }
+
+    const input = e.target;
+    const label = document.getElementById('cert-upload-label');
+    input.disabled = true;
+    input.style.opacity = '0.5';
+    if (label) {
+      label.style.opacity = '0.5';
+      label.style.pointerEvents = 'none';
     }
 
     const statusEl = document.getElementById('cert-upload-status');
@@ -470,6 +478,13 @@
     } finally {
       statusEl.classList.add('hidden');
       e.target.value = '';
+      input.disabled = false;
+      input.style.opacity = '';
+      input.style.pointerEvents = '';
+      if (label) {
+        label.style.opacity = '';
+        label.style.pointerEvents = '';
+      }
     }
   });
 

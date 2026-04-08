@@ -762,6 +762,15 @@ async function handleAlertSubmit(e) {
 
   window.tfUtils.setBtnLoading(submitBtn, true, 'Enviando...');
   try {
+    const confirmMsg =
+      recipientIds.length === 1
+        ? '¿Enviar aviso a 1 alumno?'
+        : `¿Enviar aviso a ${recipientIds.length} alumnos?`;
+    if (!confirm(confirmMsg)) {
+      window.tfUtils.setBtnLoading(submitBtn, false, 'Enviar aviso');
+      return;
+    }
+
     const { error } = await window.supabaseClient.from('gym_messages').insert({
       gym_id: gymId,
       sender_profile_id: authUserId,
