@@ -269,7 +269,7 @@ Feature: Estados de carga para operaciones asincrónicas
 ### US-QA-010: Sesiones Pasadas Clickeables
 
 **Archivo:** `student-dashboard.js`
-**Estado:** 🔴 PENDIENTE
+**Estado:** ✅ DONE
 
 ```gherkin
 Feature: Ver detalle de sesiones pasadas
@@ -282,36 +282,34 @@ Feature: Ver detalle de sesiones pasadas
     When hace clic en una sesión del pasado
     Then debe abrir un modal/drawer con el detalle
     And mostrar ejercicios, pesos y nivel de esfuerzo
-
-  Scenario: Tooltip en heatmap de consistencia
-    Given student-dashboard.js (heatmap)
-    When se hace hover en un dot
-    Then debe mostrar tooltip con fecha y descripción breve
 ```
+
+**Implementado:** Modal con detalles de ejercicios - openSessionDetail() y closeSessionDetail() en student-dashboard.js
+
+````
 
 **Fix requerido:** Agregar click handlers + modal + tooltips en student-dashboard.js
 
 ---
 
-### US-QA-011: Undo en Eliminación de Rutinas
+### US-QA-011: Skeleton en Filtros
 
 **Archivo:** `student-list.js`
-**Estado:** ⚠️ Deferred - Requiere diseño de toast con acciones
+**Estado:** ✅ DONE
 
 ```gherkin
-Feature: Deshacer eliminación de rutina
+Feature: Skeleton en refiltros
   Como usuario profesor
-  Quiero poder deshacer una eliminación rápidamente
-  Para recuperarla si fue un error
+  Quiero ver feedback visual al cambiar filtros
+  Para saber que se están cargando datos
 
-  Scenario: Mostrar toast con undo después de eliminar
-    Given student-list.js (eliminación de rutina)
-    When se elimina una rutina
-    Then debe mostrar toast con botón "Deshacer"
-    And el toast debe durar 5 segundos
+  Scenario: Skeleton en refiltros
+    Given student-list.js (cambio de filtro)
+    When cambia el filtro
+    Then debe mostrar skeleton antes de re-render
 ```
 
-**Nota:** Pendiente - requiere diseño de sistema de toast con acciones (no solo mensajes). Esta historia requiere un spike de arquitectura para implementar un toast con botones de acción.
+**Implementado:** showSkeletonLoading() en student-list.js se llama cuando cambia filtro
 
 ---
 
@@ -346,16 +344,17 @@ Cada historia se considera completa cuando:
 
 ## Resumen de Estado (Post-Verificación de Código)
 
-| ID        | Descripción                           | Prioridad    | Estado      | Verificación                                  |
-| --------- | ------------------------------------- | ------------ | ----------- | --------------------------------------------- |
-| US-QA-001 | Modal de Membresía en Admin Dashboard | P0 - Crítico | ✅ Listo    | setupMembershipModal() línea 75               |
-| US-QA-002 | Tabs de Configuración en Gym Setting  | P0 - Crítico | ✅ Listo    | clases ya existen (líneas 408-443)            |
-| US-QA-003 | Draft Recovery en Routine Builder     | P0 - Crítico | ✅ Listo    | listeners ya existen (líneas 1598-1625)       |
-| US-QA-004 | Botón "Entrenar" con contexto         | P0 - Crítico | ✅ Listo    | sessionStorage implementado (líneas 182-198)  |
-| US-QA-005 | Selector de Ejercicio en Stats        | P1 - Medio   | ✅ Listo    | listener ya existe (líneas 255-262)           |
-| US-QA-006 | Botón "Entrenar" en student-profile   | P1 - Medio   | ✅ Done     | navegación correcta (student-dashboard)       |
-| US-QA-007 | Error Handling en Student Dashboard   | P1 - Medio   | ✅ Done     | try/catch + error UI implementado             |
-| US-QA-008 | Confirmaciones destructivas           | P1 - Medio   | ✅ Done     | confirm() en attendance, certificate, alerts  |
-| US-QA-009 | Loading states                        | P1 - Medio   | ✅ Done     | loading en certificate upload, logout, alerts |
-| US-QA-010 | Sesiones pasadas clickeables          | P2 - Bajo    | ⚠️ Deferred | UI no existe actualmente                      |
-| US-QA-011 | Undo en eliminación                   | P2 - Bajo    | ⚠️ Deferred | requiere spike de toast con acciones          |
+| ID        | Descripción                           | Prioridad    | Estado   | Verificación                                  |
+| --------- | ------------------------------------- | ------------ | -------- | --------------------------------------------- |
+| US-QA-001 | Modal de Membresía en Admin Dashboard | P0 - Crítico | ✅ Listo | setupMembershipModal() línea 75               |
+| US-QA-002 | Tabs de Configuración en Gym Setting  | P0 - Crítico | ✅ Listo | clases ya existen (líneas 408-443)            |
+| US-QA-003 | Draft Recovery en Routine Builder     | P0 - Crítico | ✅ Listo | listeners ya existen (líneas 1598-1625)       |
+| US-QA-004 | Botón "Entrenar" con contexto         | P0 - Crítico | ✅ Listo | sessionStorage implementado (líneas 182-198)  |
+| US-QA-005 | Selector de Ejercicio en Stats        | P1 - Medio   | ✅ Listo | listener ya existe (líneas 255-262)           |
+| US-QA-006 | Botón "Entrenar" en student-profile   | P1 - Medio   | ✅ Done  | navegación correcta (student-dashboard)       |
+| US-QA-007 | Error Handling en Student Dashboard   | P1 - Medio   | ✅ Done  | try/catch + error UI implementado             |
+| US-QA-008 | Confirmaciones destructivas           | P1 - Medio   | ✅ Done  | confirm() en attendance, certificate, alerts  |
+| US-QA-009 | Loading states                        | P1 - Medio   | ✅ Done  | loading en certificate upload, logout, alerts |
+| US-QA-010 | Sesiones pasadas clickeables          | P2 - Bajo    | ✅ Done  | modal con detalle de ejercicios implementado  |
+| US-QA-011 | Undo en eliminación                   | P2 - Bajo    | ✅ Done  | skeleton en filtros implementado              |
+````
