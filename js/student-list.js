@@ -293,12 +293,25 @@ function setupFilters() {
     const status = statusEl ? statusEl.value : '';
     const objetivo = objEl ? objEl.value : '';
 
+    showSkeletonLoading();
     await loadStudents({ search, status, objetivo });
   }, 300);
 
   document.getElementById('search-input')?.addEventListener('input', handleFilter);
   document.getElementById('filter-status')?.addEventListener('change', handleFilter);
   document.getElementById('filter-objetivo')?.addEventListener('change', handleFilter);
+}
+
+function showSkeletonLoading() {
+  const tbody = document.getElementById('students-table');
+  if (!tbody) return;
+  tbody.innerHTML = `
+    <tr><td colspan="6"><div class="skeleton h-16 mb-2 rounded-lg"></div></td></tr>
+    <tr><td colspan="6"><div class="skeleton h-16 mb-2 rounded-lg"></div></td></tr>
+    <tr><td colspan="6"><div class="skeleton h-16 mb-2 rounded-lg"></div></td></tr>
+    <tr><td colspan="6"><div class="skeleton h-16 mb-2 rounded-lg"></div></td></tr>
+    <tr><td colspan="6"><div class="skeleton h-16 mb-2 rounded-lg"></div></td></tr>
+  `;
 }
 
 // ─── TAB RUTINA ───────────────────────────────────────────────

@@ -340,7 +340,7 @@
             day: 'numeric',
             month: 'short'
           });
-          return `<div class="session-row">
+          return `<div class="session-row cursor-pointer hover:bg-slate-800/50 p-2 rounded-lg transition-colors" onclick="openSessionDetail('${s.id}')">
           <div>
             <p class="text-xs font-bold text-slate-300">${escHtml(s.day_name || 'Sesión')}</p>
             <p class="text-[10px] text-slate-500">${dateStr}</p>
@@ -352,6 +352,64 @@
         })
         .join('');
   }
+
+  window.openSessionDetail = async function(sessionId) {
+    const session = sessData.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    const modalHtml = `
+      <div id="modal-session-detail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onclick="if(event.target === this) closeSessionDetail()">
+        <div class="bg-surface-dark border border-border-dark rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+          <div class="px-5 py-4 border-b border-border-dark flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">${escHtml(session.day_name || 'Sesión')}</h3>
+              <p class="text-xs text-slate-500">${new Date(session.completed_at).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            </div>
+            <button onclick="closeSessionDetail()" class="text-slate-400 hover:text-white">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <div class="p-4 overflow-y-auto max-h-[60vh]">
+            <div class="text-center py-8">
+              <span class="material-symbols-rounded text-4xl text-slate-600">fitness_center</span>
+              <p class="text-slate-500 text-sm mt-2">Cargando ejercicios...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    try {
+      const { data: logs } = await db
+        .from('workout_exercise_logs')
+        .select('*, exercises(name, muscle_group)')
+        .eq('session_id', sessionId);
+      
+      const logsHtml = (logs && logs.length > 0) 
+        ? logs.map(log => `
+          <div class="border border-border-dark rounded-lg p-3 mb-2">
+            <p class="text-sm font-bold text-slate-200">${escHtml(log.exercise_name || log.exercises?.name || 'Ejercicio')}</p>
+            <p class="text-xs text-slate-500 mt-1">
+              ${log.reps_actual ? `${log.reps_actual} reps` : ''} 
+              ${log.weight_used_kg ? `· ${log.weight_used_kg} kg` : ''}
+              ${log.effort_level ? `· ${log.effort_level.replace('_', ' ')}` : ''}
+            </p>
+          </div>
+        `).join('')
+        : '<p class="text-slate-500 text-center py-4">No hay ejercicios registrados</p>';
+      
+      document.querySelector('#modal-session-detail .overflow-y-auto').innerHTML = logsHtml;
+    } catch (err) {
+      document.querySelector('#modal-session-detail .overflow-y-auto').innerHTML = 
+        '<p class="text-danger text-center py-4">Error al cargar detalles</p>';
+    }
+  };
+
+  window.closeSessionDetail = function() {
+    document.getElementById('modal-session-detail')?.remove();
+  };
 
   /* ─── Wellbeing (últimos 7 días, sin filtros) ────────── */
   const cutoff7 = new Date();
