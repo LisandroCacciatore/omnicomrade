@@ -177,6 +177,12 @@
     if (!selectedStudent) return;
 
     const studentId = selectedStudent.id;
+    const isOk = selectedStudent.membership_status === 'activa';
+
+    if (!isOk && !confirm('La membresía está vencida o irregular. ¿Continuar con el ingreso?')) {
+      return;
+    }
+
     btnSubmit.disabled = true;
     btnSubmit.innerHTML = `<span class="material-symbols-rounded animate-spin">progress_activity</span> Procesando...`;
 

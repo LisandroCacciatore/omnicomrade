@@ -432,6 +432,14 @@
     const file = e.target.files[0];
     if (!file) return;
 
+    if (
+      student.medical_certificate_url &&
+      !confirm('Ya existe un certificado. ¿Reemplazar el actual?')
+    ) {
+      e.target.value = '';
+      return;
+    }
+
     const statusEl = document.getElementById('cert-upload-status');
     const errorEl = document.getElementById('cert-upload-error');
     statusEl.classList.remove('hidden');
