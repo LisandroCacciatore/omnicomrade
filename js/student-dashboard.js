@@ -96,65 +96,76 @@
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(0, 0, 0, 0);
 
-  const [
-    { data: membership },
-    { data: activeProg },
-    { data: routine },
-    { data: coach },
-    { data: sessions },
-    { data: wellbeingRaw }
-  ] = await Promise.all([
-    db
-      .from('memberships')
-      .select('plan, end_date, start_date')
-      .eq('student_id', student.id)
-      .order('end_date', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+  let membership, activeProg, routine, coach, sessions, wellbeingRaw;
+  try {
+    [
+      { data: membership },
+      { data: activeProg },
+      { data: routine },
+      { data: coach },
+      { data: sessions },
+      { data: wellbeingRaw }
+    ] = await Promise.all([
+      db
+        .from('memberships')
+        .select('plan, end_date, start_date')
+        .eq('student_id', student.id)
+        .order('end_date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
 
-    db
-      .from('student_programs')
-      .select(
-        `
+      db
+        .from('student_programs')
+        .select(
+          `
       id, current_week, started_at, status,
       program_templates(id, slug, name, weeks, days_per_week, level)
     `
-      )
-      .eq('student_id', student.id)
-      .eq('status', 'activo')
-      .maybeSingle(),
+        )
+        .eq('student_id', student.id)
+        .eq('status', 'activo')
+        .maybeSingle(),
 
-    student.routine_id
-      ? db
-          .from('routines')
-          .select('id, name, objetivo, days_per_week')
-          .eq('id', student.routine_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+      student.routine_id
+        ? db
+            .from('routines')
+            .select('id, name, objetivo, days_per_week')
+            .eq('id', student.routine_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
 
-    db
-      .from('profiles')
-      .select('full_name')
-      .eq('gym_id', gymId)
-      .eq('role', 'profesor')
-      .limit(1)
-      .maybeSingle(),
+      db
+        .from('profiles')
+        .select('full_name')
+        .eq('gym_id', gymId)
+        .eq('role', 'profesor')
+        .limit(1)
+        .maybeSingle(),
 
-    db
-      .from('workout_sessions')
-      .select('id, completed_at, day_name, duration_minutes')
-      .eq('student_id', student.id)
-      .not('completed_at', 'is', null)
-      .gte('completed_at', monthStart.toISOString())
-      .order('completed_at', { ascending: false }),
+      db
+        .from('workout_sessions')
+        .select('id, completed_at, day_name, duration_minutes')
+        .eq('student_id', student.id)
+        .not('completed_at', 'is', null)
+        .gte('completed_at', monthStart.toISOString())
+        .order('completed_at', { ascending: false }),
 
-    db
-      .from('wellbeing_logs')
-      .select('sleep, pain, energy, checked_at')
-      .eq('student_id', student.id)
-      .order('checked_at', { ascending: false })
-      .limit(60)
-  ]);
+      db
+        .from('wellbeing_logs')
+        .select('sleep, pain, energy, checked_at')
+        .eq('student_id', student.id)
+        .order('checked_at', { ascending: false })
+        .limit(60)
+    ]);
+  } catch (err) {
+    console.error('Error loading dashboard data:', err);
+    document.getElementById('loading-skeleton')?.classList.add('hidden');
+    document.getElementById('dashboard-content')?.classList.add('hidden');
+    document.getElementById('dashboard-error')?.classList.remove('hidden');
+    document.getElementById('dashboard-error-msg').textContent =
+      err?.message || 'Error de conexión';
+    return;
+  }
 
   const sessData = sessions || [];
   const wbData = wellbeingRaw || [];
