@@ -281,7 +281,7 @@
                 <span class="material-symbols-rounded">payments</span>
               </div>
             </div>
-            <p class="text-2xl font-black mt-2 font-mono" id="kpi-monthly-income">---</p>
+            <p class="text-2xl font-black mt-2 font-mono" id="kpi-ingresos-mes">---</p>
             <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
               Ingresos del mes
             </p>
@@ -556,13 +556,7 @@
     </div>
 
     <!-- Onboarding Wizard (US-03) -->
-    <div
-      id="modal-nuevo-alumno"
-      class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
-      style="display: none"
-    >
-      <!-- El wizard se renderiza dinámicamente via js/onboardingWizard.js -->
-    </div>
+    <div id="student-create-modal-root"></div>
 
     <!-- Modal Enviar Aviso -->
     <div
@@ -787,6 +781,7 @@
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/training-engine.js"></script>
     <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/student-create-modal.js"></script>
     <script type="module" src="js/onboardingWizard.js"></script>
     <script type="module" src="js/program-assign.js"></script>
     <script type="module" src="js/sidebar.js"></script>
