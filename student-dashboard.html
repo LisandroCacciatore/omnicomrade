@@ -187,6 +187,10 @@
           <span class="material-symbols-rounded text-slate-400">chat</span>
           <span id="messages-badge" class="absolute top-1 right-1 hidden size-4 bg-danger rounded-full text-[9px] font-black text-white flex items-center justify-center"></span>
         </button>
+        <button id="btn-notifications" type="button" class="relative size-10 flex items-center justify-center rounded-full hover:bg-slate-800 transition-colors" aria-label="Notificaciones">
+          <span class="material-symbols-rounded text-slate-400">notifications</span>
+          <span id="tf-notif-badge" class="absolute top-1 right-1 hidden min-w-4 h-4 px-1 bg-danger rounded-full text-[9px] font-black text-white flex items-center justify-center"></span>
+        </button>
         <button type="button" id="logout-btn" class="btn-logout">
           <span class="material-symbols-rounded text-[17px]">logout</span>
           <span class="hidden sm:inline">Salir</span>
@@ -259,7 +263,7 @@
         </section>
 
         <section class="card">
-          <p class="zone-label">😴 Bienestar · íºltimos 7 dí­as</p>
+          <p class="zone-label">😴 Bienestar · Últimos 7 días</p>
 
           <div id="wellbeing-empty" class="text-center py-4 hidden">
             <span class="material-symbols-rounded text-slate-700 text-3xl">sentiment_neutral</span>
@@ -468,6 +472,7 @@
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/athlete-insights.js"></script>
     <script type="module" src="js/messages.js"></script>
+    <script type="module" src="js/notifications.js"></script>
     <script type="module" src="js/student-onboarding-tour.js"></script>
     <script type="module" src="js/student-dashboard.js"></script>
   </body>

@@ -37,7 +37,7 @@
   /* ─── Resolver student ─────────────────────────────────── */
   let student = null;
   const STUDENT_SELECT =
-    'id, full_name, email, routine_id, membership_status, medical_certificate_url, coach_notes, gyms(name)';
+    'id, full_name, email, routine_id, membership_status, medical_certificate_url, coach_notes, coach_id, gyms(name)';
 
   if (isStaff && targetId) {
     const { data } = await db
@@ -92,16 +92,16 @@
   let assignedCoachProfileId = null;
   let assignedCoachName = 'Tu Coach';
   try {
-    const { data: coachProfile } = await db
-      .from('profiles')
-      .select('id, full_name')
-      .eq('gym_id', gymId)
-      .eq('role', 'profesor')
-      .limit(1)
-      .maybeSingle();
-    if (coachProfile?.id) {
-      assignedCoachProfileId = coachProfile.id;
-      assignedCoachName = coachProfile.full_name || assignedCoachName;
+    if (student?.coach_id) {
+      const { data: coachProfile } = await db
+        .from('profiles')
+        .select('id, full_name')
+        .eq('id', student.coach_id)
+        .maybeSingle();
+      if (coachProfile?.id) {
+        assignedCoachProfileId = coachProfile.id;
+        assignedCoachName = coachProfile.full_name || assignedCoachName;
+      }
     }
   } catch (_) {}
 
@@ -111,12 +111,21 @@
     badgeSelector: '#messages-badge'
   });
 
+  await window.TFNotifications?.init({
+    gymId,
+    userId
+  });
+
   document.getElementById('btn-messages')?.addEventListener('click', () => {
     if (!assignedCoachProfileId) {
       window.tfUtils?.toast?.('Tu cuenta aún no tiene coach asignado', 'error');
       return;
     }
     window.TFMessages?.openChat(assignedCoachProfileId, assignedCoachName);
+  });
+
+  document.getElementById('btn-notifications')?.addEventListener('click', () => {
+    window.TFNotifications?.openInbox();
   });
 
   /* ─── Fetch paralelo ──────────────────────────────────── */
@@ -256,7 +265,7 @@
       return 'wellbeing-check.html';
     } catch (err) {
       console.error('resolveTrainingTarget error:', err);
-      return 'student-profile.html';
+      return 'wellbeing-check.html';
     }
   }
 

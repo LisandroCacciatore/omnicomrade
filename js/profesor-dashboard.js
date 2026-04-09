@@ -35,6 +35,15 @@ await import('./auth-guard.js');
     badgeSelector: null
   });
 
+  await window.TFNotifications?.init({
+    gymId,
+    userId: session.user.id
+  });
+
+  document.getElementById('btn-notifications')?.addEventListener('click', () => {
+    window.TFNotifications?.openInbox();
+  });
+
 
   /* ─── State ──────────────────────────────────────────────── */
   let riskData = [];
@@ -78,11 +87,12 @@ await import('./auth-guard.js');
   async function loadRiskData(gymId) {
     const { data: students } = await db
       .from('students')
-      .select('id')
+      .select('id, profile_id')
       .eq('gym_id', gymId)
       .is('deleted_at', null);
 
     const studentIds = students?.map((s) => s.id) || [];
+    const profileByStudentId = new Map((students || []).map((s) => [s.id, s.profile_id || null]));
     if (!studentIds.length) return [];
 
     const { data } = await db
@@ -91,7 +101,10 @@ await import('./auth-guard.js');
       .in('student_id', studentIds)
       .order('risk_score', { ascending: false });
 
-    return data || [];
+    return (data || []).map((row) => ({
+      ...row,
+      peer_profile_id: profileByStudentId.get(row.student_id) || null
+    }));
   }
 
   async function loadTodaySessions(gymId) {
@@ -219,6 +232,11 @@ await import('./auth-guard.js');
         const isStagnant = r.stagnant_exercises > 0;
         const isActive = activeSessionIds.has(r.student_id);
 
+        const peerProfileId = r.peer_profile_id || '';
+        const messageBtn = peerProfileId
+          ? `<button class="btn-msg-athlete size-8 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors" data-peer-id="${peerProfileId}" data-peer-name="${escHtml(r.full_name)}" title="Enviar mensaje"><span class="material-symbols-rounded text-[16px]">chat</span></button>`
+          : `<button class="size-8 rounded-lg border border-border-dark flex items-center justify-center text-slate-600 cursor-not-allowed" title="Atleta sin perfil vinculado" disabled><span class="material-symbols-rounded text-[16px]">chat</span></button>`;
+
         return `
         <div class="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer items-center"
              data-student-id="${r.student_id}">
@@ -246,9 +264,7 @@ await import('./auth-guard.js');
             <span class="font-mono text-sm font-bold" style="color:${wellbeing.color}">${wellbeing.label}</span>
           </div>
           <div class="col-span-2 text-right flex items-center justify-end gap-1.5">
-            <button class="btn-msg-athlete size-8 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors" data-peer-id="${r.student_id}" data-peer-name="${escHtml(r.full_name)}" title="Enviar mensaje">
-              <span class="material-symbols-rounded text-[16px]">chat</span>
-            </button>
+            ${messageBtn}
             <span class="status-pill" style="background:${riskColor}20;color:${riskColor};border:1px solid ${riskColor}30">
               ${r.risk_level === 'red' ? 'Rojo' : r.risk_level === 'yellow' ? 'Amarillo' : 'Verde'}
             </span>

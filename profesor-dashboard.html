@@ -203,6 +203,10 @@
           <p class="text-xs text-slate-500 mt-0.5" id="header-date">Cargando...</p>
         </div>
         <div class="flex items-center gap-3">
+          <button id="btn-notifications" type="button" class="relative size-10 flex items-center justify-center rounded-lg border border-border-dark text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors" aria-label="Notificaciones">
+            <span class="material-symbols-rounded text-[20px]">notifications</span>
+            <span id="tf-notif-badge" class="absolute -top-1 -right-1 hidden min-w-4 h-4 px-1 bg-danger rounded-full text-[9px] font-black text-white flex items-center justify-center"></span>
+          </button>
           <div class="text-right hidden sm:block">
             <p class="text-xs font-bold text-white" id="user-name">Cargando...</p>
             <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Profesor</p>
@@ -409,6 +413,7 @@
     <script type="module" src="js/training-engine.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/messages.js"></script>
+    <script type="module" src="js/notifications.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/profesor-dashboard.js"></script>
   </body>

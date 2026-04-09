@@ -33,17 +33,7 @@ window.StudentOnboardingTour = (function () {
   let tooltip = null;
 
   function shouldShow() {
-    try {
-      return !localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return false;
-    }
-  }
-
-  function markDone() {
-    try {
-      localStorage.setItem(STORAGE_KEY, 'true');
-    } catch {}
+    return !localStorage.getItem(STORAGE_KEY);
   }
 
   function init() {
@@ -60,14 +50,12 @@ window.StudentOnboardingTour = (function () {
   function createOverlay() {
     overlay = document.createElement('div');
     overlay.id = 'tf-tour-overlay';
-    overlay.style.cssText =
-      'position:fixed;inset:0;z-index:1000;background:rgba(7,11,16,0.75);backdrop-filter:blur(2px);';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:1000;background:rgba(7,11,16,0.75);backdrop-filter:blur(2px);';
     document.body.appendChild(overlay);
 
     tooltip = document.createElement('div');
     tooltip.id = 'tf-tour-tooltip';
-    tooltip.style.cssText =
-      'position:fixed;z-index:1001;background:#161E26;border:1px solid #1E293B;border-radius:16px;padding:20px 24px;max-width:320px;width:calc(100vw - 48px);box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:Space Grotesk,sans-serif;';
+    tooltip.style.cssText = 'position:fixed;z-index:1001;background:#161E26;border:1px solid #1E293B;border-radius:16px;padding:20px 24px;max-width:320px;width:calc(100vw - 48px);box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:Space Grotesk,sans-serif;';
     document.body.appendChild(tooltip);
   }
 
@@ -128,7 +116,7 @@ window.StudentOnboardingTour = (function () {
   }
 
   function finishBaseToast(msg) {
-    markDone();
+    localStorage.setItem(STORAGE_KEY, 'true');
     window.tfUtils?.toast?.(msg);
     overlay?.remove();
     tooltip?.remove();

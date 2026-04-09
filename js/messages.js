@@ -24,7 +24,10 @@ window.TFMessages = (function () {
     await refreshUnreadBadge();
 
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(refreshUnreadBadge, 30000);
+    pollInterval = setInterval(async () => {
+      await refreshUnreadBadge();
+      if (currentPeer) await loadMessages();
+    }, 30000);
   }
 
   async function openChat(peerId, peerName) {
@@ -186,6 +189,9 @@ window.TFMessages = (function () {
 
     const drawer = document.createElement('div');
     drawer.id = 'tf-messages-drawer';
+    drawer.setAttribute('role', 'dialog');
+    drawer.setAttribute('aria-modal', 'true');
+    drawer.setAttribute('aria-label', 'Mensajes');
     drawer.innerHTML = `
       <div class="tf-msg-header">
         <div><p class="tf-msg-peer-label">Conversación con</p><h3 id="tf-msg-peer-name" class="tf-msg-peer-title">—</h3></div>
@@ -232,6 +238,13 @@ window.TFMessages = (function () {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && currentPeer) closeChat();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
     });
   }
 

@@ -29,6 +29,7 @@ window.TFNotifications = (function () {
     if (badge) {
       badge.textContent = unread > 9 ? '9+' : String(unread);
       badge.style.display = unread > 0 ? 'flex' : 'none';
+      badge.setAttribute('aria-label', `${unread} notificaciones sin leer`);
     }
   }
 
@@ -94,6 +95,8 @@ window.TFNotifications = (function () {
 
     const panel = document.createElement('div');
     panel.id = 'tf-notif-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Notificaciones');
     panel.innerHTML = `<div class="tf-notif-header"><h3>Notificaciones</h3><button id="tf-notif-close" aria-label="Cerrar notificaciones"><span class="material-symbols-rounded">close</span></button></div><div id="tf-notif-list" class="tf-notif-list"><div class="tf-notif-empty">Cargando...</div></div>`;
     document.body.appendChild(panel);
 
