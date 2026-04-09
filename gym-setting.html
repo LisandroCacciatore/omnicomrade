@@ -435,6 +435,16 @@
                 <button
                   type="button"
                   class="settings-tab"
+                  data-tab="notificaciones"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  <span class="material-symbols-rounded text-[18px]">notifications</span>
+                  Notificaciones
+                </button>
+                <button
+                  type="button"
+                  class="settings-tab"
                   data-tab="peligro"
                   role="tab"
                   aria-selected="false"
@@ -826,6 +836,98 @@
                       <span class="text-xs font-semibold text-[#F59E0B]">Premium</span>
                     </div>
                   </div>
+                </div>
+              </div>
+              <div id="tab-notificaciones" class="tab-panel space-y-5">
+                <div class="settings-card">
+                  <div class="mb-5">
+                    <h2 class="text-sm font-bold text-white">Preferencias de notificación</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                      Elegí qué notificaciones querés recibir y cómo quieres ser contactado
+                    </p>
+                  </div>
+                  <div class="space-y-4" id="notification-toggles">
+                    <div class="flex items-center justify-between py-2 border-b border-[#1E293B]">
+                      <div>
+                        <p class="text-sm font-semibold text-white">
+                          Notificaciones de nuevos alumnos
+                        </p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          Te avisamos cuando alguien se registra
+                        </p>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-new-student" class="sr-only peer" />
+                        <div
+                          class="w-11 h-6 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"
+                        ></div>
+                      </label>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b border-[#1E293B]">
+                      <div>
+                        <p class="text-sm font-semibold text-white">Recordatorios de membresías</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          Notificaciones de vencimiento próximo
+                        </p>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          id="toggle-membership-renewal"
+                          class="sr-only peer"
+                        />
+                        <div
+                          class="w-11 h-6 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"
+                        ></div>
+                      </label>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b border-[#1E293B]">
+                      <div>
+                        <p class="text-sm font-semibold text-white">Reportes de bienestar</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          Alertas de estudiantes con dolor/molestias
+                        </p>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-wellbeing-reports" class="sr-only peer" />
+                        <div
+                          class="w-11 h-6 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"
+                        ></div>
+                      </label>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b border-[#1E293B]">
+                      <div>
+                        <p class="text-sm font-semibold text-white">Solicitudes de acceso</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          Cuando alguien solicita unirse al gimnasio
+                        </p>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-access-requests" class="sr-only peer" />
+                        <div
+                          class="w-11 h-6 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"
+                        ></div>
+                      </label>
+                    </div>
+                    <div class="flex items-center justify-between py-2">
+                      <div>
+                        <p class="text-sm font-semibold text-white">Resumen semanal</p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                          Estadísticas del gimnasio cada domingo
+                        </p>
+                      </div>
+                      <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-weekly-summary" class="sr-only peer" />
+                        <div
+                          class="w-11 h-6 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3B82F6]"
+                        ></div>
+                      </label>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-slate-600 mt-4 flex items-center gap-1.5">
+                    <span class="material-symbols-rounded text-[14px]">info</span>
+                    Los cambios se guardan automáticamente
+                  </p>
                 </div>
               </div>
               <div id="tab-peligro" class="tab-panel">

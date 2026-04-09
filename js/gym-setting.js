@@ -376,8 +376,73 @@
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px]">${icon}</span>${label}`;
   }
 
+  /* ─── Notification preferences ──────────────────────────────── */
+  const NOTIFICATION_KEYS = [
+    'toggle-new-student',
+    'toggle-membership-renewal',
+    'toggle-wellbeing-reports',
+    'toggle-access-requests',
+    'toggle-weekly-summary'
+  ];
+
+  const DEFAULT_PREFS = {
+    toggle_new_student: true,
+    toggle_membership_renewal: true,
+    toggle_wellbeing_reports: true,
+    toggle_access_requests: true,
+    toggle_weekly_summary: false
+  };
+
+  let saveTimeout = null;
+
+  async function loadNotificationPrefs() {
+    const { data, error } = await db
+      .from('profiles')
+      .select('notification_preferences')
+      .eq('id', user.id)
+      .single();
+
+    const prefs =
+      error || !data?.notification_preferences ? DEFAULT_PREFS : data.notification_preferences;
+
+    NOTIFICATION_KEYS.forEach((id) => {
+      const key = id.replace('toggle-', 'toggle_');
+      const toggle = document.getElementById(id);
+      if (toggle) {
+        toggle.checked = prefs[key] ?? DEFAULT_PREFS[key] ?? false;
+      }
+    });
+  }
+
+  function scheduleNotificationSave() {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+      const prefs = {};
+      NOTIFICATION_KEYS.forEach((id) => {
+        const key = id.replace('toggle-', 'toggle_');
+        const toggle = document.getElementById(id);
+        prefs[key] = toggle ? toggle.checked : false;
+      });
+
+      await db
+        .from('profiles')
+        .update({
+          notification_preferences: prefs,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+    }, 800);
+  }
+
+  NOTIFICATION_KEYS.forEach((id) => {
+    const toggle = document.getElementById(id);
+    if (toggle) {
+      toggle.addEventListener('change', scheduleNotificationSave);
+    }
+  });
+
   /* ─── Init ───────────────────────────────────────────────── */
-  await Promise.all([loadGym(), loadProfile()]);
+  await Promise.all([loadGym(), loadProfile(), loadNotificationPrefs()]);
 
   /* ─── Ir a Premium ──────────────────────────────────────── */
   document.getElementById('btn-go-premium')?.addEventListener('click', () => {
