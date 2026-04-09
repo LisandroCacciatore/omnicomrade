@@ -369,13 +369,30 @@
     </div>`;
   }
 
+
+  function showSkeletons() {
+    const gauges = document.getElementById('gauges-grid');
+    const exerciseList = document.getElementById('exercise-list');
+    const stagnationList = document.getElementById('stagnation-list');
+    const consistencyRing = document.getElementById('consistency-ring-wrap');
+    const consistencyDots = document.getElementById('consistency-dots');
+
+    if (gauges) gauges.innerHTML = [1, 2, 3, 4].map(() => '<div class="skeleton rounded-[18px] h-52"></div>').join('');
+    if (exerciseList) exerciseList.innerHTML = [1, 2, 3].map(() => '<div class="skeleton rounded-[14px] h-14"></div>').join('');
+    if (stagnationList) stagnationList.innerHTML = [1, 2].map(() => '<div class="skeleton rounded-xl h-10"></div>').join('');
+    if (consistencyRing) consistencyRing.innerHTML = '<div class="skeleton rounded-full w-[88px] h-[88px]"></div>';
+    if (consistencyDots) consistencyDots.innerHTML = [1,2,3,4,5].map(() => '<div class="skeleton w-6 h-6 rounded-md"></div>').join('');
+
+    document.getElementById('analytics-content')?.classList.remove('hidden');
+    document.getElementById('empty-state')?.classList.add('hidden');
+  }
+
   /* ═══════════════════════════════════════════════════════════
      LOAD ANALYTICS — corazón del módulo
   ═══════════════════════════════════════════════════════════ */
   async function loadAnalytics(studentId) {
     selectedStudentId = studentId;
-    document.getElementById('empty-state')?.classList.add('hidden');
-    document.getElementById('analytics-content')?.classList.remove('hidden');
+    showSkeletons();
 
     // Reset charts/expand
     if (expandChart) {
@@ -792,6 +809,8 @@
       if (preselected) {
         document.getElementById('student-picker-label').textContent = preselected.full_name;
         await loadAnalytics(preselected.id);
+      } else {
+        toast('Alumno no encontrado', 'error');
       }
     }
   }
@@ -811,6 +830,7 @@
   }
 
   document.getElementById('btn-empty-picker')?.addEventListener('click', openPicker);
+  document.getElementById('empty-state-picker')?.addEventListener('click', openPicker);
   document.addEventListener('click', (e) => {
     if (!dropdown?.contains(e.target) && !e.target.closest('#btn-empty-picker')) closePicker();
   });

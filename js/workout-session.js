@@ -120,33 +120,55 @@ const getStudentHomeUrl = () => {
   document.getElementById('session-routine-name').textContent = workoutData.routineName || '';
   document.getElementById('session-day-name').textContent     = workoutData.dayName || '';
 
-  /* ─── Wellbeing banner ─────────────────────────────────── */
-  const wb = workoutData.wellbeing;
-  if (wb?.level) {
-    const bannerEl = document.getElementById('wellbeing-banner');
-    if (bannerEl) {
-      const cfg = {
-        verde:    { color: '#10B981', bg: 'rgba(16,185,129,.1)',  border: 'rgba(16,185,129,.25)', icon: '🟢' },
-        amarillo: { color: '#F59E0B', bg: 'rgba(245,158,11,.1)', border: 'rgba(245,158,11,.25)', icon: '🟡' },
-        rojo:     { color: '#EF4444', bg: 'rgba(239,68,68,.1)',  border: 'rgba(239,68,68,.25)',  icon: '🔴' },
-      }[wb.level];
-      const recs = {
-        verde: 'Condiciones óptimas.',
-        amarillo: 'Bajá el peso un 5-10%.',
-        rojo: 'Sesión ligera hoy.',
-      };
-      const zoneText = wb.painZone && wb.pain >= 2
-        ? ` · Dolor en ${wb.painZone.replace('_', ' ')}` : '';
-      bannerEl.style.cssText = `display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:1px solid ${cfg.border};background:${cfg.bg};margin-bottom:8px`;
-      bannerEl.innerHTML = `
-        <span style="font-size:18px">${cfg.icon}</span>
-        <div style="flex:1">
-          <p style="font-size:12px;font-weight:800;color:${cfg.color};line-height:1">${wb.label}${zoneText}</p>
-          <p style="font-size:10px;color:#94A3B8;margin-top:2px">${recs[wb.level]}</p>
+  function showWellbeingBanner(wellbeing) {
+    if (!wellbeing) return;
+
+    const banner = document.getElementById('wellbeing-banner');
+    if (!banner) return;
+
+    const { score, level, label } = wellbeing;
+    const config = {
+      verde: { bg: 'rgba(16,185,129,.12)', border: '#10B981', color: '#34D399', icon: '🟢' },
+      amarillo: { bg: 'rgba(245,158,11,.12)', border: '#F59E0B', color: '#FCD34D', icon: '🟡' },
+      rojo: { bg: 'rgba(239,68,68,.12)', border: '#EF4444', color: '#F87171', icon: '🔴' }
+    };
+
+    const recommendation = {
+      verde: 'Condición óptima. ¡A romperla hoy!',
+      amarillo: 'Cuerpo regular. Considerá bajar las cargas un 5-10%.',
+      rojo: 'Nivel de energía bajo. Considerá reducir las cargas un 10%.'
+    };
+
+    const current = config[level] || config.amarillo;
+    const closeBtnId = 'wellbeing-banner-close';
+
+    banner.style.cssText = `display:block;background:${current.bg};border:1px solid ${current.border};border-radius:12px;padding:10px 14px;margin-bottom:8px`;
+    banner.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">${current.icon}</span>
+          <div>
+            <p style="font-size:11px;font-weight:700;color:${current.color};text-transform:uppercase;letter-spacing:.05em;margin:0">${label || 'Bienestar'}</p>
+            <p style="font-size:12px;color:#94A3B8;margin:2px 0 0">${recommendation[level] || recommendation.amarillo}</p>
+          </div>
         </div>
-        <span style="font-size:13px;font-weight:900;font-family:'IBM Plex Mono',monospace;color:${cfg.color}">${wb.score}</span>`;
+        <button id="${closeBtnId}" type="button" style="background:none;border:none;color:#475569;cursor:pointer;font-size:18px;line-height:1;padding:2px">×</button>
+      </div>
+      <p style="font-size:11px;color:#64748B;margin:6px 0 0">Score: ${Number(score || 0)}/100</p>
+    `;
+
+    document.getElementById(closeBtnId)?.addEventListener('click', () => {
+      banner.style.display = 'none';
+    });
+
+    if (level === 'verde') {
+      setTimeout(() => {
+        banner.style.display = 'none';
+      }, 5000);
     }
   }
+
+  showWellbeingBanner(workoutData?.wellbeing);
 
   await ensureWorkoutSessionStarted();
 

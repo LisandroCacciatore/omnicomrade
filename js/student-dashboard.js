@@ -191,21 +191,65 @@
       ? `Semana ${week} · Día ${dayOfWeek} de ${daysPerWeek}${isLastDayOfWeek ? ' · ¡Última sesión de la semana!' : ''}`
       : 'Comenzá tu entrenamiento';
 
+  function getTodayDateAr() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+    return [
+      parts.find((p) => p.type === 'year')?.value,
+      parts.find((p) => p.type === 'month')?.value,
+      parts.find((p) => p.type === 'day')?.value
+    ].join('-');
+  }
+
+  async function resolveTrainingTarget(studentId) {
+    const pending = sessionStorage.getItem('pendingWorkout');
+    if (!pending) {
+      const nextDayLabel = `Día ${dayOfWeek}`;
+      return `student-profile.html?banner=no-session&next=${encodeURIComponent(nextDayLabel)}`;
+    }
+
+    try {
+      const today = getTodayDateAr();
+      const { data: wbLog } = await db
+        .from('wellbeing_logs')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('check_date', today)
+        .maybeSingle();
+
+      if (wbLog) return 'workout-session.html';
+      return 'wellbeing-check.html';
+    } catch (err) {
+      console.error('resolveTrainingTarget error:', err);
+      return 'student-profile.html';
+    }
+  }
+
   const btnEntrenar = document.getElementById('btn-entrenar');
   if (btnEntrenar) {
-    btnEntrenar.addEventListener('click', (e) => {
-      e.preventDefault();
-      sessionStorage.setItem(
-        'pendingWorkout',
-        JSON.stringify({
-          week,
-          day: dayOfWeek,
-          daysPerWeek,
-          routineName,
-          source: 'student-dashboard'
-        })
-      );
-      window.location.href = btnEntrenar.href;
+    const hasAssignedRoutine = Boolean(activeProg || routine?.data?.id || routine?.id || student.routine_id);
+    if (!hasAssignedRoutine) {
+      const ctaTitle = btnEntrenar.querySelector('#cta-routine-name');
+      const ctaSubtitle = btnEntrenar.querySelector('#cta-day-info');
+      if (ctaTitle) ctaTitle.textContent = 'Ver mi rutina';
+      if (ctaSubtitle) ctaSubtitle.textContent = 'Tu coach todavía no te asignó una rutina.';
+    }
+
+    btnEntrenar.addEventListener('click', async () => {
+      btnEntrenar.disabled = true;
+      btnEntrenar.style.cursor = 'wait';
+
+      const hasAssignedRoutine = Boolean(activeProg || routine?.data?.id || routine?.id || student.routine_id);
+      if (!hasAssignedRoutine) {
+        window.location.href = 'student-profile.html?empty_state=no-routine';
+        return;
+      }
+      const target = await resolveTrainingTarget(student.id);
+      window.location.href = target;
     });
   }
 
@@ -491,7 +535,6 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    if (
     if (student.medical_certificate_url && !confirm('Ya existe un certificado. ¿Reemplazar el actual?')) {
       e.target.value = '';
       return;
@@ -565,6 +608,8 @@
   /* ─── Mostrar contenido ─────────────────────────────── */
   document.getElementById('loading-skeleton').classList.add('hidden');
   document.getElementById('dashboard-content').classList.remove('hidden');
+
+  window.StudentOnboardingTour?.init();
 
   /* ─── Score widget renderer ──────────────────────────── */
   function renderAthleteScoreWidget(scoreData, prediction) {
