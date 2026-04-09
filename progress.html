@@ -112,6 +112,11 @@
         </button>
       </div>
       
+        <button id="btn-export-pdf"
+          class="hidden flex items-center gap-2 text-xs font-bold text-slate-400 border border-[#1E293B] px-3 py-2 rounded-xl hover:bg-slate-800 transition-colors">
+          <span class="material-symbols-rounded text-[16px]">picture_as_pdf</span>
+          Exportar PDF
+        </button>
       <div id="header-kpis" class="hidden lg:flex items-center gap-4">
         <div class="text-right">
           <p class="text-[9px] font-bold text-slate-600 uppercase tracking-wider">Sesiones</p>
@@ -244,26 +249,6 @@
   <span id="toast-icon" class="material-symbols-rounded text-[18px]">check_circle</span>
   <span id="toast-msg"></span>
 </div>
-
-
-<nav class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40 lg:hidden">
-  <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-    <span class="material-symbols-rounded text-slate-500 text-[22px]">home</span>
-    <span class="text-[9px] font-bold text-slate-500">Inicio</span>
-  </a>
-  <a href="student-profile.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-    <span class="material-symbols-rounded text-slate-500 text-[22px]">fitness_center</span>
-    <span class="text-[9px] font-bold text-slate-500">Entrenar</span>
-  </a>
-  <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10">
-    <span class="material-symbols-rounded text-[#3B82F6] text-[22px]" style="font-variation-settings:'FILL' 1">trending_up</span>
-    <span class="text-[9px] font-bold text-[#3B82F6]">Progreso</span>
-  </a>
-  <a href="wellbeing-check.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-    <span class="material-symbols-rounded text-slate-500 text-[22px]">self_improvement</span>
-    <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
-  </a>
-</nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module" src="js/supabase.js"></script>

@@ -393,6 +393,7 @@
   async function loadAnalytics(studentId) {
     selectedStudentId = studentId;
     showSkeletons();
+    document.getElementById('btn-export-pdf')?.classList.remove('hidden');
 
     // Reset charts/expand
     if (expandChart) {
@@ -871,4 +872,131 @@
       });
     });
   }
+
+  async function ensureJsPdf() {
+    if (window.jspdf?.jsPDF) return window.jspdf.jsPDF;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    return window.jspdf?.jsPDF;
+  }
+
+  async function exportProgressPDF(studentId, studentName) {
+    const btn = document.getElementById('btn-export-pdf');
+    window.tfUtils?.setBtnLoading?.(btn, true, 'Generando PDF...');
+
+    try {
+      const jsPDF = await ensureJsPdf();
+      if (!jsPDF) throw new Error('No se pudo cargar jsPDF');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const W = 210;
+      let y = 20;
+
+      doc.setFillColor(11, 18, 24);
+      doc.rect(0, 0, W, 40, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(255, 255, 255);
+      doc.text('TechFitness', 20, 18);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text('Reporte de Progreso', 20, 26);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(studentName || 'Atleta', 20, 36);
+
+      const dateStr = new Date().toLocaleDateString('es-AR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(dateStr, W - 20, 36, { align: 'right' });
+      y = 55;
+
+      const { data: progressData } = await db
+        .from('v_exercise_progress')
+        .select('exercise_name, max_weight, session_date')
+        .eq('student_id', studentId)
+        .order('session_date', { ascending: true })
+        .limit(200);
+
+      const byExercise = {};
+      (progressData || []).forEach((row) => {
+        if (!byExercise[row.exercise_name]) byExercise[row.exercise_name] = [];
+        byExercise[row.exercise_name].push({ date: row.session_date, weight: row.max_weight });
+      });
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(59, 130, 246);
+      doc.text('Mejores Marcas (PRs)', 20, y);
+      y += 8;
+
+      doc.setDrawColor(30, 41, 59);
+      doc.setLineWidth(0.3);
+      doc.line(20, y, W - 20, y);
+      y += 6;
+
+      Object.entries(byExercise).forEach(([name, sessions]) => {
+        if (!Array.isArray(sessions) || !sessions.length) return;
+        const pr = Math.max(...sessions.map((s) => Number(s.weight || 0)));
+        const current = Number(sessions[sessions.length - 1]?.weight || 0);
+        const pctOfPR = pr > 0 ? Math.round((current / pr) * 100) : 0;
+        const trend = current >= pr ? '🏆' : current >= pr * 0.9 ? '↗' : '→';
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(226, 232, 240);
+        doc.text(`${trend}  ${name}`, 24, y);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${current} kg`, W - 60, y, { align: 'right' });
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`PR: ${pr} kg  (${pctOfPR}%)`, W - 20, y, { align: 'right' });
+        y += 7;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`TechFitness · Generado el ${dateStr} · Página ${i} de ${totalPages}`, W / 2, 290, {
+          align: 'center'
+        });
+      }
+
+      const safeName = String(studentName || 'alumno').replace(/[^a-zA-Z0-9áéíóúñ ]/gi, '_');
+      doc.save(`progreso_${safeName}_${new Date().toLocaleDateString('en-CA')}.pdf`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      toast('Error al generar el PDF', 'error');
+    } finally {
+      window.tfUtils?.setBtnLoading?.(btn, false);
+      if (btn) btn.textContent = 'Exportar PDF';
+    }
+  }
+
+  document.getElementById('btn-export-pdf')?.addEventListener('click', async () => {
+    if (!selectedStudentId) {
+      toast('Seleccioná un alumno primero', 'error');
+      return;
+    }
+    const studentName = document.getElementById('student-picker-label')?.textContent || 'Atleta';
+    await exportProgressPDF(selectedStudentId, studentName);
+  });
+
 })();

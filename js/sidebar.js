@@ -12,6 +12,43 @@
  */
 
 (function () {
+
+  const STUDENT_NAV_ITEMS = [
+    { href: 'student-dashboard.html', icon: 'home', label: 'Inicio' },
+    { href: 'student-profile.html', icon: 'fitness_center', label: 'Entrenar' },
+    { href: 'progress.html', icon: 'trending_up', label: 'Progreso' },
+    { href: 'wellbeing-check.html', icon: 'self_improvement', label: 'Bienestar' }
+  ];
+
+  function injectStudentBottomNav() {
+    const current = window.location.pathname.split('/').pop() || '';
+    const hideOn = ['workout-session.html'];
+    if (hideOn.includes(current)) return;
+
+    const studentPages = new Set([
+      ...STUDENT_NAV_ITEMS.map((i) => i.href),
+      'wellbeing-check.html',
+      'workout-session.html'
+    ]);
+    if (!studentPages.has(current)) return;
+    if (document.getElementById('student-bottom-nav')) return;
+
+    const nav = document.createElement('nav');
+    nav.id = 'student-bottom-nav';
+    nav.className = 'fixed bottom-0 left-0 right-0 z-40 lg:hidden';
+    nav.innerHTML = `
+      <div style="background:rgba(22,30,38,.97);backdrop-filter:blur(12px);border-top:1px solid #1E293B;display:flex;align-items:center;justify-content:space-around;padding:8px 8px calc(8px + env(safe-area-inset-bottom));">
+        ${STUDENT_NAV_ITEMS.map((item) => {
+          const isActive =
+            current === item.href ||
+            (item.href === 'student-profile.html' && current === 'workout-session.html');
+          return `<a href="${item.href}" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl ${isActive ? 'bg-[#3B82F6]/10' : ''}" ${current === item.href ? 'aria-current="page"' : ''}><span class="material-symbols-rounded text-[22px]" style="color:${isActive ? '#3B82F6' : '#64748B'};font-variation-settings:'FILL' ${isActive ? 1 : 0}">${item.icon}</span><span style="font-size:9px;font-weight:700;color:${isActive ? '#3B82F6' : '#64748B'}">${item.label}</span></a>`;
+        }).join('')}
+      </div>`;
+    document.body.appendChild(nav);
+    document.body.style.paddingBottom = '72px';
+  }
+
   const NAV_ITEMS = [
     {
       section: 'Principal',
@@ -246,5 +283,7 @@
     if (hamb) {
       hamb.onclick = toggle;
     }
+
+    injectStudentBottomNav();
   });
 })();

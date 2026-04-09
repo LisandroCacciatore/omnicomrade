@@ -88,6 +88,37 @@
   document.getElementById('gym-name').textContent = student.gyms?.name || 'TechFitness';
   document.getElementById('student-name').textContent = student.full_name || 'Mi Dashboard';
 
+
+  let assignedCoachProfileId = null;
+  let assignedCoachName = 'Tu Coach';
+  try {
+    const { data: coachProfile } = await db
+      .from('profiles')
+      .select('id, full_name')
+      .eq('gym_id', gymId)
+      .eq('role', 'profesor')
+      .limit(1)
+      .maybeSingle();
+    if (coachProfile?.id) {
+      assignedCoachProfileId = coachProfile.id;
+      assignedCoachName = coachProfile.full_name || assignedCoachName;
+    }
+  } catch (_) {}
+
+  await window.TFMessages?.init({
+    gymId,
+    user: { id: userId, role: 'alumno' },
+    badgeSelector: '#messages-badge'
+  });
+
+  document.getElementById('btn-messages')?.addEventListener('click', () => {
+    if (!assignedCoachProfileId) {
+      window.tfUtils?.toast?.('Tu cuenta aún no tiene coach asignado', 'error');
+      return;
+    }
+    window.TFMessages?.openChat(assignedCoachProfileId, assignedCoachName);
+  });
+
   /* ─── Fetch paralelo ──────────────────────────────────── */
   const monthStart = new Date();
   monthStart.setDate(1);

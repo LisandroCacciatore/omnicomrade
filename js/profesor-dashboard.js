@@ -28,6 +28,14 @@ await import('./auth-guard.js');
   document.getElementById('user-name').textContent =
     session.user.user_metadata?.full_name || 'Profesor';
 
+
+  await window.TFMessages?.init({
+    gymId,
+    user: { id: session.user.id, role: 'profesor' },
+    badgeSelector: null
+  });
+
+
   /* ─── State ──────────────────────────────────────────────── */
   let riskData = [];
   let todaySessions = [];
@@ -237,7 +245,10 @@ await import('./auth-guard.js');
           <div class="col-span-2 text-center">
             <span class="font-mono text-sm font-bold" style="color:${wellbeing.color}">${wellbeing.label}</span>
           </div>
-          <div class="col-span-2 text-right">
+          <div class="col-span-2 text-right flex items-center justify-end gap-1.5">
+            <button class="btn-msg-athlete size-8 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-primary hover:bg-slate-800 transition-colors" data-peer-id="${r.student_id}" data-peer-name="${escHtml(r.full_name)}" title="Enviar mensaje">
+              <span class="material-symbols-rounded text-[16px]">chat</span>
+            </button>
             <span class="status-pill" style="background:${riskColor}20;color:${riskColor};border:1px solid ${riskColor}30">
               ${r.risk_level === 'red' ? 'Rojo' : r.risk_level === 'yellow' ? 'Amarillo' : 'Verde'}
             </span>
@@ -306,6 +317,13 @@ await import('./auth-guard.js');
   });
 
   document.getElementById('risk-table-body').addEventListener('click', (e) => {
+    const msgBtn = e.target.closest('.btn-msg-athlete');
+    if (msgBtn) {
+      e.stopPropagation();
+      window.TFMessages?.openChat(msgBtn.dataset.peerId, msgBtn.dataset.peerName);
+      return;
+    }
+
     const row = e.target.closest('[data-student-id]');
     if (row) {
       const studentId = row.dataset.studentId;
