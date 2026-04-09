@@ -62,29 +62,35 @@
   /**
    * Feedback visual en botones (loading state).
    */
-  function setBtnLoading(btnId, isLoading, loadingText = 'Procesando...') {
-    const btn = typeof btnId === 'string' ? document.getElementById(btnId) : btnId;
+  function setBtnLoading(btnOrId, isLoading, loadingText = 'Procesando...') {
+    const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
     if (!btn) return;
-
-    // BUSCA SPAN PARA EL TEXTO (compatible con múltiples templates)
-    const textEl =
-      btn.querySelector('[id$="-text"]') || btn.querySelector('span:not(.animate-spin)') || btn;
-
-    const spinner = btn.querySelector('[id$="-spinner"]') || btn.querySelector('.animate-spin');
 
     if (isLoading) {
       btn.disabled = true;
-      if (!btn._originalText) btn._originalText = textEl.textContent;
-      textEl.textContent = loadingText;
-      if (spinner) spinner.classList.remove('hidden');
-      if (btn.classList.contains('button-primary')) btn.style.opacity = '0.7';
-    } else {
-      btn.disabled = false;
-      if (btn._originalText) textEl.textContent = btn._originalText;
-      if (spinner) spinner.classList.add('hidden');
-      btn.style.opacity = '';
+      if (typeof btn._originalHTML === 'undefined') btn._originalHTML = btn.innerHTML;
+      btn.innerHTML = `
+        <span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:tf-spin .7s linear infinite;flex-shrink:0"></span>
+        ${escHtml(loadingText)}`;
+      btn.style.opacity = '0.7';
+
+      if (!document.getElementById('tf-spin-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tf-spin-keyframes';
+        style.textContent = '@keyframes tf-spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(style);
+      }
+      return;
+    }
+
+    btn.disabled = false;
+    btn.style.opacity = '';
+    if (typeof btn._originalHTML !== 'undefined') {
+      btn.innerHTML = btn._originalHTML;
+      delete btn._originalHTML;
     }
   }
+
 
   /* ─── MODALS ────────────────────────────────────────────── */
 

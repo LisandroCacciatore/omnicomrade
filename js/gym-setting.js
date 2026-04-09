@@ -20,6 +20,14 @@
   let logoFile = null;
   let avatarFile = null;
   let selectedColor = '#3B82F6';
+  let notifSaveTimer = null;
+  const NOTIF_DEFAULTS = {
+    notify_membership_expiring: true,
+    notify_student_inactive: true,
+    notify_weekly_summary: true,
+    notify_new_program: true,
+    notify_unread_messages: true
+  };
 
   /* ─── Tab routing ─────────────────────────────────────────── */
   document.querySelectorAll('.settings-tab').forEach((btn) => {
@@ -366,6 +374,98 @@
     toast('Foto de perfil actualizada');
   });
 
+  /* ─── Notification preferences ───────────────────────────── */
+  function readNotifForm() {
+    return {
+      notify_membership_expiring: Boolean(
+        document.getElementById('notif-membership-expiring')?.checked
+      ),
+      notify_student_inactive: Boolean(document.getElementById('notif-student-inactive')?.checked),
+      notify_weekly_summary: Boolean(document.getElementById('notif-weekly-summary')?.checked),
+      notify_new_program: Boolean(document.getElementById('notif-new-program')?.checked),
+      notify_unread_messages: Boolean(document.getElementById('notif-unread-messages')?.checked)
+    };
+  }
+
+  function applyNotifForm(prefs) {
+    const values = { ...NOTIF_DEFAULTS, ...(prefs || {}) };
+    const map = [
+      ['notif-membership-expiring', 'notify_membership_expiring'],
+      ['notif-student-inactive', 'notify_student_inactive'],
+      ['notif-weekly-summary', 'notify_weekly_summary'],
+      ['notif-new-program', 'notify_new_program'],
+      ['notif-unread-messages', 'notify_unread_messages']
+    ];
+    map.forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = Boolean(values[key]);
+    });
+  }
+
+  function setNotifStatus(msg, type = 'muted') {
+    const statusEl = document.getElementById('notif-pref-status');
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.className =
+      type === 'error' ? 'text-xs text-danger mt-3' : 'text-xs text-slate-500 mt-3';
+  }
+
+  async function saveNotificationPreferences() {
+    const payload = readNotifForm();
+    const { error } = await db.from('notification_preferences').upsert(
+      {
+        gym_id: gymId,
+        profile_id: user.id,
+        ...payload,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'gym_id,profile_id' }
+    );
+    if (error) {
+      setNotifStatus('No se pudieron guardar las preferencias.', 'error');
+      return;
+    }
+    setNotifStatus('Preferencias guardadas automáticamente.');
+  }
+
+  function scheduleSaveNotificationPreferences() {
+    setNotifStatus('Guardando...');
+    clearTimeout(notifSaveTimer);
+    notifSaveTimer = setTimeout(() => {
+      saveNotificationPreferences();
+    }, 450);
+  }
+
+  async function loadNotificationPreferences() {
+    const { data, error } = await db
+      .from('notification_preferences')
+      .select(
+        'notify_membership_expiring, notify_student_inactive, notify_weekly_summary, notify_new_program, notify_unread_messages'
+      )
+      .eq('gym_id', gymId)
+      .eq('profile_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      applyNotifForm(NOTIF_DEFAULTS);
+      setNotifStatus('No se pudieron cargar preferencias. Se usan valores por defecto.', 'error');
+      return;
+    }
+
+    applyNotifForm(data || NOTIF_DEFAULTS);
+    setNotifStatus('Guardado automático.');
+
+    [
+      'notif-membership-expiring',
+      'notif-student-inactive',
+      'notif-weekly-summary',
+      'notif-new-program',
+      'notif-unread-messages'
+    ].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', scheduleSaveNotificationPreferences);
+    });
+  }
+
   /* ─── Button helpers ─────────────────────────────────────── */
   function setBtnLoading(btn, label) {
     btn.disabled = true;
@@ -377,7 +477,7 @@
   }
 
   /* ─── Init ───────────────────────────────────────────────── */
-  await Promise.all([loadGym(), loadProfile()]);
+  await Promise.all([loadGym(), loadProfile(), loadNotificationPreferences()]);
 
   /* ─── Ir a Premium ──────────────────────────────────────── */
   document.getElementById('btn-go-premium')?.addEventListener('click', () => {

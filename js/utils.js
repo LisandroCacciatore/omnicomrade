@@ -28,6 +28,29 @@ window.tfUtils = {
     }),
   setBtnLoading: (id, l, t) => window.tfUiUtils?.setBtnLoading?.(id, l, t),
   setLoading: (btn, l, t) => window.tfUiUtils?.setBtnLoading(btn, l, t), // Alias
+  renderEmptyState: (containerId, config) => {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+
+    if (window.tfUiUtils?.renderEmptyState) {
+      window.tfUiUtils.renderEmptyState(containerId, config);
+      return;
+    }
+
+    const { icon = 'inbox', title = 'Sin datos', description = '', actionLabel = '', onAction = null } =
+      config || {};
+
+    const actionHTML =
+      actionLabel && onAction
+        ? `<button id="es-action-${containerId}" class="mt-4 flex items-center gap-2 bg-primary hover:bg-blue-500 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors"><span class="material-symbols-rounded text-[17px]">add</span>${window.tfUtils.escHtml(actionLabel)}</button>`
+        : '';
+
+    el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center px-6"><div class="w-14 h-14 rounded-2xl bg-[#161E26] border border-[#1E293B] flex items-center justify-center mb-4"><span class="material-symbols-rounded text-slate-600 text-[26px]" style="font-variation-settings:'FILL' 1">${icon}</span></div><p class="text-white font-bold text-sm mb-1">${window.tfUtils.escHtml(title)}</p><p class="text-xs text-slate-500 max-w-xs leading-relaxed">${window.tfUtils.escHtml(description)}</p>${actionHTML}</div>`;
+
+    if (actionLabel && onAction) {
+      document.getElementById(`es-action-${containerId}`)?.addEventListener('click', onAction);
+    }
+  },
   showModal: (id) => window.tfUiUtils?.showModal(id),
   hideModal: (id) => window.tfUiUtils?.hideModal(id),
   setupValidation: (i, e, v) => window.tfUiUtils?.setupValidation(i, e, v),

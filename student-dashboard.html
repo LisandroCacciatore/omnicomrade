@@ -183,6 +183,14 @@
             Mi Dashboard
           </div>
         </div>
+        <button id="btn-messages" type="button" class="relative size-10 flex items-center justify-center rounded-full hover:bg-slate-800 transition-colors" aria-label="Mensajes">
+          <span class="material-symbols-rounded text-slate-400">chat</span>
+          <span id="messages-badge" class="absolute top-1 right-1 hidden size-4 bg-danger rounded-full text-[9px] font-black text-white flex items-center justify-center"></span>
+        </button>
+        <button id="btn-notifications" type="button" class="relative size-10 flex items-center justify-center rounded-full hover:bg-slate-800 transition-colors" aria-label="Notificaciones">
+          <span class="material-symbols-rounded text-slate-400">notifications</span>
+          <span id="tf-notif-badge" class="absolute top-1 right-1 hidden min-w-4 h-4 px-1 bg-danger rounded-full text-[9px] font-black text-white flex items-center justify-center"></span>
+        </button>
         <button type="button" id="logout-btn" class="btn-logout">
           <span class="material-symbols-rounded text-[17px]">logout</span>
           <span class="hidden sm:inline">Salir</span>
@@ -214,9 +222,9 @@
       </div>
 
       <div id="dashboard-content" class="hidden space-y-4">
-        <a
+        <button
           id="btn-entrenar"
-          href="student-profile.html"
+          type="button"
           class="flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] text-black shadow-[0_0_30px_rgba(16,185,129,0.18)] active:scale-[.98] transition-transform block"
         >
           <div>
@@ -231,7 +239,7 @@
             style="font-variation-settings: 'FILL' 1"
             >play_circle</span
           >
-        </a>
+        </button>
 
         <div id="athlete-score-widget"></div>
 
@@ -255,7 +263,7 @@
         </section>
 
         <section class="card">
-          <p class="zone-label">😴 Bienestar · íºltimos 7 dí­as</p>
+          <p class="zone-label">😴 Bienestar · Últimos 7 días</p>
 
           <div id="wellbeing-empty" class="text-center py-4 hidden">
             <span class="material-symbols-rounded text-slate-700 text-3xl">sentiment_neutral</span>
@@ -455,46 +463,17 @@
       </div>
     </main>
 
-    <nav
-      class="fixed bottom-0 left-0 right-0 bg-[#161E26]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 py-2 z-40"
-    >
-      <a
-        href="student-dashboard.html"
-        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl bg-[#3B82F6]/10"
-      >
-        <span
-          class="material-symbols-rounded text-[#3B82F6] text-[22px]"
-          style="font-variation-settings: 'FILL' 1"
-          >home</span
-        >
-        <span class="text-[9px] font-bold text-[#3B82F6]">Inicio</span>
-      </a>
-      <a
-        href="student-profile.html"
-        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl"
-      >
-        <span class="material-symbols-rounded text-slate-500 text-[22px]">fitness_center</span>
-        <span class="text-[9px] font-bold text-slate-500">Entrenar</span>
-      </a>
-      <a href="progress.html" class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl">
-        <span class="material-symbols-rounded text-slate-500 text-[22px]">trending_up</span>
-        <span class="text-[9px] font-bold text-slate-500">Progreso</span>
-      </a>
-      <a
-        href="wellbeing-check.html"
-        class="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl"
-      >
-        <span class="material-symbols-rounded text-slate-500 text-[22px]">self_improvement</span>
-        <span class="text-[9px] font-bold text-slate-500">Bienestar</span>
-      </a>
-    </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="js/supabase.js"></script>
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/training-engine.js"></script>
     <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/athlete-insights.js"></script>
+    <script type="module" src="js/messages.js"></script>
+    <script type="module" src="js/notifications.js"></script>
+    <script type="module" src="js/student-onboarding-tour.js"></script>
     <script type="module" src="js/student-dashboard.js"></script>
   </body>
 </html>
