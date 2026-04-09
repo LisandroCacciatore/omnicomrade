@@ -34,7 +34,24 @@ const getStudentHomeUrl = () => {
   /* ─── Recuperar workout pendiente ─────────────────────── */
   const pendingRaw = sessionStorage.getItem('pendingWorkout')
   if (!pendingRaw) {
-    window.location.href = getStudentHomeUrl()
+    const overlay = document.createElement('div')
+    overlay.style.cssText = `
+      position: fixed; inset: 0; background: #0B1218;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; z-index: 100;
+    `
+    overlay.innerHTML = `
+      <span class="material-symbols-rounded" style="font-size:40px;color:#475569">calendar_today</span>
+      <p style="color:#E2E8F0;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;text-align:center;margin:0">
+        Hoy no tenés entrenamiento asignado
+      </p>
+      <p style="color:#64748B;font-size:13px;margin:0;text-align:center">Redirigiendo a tu rutina...</p>
+    `
+    document.body.appendChild(overlay)
+    setTimeout(() => {
+      window.location.href = 'student-profile.html'
+    }, 2000)
     return
   }
   let pendingWorkout = JSON.parse(pendingRaw)
@@ -221,10 +238,40 @@ const getStudentHomeUrl = () => {
 
   document.getElementById('btn-start').addEventListener('click', async () => {
     if (!answers.sleep || !answers.pain || !answers.energy) return
+
+    const latestPendingRaw = sessionStorage.getItem('pendingWorkout')
+    if (!latestPendingRaw) {
+      showPendingWorkoutError()
+      return
+    }
+
     await saveAndRedirect()
   })
 
   /* ─── Guardar y redirigir ──────────────────────────────── */
+  function showPendingWorkoutError() {
+    const existing = document.getElementById('pending-workout-error-overlay')
+    if (existing) existing.remove()
+
+    const overlay = document.createElement('div')
+    overlay.id = 'pending-workout-error-overlay'
+    overlay.style.cssText = `
+      position: fixed; inset: 0; background: rgba(11,18,24,.95);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; z-index: 120; padding: 24px;
+    `
+    overlay.innerHTML = `
+      <span class="material-symbols-rounded" style="font-size:40px;color:#F59E0B">warning</span>
+      <p style="color:#E2E8F0;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;text-align:center;margin:0">Hubo un problema. Seleccioná tu día de entrenamiento.</p>
+      <button id="pending-workout-go-routine" type="button" style="margin-top:8px;background:#3B82F6;color:white;border:none;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer">Ir a mi rutina</button>
+    `
+    document.body.appendChild(overlay)
+    document.getElementById('pending-workout-go-routine')?.addEventListener('click', () => {
+      window.location.href = 'student-profile.html'
+    })
+  }
+
   async function saveAndRedirect() {
     document.getElementById('saving-overlay').classList.add('show')
 

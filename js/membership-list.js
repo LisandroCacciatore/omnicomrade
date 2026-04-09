@@ -1,8 +1,8 @@
 // ─── ESTADO ───────────────────────────────────────────────
 let allMemberships = [];
+let currentFilteredMemberships = [];
 let gymId = null;
 let membershipPlanCatalog = [];
-
 function escHtml(s) {
   return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
 }
@@ -11,25 +11,20 @@ const PLAN_DEFAULTS = {
   trimestral: { label: 'Trimestral', duration_days: 90, amount: 80000 },
   anual: { label: 'Anual', duration_days: 365, amount: 280000 }
 };
-
 // ─── INIT ─────────────────────────────────────────────────
 async function initMembershipList() {
   const session = await window.authGuard(['gim_admin']);
   if (!session) return;
   gymId = session.user.app_metadata?.gym_id || null;
-
   document.getElementById('user-name').textContent =
     session.user.user_metadata?.full_name || session.user.email;
-
   document.getElementById('logout-btn')?.addEventListener('click', window.tfUtils.logout);
-
   await ensurePlanCatalog();
   await loadMemberships();
   setupFilters();
   setupModal();
   setupPlanPricing();
 }
-
 // ─── CARGAR MEMBRESÍAS ────────────────────────────────────
 // Trae todas las membresías junto con el nombre del alumno usando un JOIN.
 // El .select('*, students(full_name, email)') le dice a Supabase que traiga
@@ -57,23 +52,20 @@ async function loadMemberships() {
             <td class="px-6 py-4"><div class="h-4 w-16 bg-slate-800 rounded"></div></td>
             <td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td>
         </tr>`;
-
   const { data, error } = await window.supabaseClient
     .from('memberships')
     .select('*, students(full_name, email)')
     .order('created_at', { ascending: false });
-
   if (error) {
     console.error('Error cargando membresías:', error);
     window.tfUtils.toast('Error al cargar las membresías', 'error');
     return;
   }
-
   allMemberships = data || [];
+  currentFilteredMemberships = [...allMemberships];
   updateKPIs();
   renderTable(allMemberships);
 }
-
 async function ensurePlanCatalog() {
   if (!gymId) return;
   const { data, error } = await window.supabaseClient
@@ -81,18 +73,15 @@ async function ensurePlanCatalog() {
     .select('id, gym_id, plan_key, label, duration_days, amount, is_active')
     .eq('gym_id', gymId)
     .order('duration_days', { ascending: true });
-
   if (error && error.code !== '42P01') {
     console.error('Error cargando catálogo de planes:', error);
     window.tfUtils.toast('Error al cargar el catálogo de planes', 'error');
     return;
   }
-
   if (data && data.length) {
     membershipPlanCatalog = data;
     return;
   }
-
   const seedRows = Object.entries(PLAN_DEFAULTS).map(([planKey, meta]) => ({
     gym_id: gymId,
     plan_key: planKey,
@@ -101,12 +90,10 @@ async function ensurePlanCatalog() {
     amount: meta.amount,
     is_active: true
   }));
-
   const { data: inserted, error: seedError } = await window.supabaseClient
     .from('gym_membership_plans')
     .insert(seedRows)
     .select('id, gym_id, plan_key, label, duration_days, amount, is_active');
-
   if (seedError) {
     console.error('No se pudo crear catálogo base de planes:', seedError);
     membershipPlanCatalog = Object.entries(PLAN_DEFAULTS).map(([plan_key, meta]) => ({
@@ -116,50 +103,40 @@ async function ensurePlanCatalog() {
     }));
     return;
   }
-
   membershipPlanCatalog = inserted || [];
 }
-
 // ─── KPIs ─────────────────────────────────────────────────
 function updateKPIs() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const in7days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
   const activas = allMemberships.filter((m) => {
     const end = new Date(m.end_date);
     return end >= today;
   });
-
   const porVencer = allMemberships.filter((m) => {
     const end = new Date(m.end_date);
     return end >= today && end <= in7days;
   });
-
   const vencidas = allMemberships.filter((m) => {
     const end = new Date(m.end_date);
     return end < today;
   });
-
   document.getElementById('kpi-total').textContent = allMemberships.length;
   document.getElementById('kpi-activas').textContent = activas.length;
   document.getElementById('kpi-por-vencer').textContent = porVencer.length;
   document.getElementById('kpi-vencidas').textContent = vencidas.length;
 }
-
 // ─── RENDER TABLA ─────────────────────────────────────────
 function renderTable(memberships) {
   const tbody = document.getElementById('memberships-table');
   const emptyState = document.getElementById('empty-state');
-
   if (!memberships || memberships.length === 0) {
     tbody.innerHTML = '';
     emptyState.classList.remove('hidden');
     return;
   }
-
   emptyState.classList.add('hidden');
-
   tbody.innerHTML = memberships
     .map((m) => {
       const status = getMembershipStatus(m.end_date);
@@ -205,7 +182,6 @@ function renderTable(memberships) {
     })
     .join('');
 }
-
 // ─── ESTADO DE MEMBRESÍA ──────────────────────────────────
 // Calcula el estado en el frontend comparando end_date con hoy.
 // Esto es más flexible que depender del campo membership_status del alumno.
@@ -214,7 +190,6 @@ function getMembershipStatus(endDate) {
   today.setHours(0, 0, 0, 0);
   const end = new Date(endDate);
   const in7days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
   if (end < today) {
     return { label: 'Vencida', class: 'bg-danger/10 text-danger', dateClass: 'text-danger' };
   } else if (end <= in7days) {
@@ -223,7 +198,6 @@ function getMembershipStatus(endDate) {
     return { label: 'Activa', class: 'bg-success/10 text-success', dateClass: 'text-slate-400' };
   }
 }
-
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('es-AR', {
     day: '2-digit',
@@ -231,7 +205,6 @@ function formatDate(dateStr) {
     year: 'numeric'
   });
 }
-
 // ─── FILTROS ──────────────────────────────────────────────
 // Cada vez que el usuario escribe o cambia un filtro, filtra el array
 // en memoria sin hacer otra llamada a Supabase.
@@ -240,7 +213,6 @@ function setupFilters() {
   const filterStatus = document.getElementById('filter-status');
   const filterPlan = document.getElementById('filter-plan');
   const clearBtn = document.getElementById('clear-membership-filters');
-
   function applyFilters() {
     const search = searchInput.value.toLowerCase();
     const status = filterStatus.value;
@@ -248,25 +220,20 @@ function setupFilters() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const in7days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
     const filtered = allMemberships.filter((m) => {
       const name = m.students?.full_name?.toLowerCase() || '';
       const end = new Date(m.end_date);
-
       const matchSearch = !search || name.includes(search);
       const matchPlan = !plan || m.plan === plan;
-
       let matchStatus = true;
       if (status === 'activa') matchStatus = end >= today && end > in7days;
       if (status === 'por_vencer') matchStatus = end >= today && end <= in7days;
       if (status === 'vencida') matchStatus = end < today;
-
       return matchSearch && matchPlan && matchStatus;
     });
-
+    currentFilteredMemberships = filtered;
     renderTable(filtered);
   }
-
   searchInput.addEventListener('input', applyFilters);
   filterStatus.addEventListener('change', applyFilters);
   filterPlan.addEventListener('change', applyFilters);
@@ -276,15 +243,21 @@ function setupFilters() {
     filterPlan.value = '';
     applyFilters();
   });
+  document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+    const filteredData = getCurrentFilteredData();
+    const dateStr = new Date().toLocaleDateString('es-AR').replace(/\//g, '-');
+    const statusSuffixMap = { activa: 'activas', por_vencer: 'por_vencer', vencida: 'vencidas' };
+    const suffix = statusSuffixMap[filterStatus.value] ? `_${statusSuffixMap[filterStatus.value]}` : '';
+    exportToCSV(filteredData, `membresias${suffix}_${dateStr}.csv`);
+  });
+  applyFilters();
 }
-
 function planMetaFromCatalog(planKey) {
   const found = membershipPlanCatalog.find((p) => p.plan_key === planKey);
   if (found) return found;
   const fallback = PLAN_DEFAULTS[planKey];
   return fallback ? { plan_key: planKey, ...fallback, is_active: true } : null;
 }
-
 function hydratePlanPriceInputs() {
   ['mensual', 'trimestral', 'anual'].forEach((planKey) => {
     const input = document.getElementById(`plan-price-${planKey}`);
@@ -293,7 +266,6 @@ function hydratePlanPriceInputs() {
     input.value = plan?.amount != null ? String(plan.amount) : '';
   });
 }
-
 function setupPlanPricing() {
   hydratePlanPriceInputs();
   const btn = document.getElementById('save-plan-prices');
@@ -313,7 +285,6 @@ function setupPlanPricing() {
         is_active: true
       };
     });
-
     // Ensure profile exists before upserting (FK on changed_by)
     const session = await window.supabaseClient.auth.getSession();
     const user = session?.data?.session?.user;
@@ -323,7 +294,6 @@ function setupPlanPricing() {
         user.user_metadata?.full_name ||
         user.user_metadata?.name ||
         (user.email ? user.email.split('@')[0] : 'Administrador');
-
       const { error: profileError } = await window.supabaseClient.from('profiles').upsert(
         {
           id: user.id,
@@ -333,7 +303,6 @@ function setupPlanPricing() {
         },
         { onConflict: 'id' }
       );
-
       if (profileError && feedback) {
         feedback.textContent =
           'No se pudo validar tu perfil de usuario para registrar cambios de planes.';
@@ -342,12 +311,10 @@ function setupPlanPricing() {
         return;
       }
     }
-
     const { data, error } = await window.supabaseClient
       .from('gym_membership_plans')
       .upsert(rows, { onConflict: 'gym_id,plan_key' })
       .select('id, gym_id, plan_key, label, duration_days, amount, is_active');
-
     if (feedback) {
       if (error) {
         if (error.code === '23503' && error.message.includes('changed_by')) {
@@ -366,7 +333,44 @@ function setupPlanPricing() {
     }
   });
 }
-
+function getCurrentFilteredData() {
+  return Array.isArray(currentFilteredMemberships) ? currentFilteredMemberships : [];
+}
+function exportToCSV(data, filename) {
+  if (!Array.isArray(data) || data.length === 0) {
+    window.tfUtils.toast('No hay datos para exportar con los filtros actuales', 'error');
+    return;
+  }
+  const headers = ['Nombre', 'Email', 'Plan', 'Inicio', 'Vencimiento', 'Monto', 'Método', 'Estado'];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const rows = data.map((m) => {
+    const end = new Date(m.end_date);
+    const estado = end < today ? 'Vencida' : 'Activa';
+    return [
+      m.students?.full_name || '',
+      m.students?.email || '',
+      m.plan || '',
+      new Date(m.start_date).toLocaleDateString('es-AR'),
+      new Date(m.end_date).toLocaleDateString('es-AR'),
+      parseFloat(m.amount || 0).toFixed(2),
+      m.payment_method || '',
+      estado
+    ]
+      .map((value) => `"${String(value).replace(/"/g, '""')}"`)
+      .join(';');
+  });
+  const csv = [headers.join(';'), ...rows].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
 function setupModal() {
   const backdrop = document.getElementById('modal-membresia-backdrop');
@@ -374,19 +378,16 @@ function setupModal() {
   const submitBtn = document.getElementById('modal-membresia-submit');
   const errorEl = document.getElementById('modal-membresia-error');
   const planContainer = document.getElementById('plan-buttons-container');
-
   function renderPlanButtons() {
     if (!planContainer) return;
     const activePlans = membershipPlanCatalog
       .filter((plan) => plan.is_active !== false)
       .sort((a, b) => (a.duration_days || 0) - (b.duration_days || 0));
-
     if (!activePlans.length) {
       planContainer.innerHTML =
         '<p class="text-xs text-danger col-span-3">No hay planes activos configurados.</p>';
       return;
     }
-
     planContainer.innerHTML = activePlans
       .map(
         (plan) => `
@@ -399,7 +400,6 @@ function setupModal() {
       )
       .join('');
   }
-
   function applyPlanSelection(planKey, amount = null) {
     document
       .querySelectorAll('.plan-btn')
@@ -413,28 +413,23 @@ function setupModal() {
       amountInput.value = Number.isFinite(parsed) ? String(parsed) : '';
     }
   }
-
   async function openModal() {
     window.tfUtils.showModal('modal-nueva-membresia');
     document.getElementById('membresia-start-date').value = new Date().toISOString().split('T')[0];
-
     const { data: students } = await window.supabaseClient
       .from('students')
       .select('id, full_name')
       .is('deleted_at', null)
       .order('full_name');
-
     const select = document.getElementById('membresia-student-id');
     select.innerHTML = '<option value="">Seleccioná un alumno...</option>';
     students?.forEach((s) => {
       select.innerHTML += `<option value="${String(s.id ?? '')}">${escHtml(s.full_name || 'Sin nombre')}</option>`;
     });
-
     await ensurePlanCatalog();
     renderPlanButtons();
     applyPlanSelection('', null);
   }
-
   function closeModal() {
     window.tfUtils.hideModal('modal-nueva-membresia');
     document.getElementById('membresia-student-id').value = '';
@@ -446,13 +441,11 @@ function setupModal() {
       .forEach((b) => b.classList.remove('border-primary', 'text-primary', 'bg-primary/10'));
     errorEl.classList.add('hidden');
   }
-
   planContainer?.addEventListener('click', (evt) => {
     const btn = evt.target.closest('.plan-btn');
     if (!btn) return;
     applyPlanSelection(btn.dataset.plan, btn.dataset.amount);
   });
-
   async function saveMembresia() {
     const studentId = document.getElementById('membresia-student-id').value;
     const plan = document.getElementById('membresia-plan').value;
@@ -460,15 +453,12 @@ function setupModal() {
     const amount = document.getElementById('membresia-amount').value;
     const paymentMethod = document.getElementById('membresia-payment-method').value;
     const notes = document.getElementById('membresia-notes').value.trim();
-
     if (!studentId || !plan || !startDate || !amount) {
       errorEl.textContent = 'Atleta, plan, fecha y monto son obligatorios.';
       errorEl.classList.remove('hidden');
       return;
     }
-
     window.tfUtils.setBtnLoading(submitBtn, true, 'Guardando...');
-
     try {
       const { error } = await window.supabaseClient.from('memberships').insert({
         gym_id: gymId,
@@ -480,9 +470,7 @@ function setupModal() {
         payment_method: paymentMethod,
         notes: notes || null
       });
-
       if (error) throw error;
-
       window.tfUtils.toast('Membresía registrada correctamente');
       closeModal();
       await loadMemberships();
@@ -493,14 +481,12 @@ function setupModal() {
       window.tfUtils.setBtnLoading(submitBtn, false, 'Registrar Membresía');
     }
   }
-
   document.getElementById('btn-nueva-membresia')?.addEventListener('click', openModal);
   document.getElementById('btn-empty-nueva-membresia')?.addEventListener('click', openModal);
   backdrop?.addEventListener('click', closeModal);
   closeBtn?.addEventListener('click', closeModal);
   submitBtn?.addEventListener('click', saveMembresia);
 }
-
 // ─── ARRANCAR ─────────────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initMembershipList);
