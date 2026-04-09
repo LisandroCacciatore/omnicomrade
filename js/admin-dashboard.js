@@ -82,6 +82,18 @@ window.addEventListener('onboarding:completed', async () => {
 });
 
 // ─── KPIs ─────────────────────────────────────────────────
+
+function formatCurrency(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '$0';
+  return (
+    '$' +
+    Number(value).toLocaleString('es-AR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    })
+  );
+}
+
 async function loadKPIs() {
   try {
     const db = window.supabaseClient;
@@ -119,12 +131,11 @@ async function loadKPIs() {
 
     const kpiActiveStudents = document.getElementById('kpi-active-students');
     const kpiExpiringSoon = document.getElementById('kpi-expiring-soon');
-    const kpiMonthlyIncome = document.getElementById('kpi-monthly-income');
+    const kpiMonthlyIncome = document.getElementById('kpi-ingresos-mes') || document.getElementById('kpi-monthly-income');
 
     if (kpiActiveStudents) kpiActiveStudents.textContent = activeStudents || 0;
     if (kpiExpiringSoon) kpiExpiringSoon.textContent = expiringSoon || 0;
-    if (kpiMonthlyIncome)
-      kpiMonthlyIncome.textContent = '$' + (monthlyIncome || 0).toLocaleString('es-AR');
+    if (kpiMonthlyIncome) kpiMonthlyIncome.textContent = formatCurrency(monthlyIncome || 0);
   } catch (err) {
     console.error('Error loading KPIs:', err);
     toast('Error al cargar los indicadores del dashboard', 'error');
@@ -239,13 +250,20 @@ function setupQuickActions() {
 
 // ─── DASHBOARD BUTTONS ────────────────────────────────────
 function setupDashboardButtons() {
-  document.getElementById('btn-nuevo-alumno')?.addEventListener('click', () => {
-    if (window.onboardingWizard?.open) {
-      window.onboardingWizard.open();
-    } else {
-      console.error('❌ onboardingWizard no disponible');
-      toast('Error: el wizard de onboarding no está disponible', 'error');
+  window.StudentCreateModal?.init({
+    gymId,
+    db: window.supabaseClient,
+    onSuccess: async () => {
+      await Promise.all([loadKPIs(), loadRecentStudents()]);
     }
+  });
+
+  document.getElementById('btn-nuevo-alumno')?.addEventListener('click', () => {
+    if (!window.StudentCreateModal?.open) {
+      toast('No se pudo abrir el modal de alta', 'error');
+      return;
+    }
+    window.StudentCreateModal.open();
   });
 }
 
@@ -820,7 +838,6 @@ function setupModals() {
   alertForm?.addEventListener('submit', handleAlertSubmit);
 }
 
-window.openNewAtleta = () => window.onboardingWizard.open();
 
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
 const DEFAULT_PLAN_META = {

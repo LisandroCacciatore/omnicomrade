@@ -222,7 +222,7 @@ await import('./auth-guard.js');
               ${isActive ? '<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success rounded-full border-2 border-bg-dark"></div>' : ''}
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-bold text-white truncate">${escHtml(r.full_name)}</p>
+              <p class="text-sm font-bold text-white truncate"><a href="progress.html?student=${r.student_id}" class="hover:text-primary underline-offset-2 hover:underline">${escHtml(r.full_name)}</a></p>
               ${isActive ? '<p class="text-[10px] text-success font-bold">En sesión</p>' : ''}
             </div>
           </div>

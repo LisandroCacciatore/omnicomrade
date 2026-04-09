@@ -19,6 +19,22 @@
   let student = null;
   let profile = null;
 
+  const profileBanner = document.getElementById('profile-banner');
+  const bannerType = urlParams.get('banner');
+  const nextSession = urlParams.get('next');
+  const emptyStateType = urlParams.get('empty_state');
+
+  if (profileBanner && bannerType === 'no-session') {
+    profileBanner.className = 'rounded-xl border px-4 py-3 text-sm font-semibold bg-amber-500/10 border-amber-500/30 text-amber-300';
+    profileBanner.textContent = `Hoy no tenés sesión. Tu próxima sesión es ${nextSession || 'el próximo día de entrenamiento'}.`;
+  }
+
+  if (profileBanner && emptyStateType === 'no-routine') {
+    profileBanner.className = 'rounded-xl border px-4 py-3 text-sm font-semibold bg-[#161E26] border-[#334155] text-slate-200';
+    profileBanner.textContent = 'Tu coach todavía no te asignó una rutina.';
+  }
+
+
   // STUDENT_SELECT sin join a routines — la FK via ALTER TABLE no siempre queda
   // en el schema cache de Supabase (error PGRST200). La rutina se carga aparte.
   // routine_id puede no existir si la migración no se ejecutó aún — se pide

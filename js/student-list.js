@@ -23,6 +23,14 @@ async function initStudentList() {
 
   gymId = session.user.app_metadata.gym_id;
 
+  window.StudentCreateModal?.init({
+    gymId,
+    db: window.supabaseClient,
+    onSuccess: async () => {
+      await loadStudents();
+    }
+  });
+
   const userNameEl = document.getElementById('user-name');
   if (userNameEl)
     userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
@@ -209,7 +217,7 @@ function renderCards(students) {
       const latestM = s.memberships?.sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
       return `
         <div class="bg-surface-dark border border-border-dark rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-800 transition-colors"
-             onclick="window.openProfilePanel('${s.id}')">
+             onclick="window.openProfilePanel('${s.id}', this)">
           <div class="flex items-center gap-3 min-w-0">
             <div class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
               ${window.tfUtils.escHtml(s.full_name).charAt(0).toUpperCase()}
@@ -246,7 +254,7 @@ function setupTableEvents() {
       if (action === 'delete') openEliminar(id, name);
       return;
     }
-    if (row) openProfilePanel(row.dataset.id);
+    if (row) openProfilePanel(row.dataset.id, row);
   });
 }
 
@@ -526,10 +534,20 @@ function setupProfilePanel() {
     panel.classList.remove('open');
     backdrop.classList.remove('open');
     activePanelStudentId = null;
+    if (window._panelTrigger && typeof window._panelTrigger.focus === 'function') {
+      window._panelTrigger.focus();
+      window._panelTrigger = null;
+    }
   }
 
   document.getElementById('panel-close')?.addEventListener('click', closePanel);
   backdrop?.addEventListener('click', closePanel);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!panel?.classList.contains('open')) return;
+    closePanel();
+  });
 
   // Tabs
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -633,11 +651,12 @@ function setupProfilePanel() {
 }
 
 // Abre el panel lateral con datos del alumno
-window.openProfilePanel = function (studentId) {
+window.openProfilePanel = function (studentId, triggerElement) {
   const s = allStudents.find((x) => x.id === studentId);
   if (!s) return;
 
   activePanelStudentId = studentId;
+  if (triggerElement) window._panelTrigger = triggerElement;
 
   document.getElementById('panel-avatar').textContent = s.full_name.charAt(0).toUpperCase();
   document.getElementById('panel-name').textContent = s.full_name;
@@ -726,17 +745,11 @@ function setupModalAtleta() {
   const submitBtn = document.getElementById('modal-alumno-submit');
 
   window.openNewAtleta = function () {
-    if (window.onboardingWizard?.open) {
-      window.onboardingWizard.open();
+    if (!window.StudentCreateModal?.open) {
+      window.tfUtils.toast('No se pudo abrir el modal de alta', 'error');
       return;
     }
-
-    document.getElementById('modal-title-alumno').innerHTML =
-      'Nuevo <span class="text-primary">Atleta</span>';
-    document.getElementById('alumno-id').value = '';
-    document.getElementById('form-alumno').reset();
-    errorEl?.classList.add('hidden');
-    window.tfUtils.showModal('modal-alumno');
+    window.StudentCreateModal.open();
   };
 
   window.openEditAtleta = function (id) {
