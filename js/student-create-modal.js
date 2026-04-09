@@ -276,6 +276,7 @@ window.StudentCreateModal = (function () {
     window.tfUtils?.setBtnLoading?.(btn, true, 'Creando alumno...');
 
     try {
+      let partialWarning = '';
       const { data: student, error: errStudent } = await db
         .from('students')
         .insert({
@@ -302,7 +303,10 @@ window.StudentCreateModal = (function () {
           amount: Number(formData.amount) || 0,
           payment_method: formData.payment_method
         });
-        if (errMemb) console.warn('Membresía no guardada:', errMemb.message || errMemb);
+        if (errMemb) {
+          console.warn('Membresía no guardada:', errMemb.message || errMemb);
+          partialWarning = 'Alumno creado, pero la membresía no se pudo guardar.';
+        }
       }
 
       if (formData.routine_id) {
@@ -314,7 +318,11 @@ window.StudentCreateModal = (function () {
       }
 
       close();
-      window.tfUtils?.toast?.('¡Alumno creado!');
+      if (partialWarning) {
+        window.tfUtils?.toast?.(partialWarning, 'error');
+      } else {
+        window.tfUtils?.toast?.('¡Alumno creado!');
+      }
       onSuccess?.({ student });
     } catch (err) {
       goToTab(0);

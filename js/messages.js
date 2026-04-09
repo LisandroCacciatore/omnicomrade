@@ -14,6 +14,7 @@ window.TFMessages = (function () {
   let currentPeer = null;
   let badgeEl = null;
   let pollInterval = null;
+  let openerEl = null;
 
   async function init({ gymId: gId, user, badgeSelector }) {
     gymId = gId;
@@ -32,6 +33,7 @@ window.TFMessages = (function () {
 
   async function openChat(peerId, peerName) {
     if (!peerId) return;
+    openerEl = document.activeElement;
     currentPeer = { id: peerId, full_name: peerName || 'Usuario' };
 
     const drawer = document.getElementById('tf-messages-drawer');
@@ -49,6 +51,14 @@ window.TFMessages = (function () {
     document.getElementById('tf-messages-drawer')?.classList.remove('open');
     document.getElementById('tf-messages-backdrop')?.classList.remove('open');
     currentPeer = null;
+    openerEl?.focus?.();
+  }
+
+  function destroy() {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
   }
 
   async function loadMessages() {
@@ -238,15 +248,27 @@ window.TFMessages = (function () {
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && currentPeer) closeChat();
+      if (e.key === 'Tab' && currentPeer) {
+        const drawerEl = document.getElementById('tf-messages-drawer');
+        if (!drawerEl?.classList.contains('open')) return;
+        const focusables = drawerEl.querySelectorAll('button, input, [href], [tabindex]:not([tabindex="-1"])');
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     });
 
     window.addEventListener('beforeunload', () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-      }
+      destroy();
     });
   }
 
-  return { init, openChat, closeChat, getConversations, refreshUnreadBadge };
+  return { init, openChat, closeChat, getConversations, refreshUnreadBadge, destroy };
 })();

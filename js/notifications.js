@@ -8,6 +8,7 @@ window.TFNotifications = (function () {
 
   let gymId = null;
   let userId = null;
+  let openerEl = null;
 
   async function init({ gymId: gId, userId: uId }) {
     gymId = gId;
@@ -17,11 +18,12 @@ window.TFNotifications = (function () {
   }
 
   async function refreshBadge() {
-    if (!userId) return;
+    if (!userId || !gymId) return;
     const { count } = await db()
       .from('notifications')
       .select('id', { count: 'exact', head: true })
       .eq('recipient_id', userId)
+      .eq('gym_id', gymId)
       .is('read_at', null);
 
     const unread = count || 0;
@@ -35,8 +37,15 @@ window.TFNotifications = (function () {
 
   async function openInbox() {
     const panel = document.getElementById('tf-notif-panel');
+    if (!panel) return;
+    if (!panel.classList.contains('open')) openerEl = document.activeElement;
     panel?.classList.toggle('open');
-    if (panel?.classList.contains('open')) await loadNotifications();
+    if (panel?.classList.contains('open')) {
+      await loadNotifications();
+      document.getElementById('tf-notif-close')?.focus();
+    } else {
+      openerEl?.focus?.();
+    }
   }
 
   async function loadNotifications() {
@@ -47,6 +56,7 @@ window.TFNotifications = (function () {
       .from('notifications')
       .select('*')
       .eq('recipient_id', userId)
+      .eq('gym_id', gymId)
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -122,6 +132,7 @@ window.TFNotifications = (function () {
 
     document.getElementById('tf-notif-close')?.addEventListener('click', () => {
       document.getElementById('tf-notif-panel')?.classList.remove('open');
+      openerEl?.focus?.();
     });
 
     document.addEventListener('click', (e) => {
@@ -129,6 +140,14 @@ window.TFNotifications = (function () {
       const trigger = document.getElementById('btn-notifications');
       if (!panelEl?.contains(e.target) && !trigger?.contains(e.target)) {
         panelEl?.classList.remove('open');
+        openerEl?.focus?.();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && document.getElementById('tf-notif-panel')?.classList.contains('open')) {
+        document.getElementById('tf-notif-panel')?.classList.remove('open');
+        openerEl?.focus?.();
       }
     });
   }

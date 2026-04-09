@@ -459,7 +459,7 @@
                     <div>
                       <h2 class="text-sm font-bold text-white">Información del gimnasio</h2>
                       <p class="text-xs text-slate-500 mt-0.5">
-                        Nombre píºblico y datos de identificación
+                        Nombre público y datos de identificación
                       </p>
                     </div>
                     <span id="dot-gym" class="unsaved-dot"></span>
@@ -514,7 +514,7 @@
                   <div class="mb-5">
                     <h2 class="text-sm font-bold text-white">Logo del gimnasio</h2>
                     <p class="text-xs text-slate-500 mt-0.5">
-                      PNG o JPG · Máximo 2 MB · Recomendado 400í—400
+                      PNG o JPG · Máximo 2 MB · Recomendado 400×400
                     </p>
                   </div>
                   <div class="flex items-start gap-5">
@@ -585,7 +585,7 @@
                       class="color-swatch"
                       data-color="#F59E0B"
                       style="background: #f59e0b"
-                      title="ímbar"
+                      title="Ámbar"
                     ></div>
                     <div
                       class="color-swatch"
@@ -748,6 +748,38 @@
                     </button>
                   </div>
                 </form>
+
+                <div class="settings-card">
+                  <div class="mb-5">
+                    <h2 class="text-sm font-bold text-white">Preferencias de notificaciones</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                      Configurá qué alertas querés recibir en el inbox interno.
+                    </p>
+                  </div>
+                  <div class="space-y-3">
+                    <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218]">
+                      <span class="text-sm text-slate-300">Membresías por vencer</span>
+                      <input id="notif-membership-expiring" type="checkbox" class="size-4 accent-[#3B82F6]" />
+                    </label>
+                    <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218]">
+                      <span class="text-sm text-slate-300">Alumno inactivo</span>
+                      <input id="notif-student-inactive" type="checkbox" class="size-4 accent-[#3B82F6]" />
+                    </label>
+                    <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218]">
+                      <span class="text-sm text-slate-300">Resumen semanal</span>
+                      <input id="notif-weekly-summary" type="checkbox" class="size-4 accent-[#3B82F6]" />
+                    </label>
+                    <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218]">
+                      <span class="text-sm text-slate-300">Nuevo programa asignado</span>
+                      <input id="notif-new-program" type="checkbox" class="size-4 accent-[#3B82F6]" />
+                    </label>
+                    <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218]">
+                      <span class="text-sm text-slate-300">Mensajes no leídos</span>
+                      <input id="notif-unread-messages" type="checkbox" class="size-4 accent-[#3B82F6]" />
+                    </label>
+                  </div>
+                  <p id="notif-pref-status" class="text-xs text-slate-500 mt-3">Guardado automático.</p>
+                </div>
 
                 <div id="avatar-upload-card" class="settings-card hidden">
                   <div class="flex items-center gap-4">

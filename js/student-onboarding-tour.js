@@ -33,7 +33,11 @@ window.StudentOnboardingTour = (function () {
   let tooltip = null;
 
   function shouldShow() {
-    return !localStorage.getItem(STORAGE_KEY);
+    try {
+      return !localStorage.getItem(STORAGE_KEY);
+    } catch (_) {
+      return false;
+    }
   }
 
   function init() {
@@ -116,7 +120,9 @@ window.StudentOnboardingTour = (function () {
   }
 
   function finishBaseToast(msg) {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    try {
+      localStorage.setItem(STORAGE_KEY, 'true');
+    } catch (_) {}
     window.tfUtils?.toast?.(msg);
     overlay?.remove();
     tooltip?.remove();
