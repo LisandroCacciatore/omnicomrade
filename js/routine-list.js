@@ -6,10 +6,10 @@
 
 (async () => {
   /* ─── Auth guard ─────────────────────────────────────────── */
-  const session = await window.authGuard(['gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor']);
+  if (!ctx) return;
 
-  const gymId = session.user.app_metadata.gym_id;
+  const { gymId } = ctx;
   const db = window.supabaseClient;
 
   // Extraer utilidades centralizadas

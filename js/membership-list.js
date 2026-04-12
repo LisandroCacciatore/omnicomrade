@@ -13,11 +13,13 @@ const PLAN_DEFAULTS = {
 };
 // ─── INIT ─────────────────────────────────────────────────
 async function initMembershipList() {
-  const session = await window.authGuard(['gim_admin']);
-  if (!session) return;
-  gymId = session.user.app_metadata?.gym_id || null;
+  const ctx = await window.authGuard(['gim_admin']);
+  if (!ctx) return;
+  const { gymId: ctxGymId, email } = ctx;
+  gymId = ctxGymId || null;
+  const session = await window.tfSession.get();
   document.getElementById('user-name').textContent =
-    session.user.user_metadata?.full_name || session.user.email;
+    session?.user?.user_metadata?.full_name || email || '';
   document.getElementById('logout-btn')?.addEventListener('click', window.tfUtils.logout);
   await ensurePlanCatalog();
   await loadMemberships();
@@ -286,8 +288,8 @@ function setupPlanPricing() {
       };
     });
     // Ensure profile exists before upserting (FK on changed_by)
-    const session = await window.supabaseClient.auth.getSession();
-    const user = session?.data?.session?.user;
+    const fullSession = await window.tfSession.get();
+    const user = fullSession?.user;
     if (user?.id) {
       const role = user.app_metadata?.role || 'gim_admin';
       const fullName =

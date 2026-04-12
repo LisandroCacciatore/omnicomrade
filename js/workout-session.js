@@ -23,14 +23,14 @@ const getStudentHomeUrl = async () => {
 };
 
 (async () => {
-  const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId, userId, email } = ctx;
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata.gym_id;
   const apiHeaders = {
     'Content-Type': 'application/json',
-    'x-actor-id': session.user.id
+    'x-actor-id': userId
   };
 
   /* ─── Resolver student_id ─────────────────────────────── */
@@ -48,23 +48,23 @@ const getStudentHomeUrl = async () => {
       // FIXED: tenant filter
       .eq('gym_id', gymId)
       .select('id')
-      .eq('profile_id', session.user.id)
+      .eq('profile_id', userId)
       .is('deleted_at', null)
       .maybeSingle();
     studentId = byProfile?.id || null;
   }
-  if (!studentId && gymId && session.user.email) {
+  if (!studentId && gymId && email) {
     const { data: byEmail } = await db
       .from('students')
       .select('id')
       .eq('gym_id', gymId)
-      .eq('email', session.user.email)
+      .eq('email', email)
       .is('deleted_at', null)
       .maybeSingle();
     if (byEmail) {
       studentId = byEmail.id;
       db.from('students')
-        .update({ profile_id: session.user.id })
+        .update({ profile_id: userId })
         .eq('id', byEmail.id)
         .eq('gym_id', gymId)
         .is('profile_id', null)

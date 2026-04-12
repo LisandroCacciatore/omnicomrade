@@ -18,10 +18,11 @@ const DEFAULT_PLAN_META = {
 
 // ─── INIT ─────────────────────────────────────────────────────
 async function initStudentList() {
-  const session = await window.authGuard(['gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor']);
+  if (!ctx) return;
 
-  gymId = session.user.app_metadata.gym_id;
+  const { gymId: ctxGymId, email } = ctx;
+  gymId = ctxGymId;
 
   window.StudentCreateModal?.init({
     gymId,
@@ -32,8 +33,10 @@ async function initStudentList() {
   });
 
   const userNameEl = document.getElementById('user-name');
-  if (userNameEl)
-    userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
+  if (userNameEl) {
+    const session = await window.tfSession.get();
+    userNameEl.textContent = session?.user?.user_metadata?.full_name || email || '';
+  }
 
   await loadStudents();
   setupFilters();

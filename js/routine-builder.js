@@ -4,13 +4,13 @@
  */
 
 (async () => {
-  const session = await window.authGuard(['gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId } = ctx;
   const dbClient = window.supabaseClient;
   const db = dbClient;
   const dbApi = window.tfDb?.createDB ? window.tfDb.createDB(dbClient) : null;
-  const gymId = session.user.app_metadata.gym_id;
   const { PROGRAMS, toast, escHtml, debounce } = window.tfUtils;
 
   /* ─── State ─────────────────────────────────────────── */

@@ -6,11 +6,11 @@
 
 (async () => {
   /* ─── Auth ──────────────────────────────────────────────── */
-  const session = await window.authGuard(['gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId } = ctx;
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata.gym_id;
   const { toast, escHtml, debounce } = window.tfUtils;
 
   /* ─── Config ────────────────────────────────────────────── */
