@@ -12,7 +12,6 @@
  */
 
 (function () {
-
   const STUDENT_NAV_ITEMS = [
     { href: 'student-dashboard.html', icon: 'home', label: 'Inicio' },
     { href: 'student-profile.html', icon: 'fitness_center', label: 'Entrenar' },
@@ -123,11 +122,12 @@
 
   async function getUserRole() {
     try {
-      const stored = localStorage.getItem('tf_role');
-      if (stored) return stored;
-
-      const { data } = await window.supabaseClient.auth.getSession();
-      return data?.session?.user?.app_metadata?.role ?? null;
+      // Obtener rol exclusivamente desde tfSession (sin localStorage)
+      const session = await window.tfSession.get();
+      if (!session) {
+        return null;
+      }
+      return session.user.app_metadata?.role ?? null;
     } catch {
       return null;
     }
@@ -251,6 +251,13 @@
    */
   window.TFSidebar = {
     async init(gymName, logoUrl) {
+      // Verificar que hay sesión antes de inicializar
+      const session = await window.tfSession.get();
+      if (!session) {
+        // No hay sesión, redirigir a login
+        window.location.href = 'login.html';
+        return;
+      }
       await inject(gymName, logoUrl);
     },
     toggle() {
@@ -264,12 +271,8 @@
       const el = document.getElementById('sidebar-logo-icon');
       if (el)
         el.innerHTML = `<img src="${url}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
-    },
-    setRole(role) {
-      try {
-        localStorage.setItem('tf_role', role);
-      } catch {}
     }
+    // Eliminado setRole ya que no usamos localStorage
   };
 
   // Auto-inject en DOMContentLoaded si existe el target

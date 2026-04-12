@@ -151,13 +151,13 @@ class ProgramAssignModal {
       <div id="pa-program-list" class="space-y-2">
         ${this.PROGRAMS.map(
           (p) => `
-          <div class="pa-program-card flex items-center gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218] cursor-pointer transition-colors hover:border-[#3B82F6]/50 ${this._selProgram?.id === p.id ? 'border-[#3B82F6] bg-[#3B82F6]/10' : ''}" data-pid="${p.id}">
-            <span class="text-2xl w-9 text-center">${p.icon}</span>
+          <div class="pa-program-card flex items-center gap-3 p-3 rounded-xl border border-[#1E293B] bg-[#0B1218] cursor-pointer transition-colors hover:border-[#3B82F6]/50 ${this._selProgram?.id === p.id ? 'border-[#3B82F6] bg-[#3B82F6]/10' : ''}" data-pid="${window.tfUiUtils.escHtml(p.id)}">
+            <span class="text-2xl w-9 text-center">${window.tfUiUtils.escHtml(p.icon)}</span>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-bold text-white">${p.name}</div>
+              <div class="text-sm font-bold text-white">${window.tfUiUtils.escHtml(p.name)}</div>
               <div class="text-xs text-slate-500 mt-0.5">${p.inputs.length} cargas requeridas</div>
             </div>
-            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${p.color};"></div>
+            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${window.tfUiUtils.escHtml(p.color)};"></div>
           </div>`
         ).join('')}
       </div>`;
@@ -241,13 +241,13 @@ class ProgramAssignModal {
         return `
         <div class="pa-student-row flex items-center gap-3 p-2.5 rounded-xl border border-[#1E293B] bg-[#0B1218] cursor-pointer transition-colors hover:border-[#3B82F6]/50 ${isSelected ? 'border-[#3B82F6] bg-[#3B82F6]/10' : ''}" data-sid="${s.id}">
           <div class="w-8 h-8 rounded-full bg-[#1E293B] flex items-center justify-center text-xs font-bold text-slate-400 shrink-0 overflow-hidden">
-            ${s.avatar_url ? `<img src="${s.avatar_url}" class="w-full h-full object-cover">` : initials}
+            ${s.avatar_url ? `<img src="${window.tfUiUtils.escHtml(s.avatar_url)}" class="w-full h-full object-cover">` : window.tfUiUtils.escHtml(initials)}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-bold text-white truncate">${s.full_name}</div>
-            <div class="text-[10px] text-slate-500 truncate">${s.email || ''}</div>
+            <div class="text-sm font-bold text-white truncate">${window.tfUiUtils.escHtml(s.full_name)}</div>
+            <div class="text-[10px] text-slate-500 truncate">${window.tfUiUtils.escHtml(s.email || '')}</div>
           </div>
-          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap uppercase tracking-wider ${sc}">${s.membership_status}</span>
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap uppercase tracking-wider ${window.tfUiUtils.escHtml(sc)}">${window.tfUiUtils.escHtml(s.membership_status)}</span>
         </div>`;
       })
       .join('');
@@ -286,7 +286,7 @@ class ProgramAssignModal {
       <div class="rounded-xl p-3 border border-amber-500/30 bg-amber-500/10 text-xs text-amber-400 mb-4 flex items-start gap-2">
         <span class="material-symbols-rounded text-[18px] shrink-0">warning</span>
         <div>
-          <strong>${s.full_name}</strong> tiene el programa <strong>${activeProg.program_templates?.name || 'activo'}</strong> en curso (semana ${activeProg.current_week}).
+          <strong>${window.tfUiUtils.escHtml(s.full_name)}</strong> tiene el programa <strong>${window.tfUiUtils.escHtml(activeProg.program_templates?.name || 'activo')}</strong> en curso (semana ${window.tfUiUtils.escHtml(String(activeProg.current_week))}).
           Al confirmar, ese programa quedará marcado como cancelado.
         </div>
       </div>`
@@ -295,10 +295,10 @@ class ProgramAssignModal {
     this._bodyEl().innerHTML = `
       ${warningHTML}
       <div class="flex items-center gap-3 p-3 rounded-xl bg-[#0B1218] border border-[#1E293B] mb-4">
-        <span class="text-xl">${p.icon}</span>
+        <span class="text-xl">${window.tfUiUtils.escHtml(p.icon)}</span>
         <div class="flex-1">
-          <div class="text-xs font-bold text-white">${p.name}</div>
-          <div class="text-[11px] text-slate-500">${s.full_name}</div>
+          <div class="text-xs font-bold text-white">${window.tfUiUtils.escHtml(p.name)}</div>
+          <div class="text-[11px] text-slate-500">${window.tfUiUtils.escHtml(s.full_name)}</div>
         </div>
         ${activeProg ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 uppercase tracking-widest">Cambio de plan</span>` : `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 uppercase tracking-widest">Nuevo plan</span>`}
       </div>

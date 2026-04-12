@@ -6,6 +6,11 @@
   const filterEl = document.getElementById('filter-status');
   const reloadBtn = document.getElementById('reload-btn');
   const actorId = session.user.id;
+  const gymId = session.user.app_metadata?.gym_id;
+  if (!gymId) {
+    window.tfUiUtils?.toast('Error: no se pudo determinar el gimnasio', 'error');
+    return;
+  }
   let usingSupabaseFallback = false;
 
   function markFallback() {
@@ -17,7 +22,10 @@
   async function fetchViaSupabase(status) {
     let query = window.supabaseClient
       .from('access_requests')
-      .select('id, email, full_name, source, status, role, gym_id, notes, requested_at, approved_at, approved_by')
+      .select(
+        'id, email, full_name, source, status, role, gym_id, notes, requested_at, approved_at, approved_by'
+      )
+      .eq('gym_id', gymId)
       .order('requested_at', { ascending: false })
       .limit(200);
 
@@ -40,7 +48,8 @@
         approved_at: new Date().toISOString(),
         approved_by: actorId
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('gym_id', gymId);
 
     if (error) throw error;
   }
@@ -55,7 +64,8 @@
         approved_at: null,
         approved_by: actorId
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('gym_id', gymId);
 
     if (error) throw error;
   }

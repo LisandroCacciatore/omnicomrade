@@ -7,9 +7,9 @@
  */
 
 window.tfUtils = {
-  /* ═══════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      UI HELPERS (Delegan a tfUiUtils con fallback)
-  ═══════════════════════════════════════════════════════ */
+  ═════════════════════════════════════════════════════════ */
 
   toast: (m, t) => window.tfUiUtils?.toast?.(m, t) || console.log(`[toast] ${m}`),
   escHtml: (s) => {
@@ -37,8 +37,13 @@ window.tfUtils = {
       return;
     }
 
-    const { icon = 'inbox', title = 'Sin datos', description = '', actionLabel = '', onAction = null } =
-      config || {};
+    const {
+      icon = 'inbox',
+      title = 'Sin datos',
+      description = '',
+      actionLabel = '',
+      onAction = null
+    } = config || {};
 
     const actionHTML =
       actionLabel && onAction
@@ -59,8 +64,26 @@ window.tfUtils = {
 
   /**
    * Logout centralizado.
+   * Ahora limpia storage antes de cerrar sesión
    */
   logout: async () => {
+    // Primero limpiar storage
+    try {
+      localStorage.removeItem('tf_role');
+      localStorage.removeItem('gym_id');
+      localStorage.removeItem('pendingWorkout');
+      localStorage.removeItem('activeWorkout');
+      sessionStorage.clear();
+    } catch (e) {
+      console.warn('⚠️ utils.logout(): Error al limpiar storage:', e.message);
+    }
+
+    // Invalidar caché de sesión para evitar sesiones fantasma
+    if (window.tfSession?.invalidateCache) {
+      window.tfSession.invalidateCache();
+    }
+
+    // Luego cerrar sesión en Supabase
     const db = window.supabaseClient;
     if (db) {
       await db.auth.signOut();
@@ -68,9 +91,9 @@ window.tfUtils = {
     }
   },
 
-  /* ═══════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      TRAINING ENGINE (Delegan a tfTrainingEngine)
-  ═══════════════════════════════════════════════════════ */
+  ═════════════════════════════════════════════════════════ */
 
   round: (v, s) => window.tfTrainingEngine?.round(v, s),
   pct: (b, p) => window.tfTrainingEngine?.pct(b, p),
@@ -78,9 +101,9 @@ window.tfUtils = {
     return window.tfTrainingEngine?.PROGRAMS || [];
   },
 
-  /* ═══════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════
      INIT
-  ═══════════════════════════════════════════════════════ */
+  ═════════════════════════════════════════════════════════ */
 
   init() {
     this.initGlobalShortcuts();

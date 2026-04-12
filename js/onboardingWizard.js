@@ -527,7 +527,7 @@ class OnboardingWizard {
 
       window.tfUtils?.toast?.('Alumno creado exitosamente');
 
-      if (typeof window.loadKPIs === 'function') window.loadKPIs();
+      if (typeof window.loadDashboardIndicators === 'function') window.loadDashboardIndicators();
       if (typeof window.loadRecentStudents === 'function') window.loadRecentStudents();
       window.dispatchEvent(new CustomEvent('onboarding:completed', { detail: result }));
 

@@ -12,9 +12,6 @@
   const db = window.supabaseClient;
   const user = session.user;
   const gymId = user.app_metadata.gym_id;
-  function toast(m, t) {
-    window.tfUtils?.toast?.(m, t);
-  }
 
   /* ─── State ──────────────────────────────────────────────── */
   let logoFile = null;
@@ -48,7 +45,7 @@
       .single();
 
     if (error || !data) {
-      toast('Error al cargar datos del gimnasio', 'error');
+      window.tfUiUtils.toast('Error al cargar datos del gimnasio', 'error');
       return;
     }
 
@@ -60,13 +57,15 @@
     // Logo
     if (data.logo_url) {
       const img = document.getElementById('logo-preview-img');
-      img.src = data.logo_url;
+      // FIXED: XSS sanitization
+      img.src = window.tfUiUtils.escHtml(data.logo_url);
       img.classList.remove('hidden');
       document.getElementById('logo-placeholder-icon').classList.add('hidden');
 
       // Sidebar
       const sidebarIcon = document.getElementById('sidebar-logo-icon');
-      sidebarIcon.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
+      // FIXED: XSS sanitization
+      sidebarIcon.innerHTML = `<img src="${window.tfUiUtils.escHtml(data.logo_url)}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
     }
 
     // Color
@@ -93,7 +92,7 @@
       .single();
 
     if (error || !data) {
-      toast('Error al cargar perfil', 'error');
+      window.tfUiUtils.toast('Error al cargar perfil', 'error');
       return;
     }
 
@@ -118,7 +117,8 @@
 
     if (data.avatar_url) {
       const img = document.getElementById('avatar-img');
-      img.src = data.avatar_url;
+      // FIXED: XSS sanitization
+      img.src = window.tfUiUtils.escHtml(data.avatar_url);
       img.classList.remove('hidden');
       document.getElementById('avatar-initials').classList.add('hidden');
     }
@@ -142,13 +142,13 @@
 
     setBtnIdle(btn, 'Guardar cambios', 'save');
     if (error) {
-      toast('Error al guardar', 'error');
+      window.tfUiUtils.toast('Error al guardar', 'error');
       return;
     }
 
     document.getElementById('sidebar-gym-name').textContent = name;
     document.getElementById('dot-gym').classList.remove('visible');
-    toast('Información del gimnasio actualizada');
+    window.tfUiUtils.toast('Información del gimnasio actualizada');
   });
 
   document.getElementById('gym-name').addEventListener('input', () => {
@@ -178,7 +178,7 @@
   function handleLogoSelect(file) {
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast('El archivo supera los 2 MB', 'error');
+      window.tfUiUtils.toast('El archivo supera los 2 MB', 'error');
       return;
     }
     logoFile = file;
@@ -211,7 +211,7 @@
 
     if (uploadError) {
       setBtnIdle(saveLogoBtn, 'Subir logo', 'cloud_upload');
-      toast('Error al subir logo', 'error');
+      window.tfUiUtils.toast('Error al subir logo', 'error');
       return;
     }
 
@@ -226,13 +226,14 @@
         .update({ logo_url: logoUrl, updated_at: new Date().toISOString() })
         .eq('id', gymId);
       const sidebarIcon = document.getElementById('sidebar-logo-icon');
-      sidebarIcon.innerHTML = `<img src="${logoUrl}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
+      // FIXED: XSS sanitization
+      sidebarIcon.innerHTML = `<img src="${window.tfUiUtils.escHtml(logoUrl)}" class="w-full h-full object-contain rounded-lg" alt="Logo" />`;
     }
 
     setBtnIdle(saveLogoBtn, 'Subir logo', 'cloud_upload');
     saveLogoBtn.disabled = true;
     logoFile = null;
-    toast('Logo actualizado');
+    window.tfUiUtils.toast('Logo actualizado');
   });
 
   /* ─── Color ──────────────────────────────────────────────── */
@@ -270,10 +271,10 @@
 
     setBtnIdle(btn, 'Guardar color', 'palette');
     if (error) {
-      toast('Error al guardar color', 'error');
+      window.tfUiUtils.toast('Error al guardar color', 'error');
       return;
     }
-    toast('Color del gimnasio actualizado');
+    window.tfUiUtils.toast('Color del gimnasio actualizado');
   });
 
   /* ─── Save profile (FORM SUBMIT) ─────────────────────────── */
@@ -294,13 +295,13 @@
 
     setBtnIdle(btn, 'Guardar perfil', 'save');
     if (error) {
-      toast('Error al guardar perfil', 'error');
+      window.tfUiUtils.toast('Error al guardar perfil', 'error');
       return;
     }
 
     document.getElementById('profile-name-display').textContent = fullName;
     document.getElementById('dot-profile').classList.remove('visible');
-    toast('Perfil actualizado');
+    window.tfUiUtils.toast('Perfil actualizado');
   });
 
   document.getElementById('profile-name').addEventListener('input', () => {
@@ -312,7 +313,7 @@
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast('La imagen supera los 2 MB', 'error');
+      window.tfUiUtils.toast('La imagen supera los 2 MB', 'error');
       return;
     }
     avatarFile = file;
@@ -348,7 +349,7 @@
 
     if (uploadError) {
       setBtnIdle(btn, 'Subir foto', 'cloud_upload');
-      toast('Error al subir foto', 'error');
+      window.tfUiUtils.toast('Error al subir foto', 'error');
       return;
     }
 
@@ -363,7 +364,8 @@
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq('id', user.id);
       const avatarImg = document.getElementById('avatar-img');
-      avatarImg.src = avatarUrl;
+      // FIXED: XSS sanitization
+      avatarImg.src = window.tfUiUtils.escHtml(avatarUrl);
       avatarImg.classList.remove('hidden');
       document.getElementById('avatar-initials').classList.add('hidden');
     }
@@ -371,7 +373,7 @@
     setBtnIdle(btn, 'Subir foto', 'cloud_upload');
     document.getElementById('avatar-upload-card').classList.add('hidden');
     avatarFile = null;
-    toast('Foto de perfil actualizada');
+    window.tfUiUtils.toast('Foto de perfil actualizada');
   });
 
   /* ─── Notification preferences ───────────────────────────── */
@@ -546,6 +548,6 @@
 
   /* ─── Ir a Premium ──────────────────────────────────────── */
   document.getElementById('btn-go-premium')?.addEventListener('click', () => {
-    toast('Funcionalidad Premium próximamente', 'info');
+    window.tfUiUtils.toast('Funcionalidad Premium próximamente', 'info');
   });
 })();

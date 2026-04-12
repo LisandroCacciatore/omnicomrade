@@ -1,6 +1,7 @@
 /**
  * TechFitness Auth Guard
  * Protege rutas requiriendo sesión y validando roles.
+ * Enriquecido para devolver contexto de sesión completo.
  */
 
 const RoutesFallback = {
@@ -37,17 +38,16 @@ async function authGuard(allowedRoles = []) {
   }
 
   try {
-    const {
-      data: { session },
-      error
-    } = await window.supabaseClient.auth.getSession();
+    // Usar tfSession.get() para obtener la sesión con caché
+    const session = await window.tfSession.get();
 
-    if (error || !session) {
+    if (!session) {
       console.warn('⚠️ authGuard: Sin sesión activa. Redirigiendo a Login.');
       window.location.href = 'login.html';
       return null;
     }
 
+    // Obtener rol de app_metadata o perfil
     let role = session.user.app_metadata?.role;
     if (!role) {
       const { data: profile } = await window.supabaseClient
@@ -55,15 +55,10 @@ async function authGuard(allowedRoles = []) {
         .select('role')
         .eq('id', session.user.id)
         .maybeSingle();
-      role = profile?.role || localStorage.getItem('tf_role') || null;
+      role = profile?.role || null;
     }
-    console.log(`👤 authGuard: Usuario ${session.user.email} con rol [${role}]`);
 
-    // Sincronizar con localStorage para el sidebar (US-12)
-    if (role) {
-      if (window.TFSidebar) window.TFSidebar.setRole(role);
-      else localStorage.setItem('tf_role', role);
-    }
+    console.log(`👤 authGuard: Usuario ${session.user.email} con rol [${role}]`);
 
     // Normalización de roles (algunos usuarios pueden venir como 'coach' antiguos)
     const normalizedRole = role === 'coach' ? 'profesor' : role;
@@ -78,10 +73,20 @@ async function authGuard(allowedRoles = []) {
       return null;
     }
 
+    // Obtener gymId usando el nuevo tfSession (mantiene las reglas de fallback y redirección)
+    const gymId = await window.tfSession.getCurrentGymId();
+    // Si gymId es null, getCurrentGymId() ya manejó la redirección a error.html
+
     // Dispatch session-loaded event for components that need it (e.g., onboardingWizard)
     window.dispatchEvent(new CustomEvent('auth:session-loaded', { detail: { session } }));
 
-    return session;
+    // Devolver objeto de contexto de sesión enriquecido
+    return {
+      userId: session.user.id,
+      email: session.user.email,
+      role: normalizedRole,
+      gymId: gymId // Puede ser null si hubo error (ya redirigido)
+    };
   } catch (err) {
     console.error('❌ authGuard error crítico:', err.message);
     window.location.href = 'login.html';

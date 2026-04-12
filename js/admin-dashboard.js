@@ -67,8 +67,8 @@ async function initDashboard() {
         <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-32 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>
         <tr class="animate-pulse"><td class="px-6 py-4"><div class="h-4 w-24 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-12 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-20 bg-slate-800 rounded"></div></td><td class="px-6 py-4"><div class="h-4 w-8 bg-slate-800 rounded"></div></td></tr>`;
 
-  await Promise.all([loadKPIs(), loadRecentStudents(), initPainHeatmap()]);
-  window.loadKPIs = loadKPIs;
+  await Promise.all([loadDashboardIndicators(), loadRecentStudents(), initPainMap()]);
+  window.loadDashboardIndicators = loadDashboardIndicators;
   window.loadRecentStudents = loadRecentStudents;
   setupQuickActions();
   setupModals();
@@ -78,7 +78,7 @@ async function initDashboard() {
 }
 
 window.addEventListener('onboarding:completed', async () => {
-  await Promise.all([loadKPIs(), loadRecentStudents()]);
+  await Promise.all([loadDashboardIndicators(), loadRecentStudents()]);
 });
 
 // ─── KPIs ─────────────────────────────────────────────────
@@ -94,7 +94,7 @@ function formatCurrency(value) {
   );
 }
 
-async function loadKPIs() {
+async function loadDashboardIndicators() {
   try {
     const db = window.supabaseClient;
     const today = new Date();
@@ -131,7 +131,8 @@ async function loadKPIs() {
 
     const kpiActiveStudents = document.getElementById('kpi-active-students');
     const kpiExpiringSoon = document.getElementById('kpi-expiring-soon');
-    const kpiMonthlyIncome = document.getElementById('kpi-ingresos-mes') || document.getElementById('kpi-monthly-income');
+    const kpiMonthlyIncome =
+      document.getElementById('kpi-ingresos-mes') || document.getElementById('kpi-monthly-income');
 
     if (kpiActiveStudents) kpiActiveStudents.textContent = activeStudents || 0;
     if (kpiExpiringSoon) kpiExpiringSoon.textContent = expiringSoon || 0;
@@ -234,7 +235,7 @@ function setupQuickActions() {
           studentFilter: { membership_status: 'activa' },
           onSuccess: async () => {
             toast('Programa asignado con éxito');
-            await Promise.all([loadKPIs(), loadRecentStudents()]);
+            await Promise.all([loadDashboardIndicators(), loadRecentStudents()]);
           }
         });
       }
@@ -254,7 +255,7 @@ function setupDashboardButtons() {
     gymId,
     db: window.supabaseClient,
     onSuccess: async () => {
-      await Promise.all([loadKPIs(), loadRecentStudents()]);
+      await Promise.all([loadDashboardIndicators(), loadRecentStudents()]);
     }
   });
 
@@ -284,50 +285,6 @@ async function runSchemaHealthCheck() {
   }
 }
 
-const PAIN_ZONE_ALIASES = {
-  cervical: ['cervical', 'cuello'],
-  hombro_izquierdo: ['hombro_izquierdo', 'hombro izquierdo'],
-  hombro_derecho: ['hombro_derecho', 'hombro derecho'],
-  espalda_alta: ['espalda_alta', 'dorsal', 'espalda alta'],
-  lumbar: ['lumbar', 'espalda_baja', 'espalda baja'],
-  cadera: ['cadera', 'caderas', 'gluteo', 'glúteo'],
-  rodilla_izquierda: ['rodilla_izquierda', 'rodilla izquierda'],
-  rodilla_derecha: ['rodilla_derecha', 'rodilla derecha'],
-  tobillo_izquierdo: ['tobillo_izquierdo', 'tobillo izquierdo'],
-  tobillo_derecho: ['tobillo_derecho', 'tobillo derecho'],
-  muneca_izquierda: ['muneca_izquierda', 'muñeca_izquierda', 'muñeca izquierda'],
-  muneca_derecha: ['muneca_derecha', 'muñeca_derecha', 'muñeca derecha'],
-  brazo_izquierdo: ['brazo_izquierdo', 'brazo izquierdo', 'biceps_izquierdo', 'triceps_izquierdo'],
-  brazo_derecho: ['brazo_derecho', 'brazo derecho', 'biceps_derecho', 'triceps_derecho']
-};
-
-function normalizePainZone(zoneRaw) {
-  if (!zoneRaw) return '';
-  const zone = String(zoneRaw)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  for (const [canonical, aliases] of Object.entries(PAIN_ZONE_ALIASES)) {
-    if (aliases.some((alias) => zone === alias)) return canonical;
-  }
-  return zone.replace(/\s+/g, '_');
-}
-
-function getPainSeverity(intensityPct = 0) {
-  if (intensityPct >= 22) return 'critical';
-  if (intensityPct >= 12) return 'high';
-  if (intensityPct >= 5) return 'medium';
-  return 'low';
-}
-
-function formatPainZoneLabel(zone) {
-  return (zone || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
 function paintRegion(regionEl, row) {
   const classes = ['pain-level-low', 'pain-level-medium', 'pain-level-high', 'pain-level-critical'];
   regionEl.classList.remove(...classes, 'pain-interactive');
@@ -336,14 +293,14 @@ function paintRegion(regionEl, row) {
     regionEl.removeAttribute('title');
     return;
   }
-  const severity = getPainSeverity(Number(row.intensity_pct || 0));
+  const severity = window.AthleteInsights.getPainSeverity(Number(row.intensity_pct || 0));
   regionEl.classList.add(`pain-level-${severity}`);
   const isActionable = severity === 'high' || severity === 'critical';
   if (isActionable) regionEl.classList.add('pain-interactive');
-  regionEl.title = `${formatPainZoneLabel(row.zone)} · ${Number(row.intensity_pct || 0).toFixed(1)}% intensidad`;
+  regionEl.title = `${window.AthleteInsights.formatPainZoneLabel(row.zone)} · ${Number(row.intensity_pct || 0).toFixed(1)}% intensidad`;
 }
 
-async function initPainHeatmap() {
+async function initPainMap() {
   const statusEl = document.getElementById('pain-map-status');
   const zoneListEl = document.getElementById('pain-zone-risk-list');
   const sensitiveNotesToggle = document.getElementById('pain-show-sensitive-notes');
@@ -368,7 +325,7 @@ async function initPainHeatmap() {
       .order('intensity_pct', { ascending: false });
     if (error) throw error;
 
-    renderAnatomicalHeatmap(data || []);
+    renderAnatomicalMap(data || []);
     await renderPriorityAttention(data || []);
     statusEl.textContent = 'Actualizado';
   } catch (err) {
@@ -386,14 +343,14 @@ async function initPainHeatmap() {
   }
 }
 
-function renderAnatomicalHeatmap(rows) {
+function renderAnatomicalMap(rows) {
   const statusEl = document.getElementById('pain-map-status');
   const zoneListEl = document.getElementById('pain-zone-risk-list');
   const regions = document.querySelectorAll('.muscle-region[data-zone]');
   painSummaryByZone = new Map();
 
   (rows || []).forEach((row) => {
-    const zone = normalizePainZone(row.pain_zone);
+    const zone = window.AthleteInsights.normalizePainZone(row.pain_zone);
     if (!zone) return;
     const current = painSummaryByZone.get(zone);
     if (!current || Number(row.intensity_pct || 0) > Number(current.intensity_pct || 0)) {
@@ -432,7 +389,7 @@ function renderAnatomicalHeatmap(rows) {
   } else {
     zoneListEl.innerHTML = sortedZones
       .map((row) => {
-        const severity = getPainSeverity(Number(row.intensity_pct || 0));
+        const severity = window.AthleteInsights.getPainSeverity(Number(row.intensity_pct || 0));
         const badgeClass =
           severity === 'critical'
             ? 'text-danger bg-danger/10'
@@ -444,7 +401,7 @@ function renderAnatomicalHeatmap(rows) {
         return `
         <div class="rounded-xl border border-border-dark bg-slate-900/40 p-2.5 flex items-center justify-between gap-3">
           <div>
-            <p class="font-semibold text-slate-100">${formatPainZoneLabel(row.zone)}</p>
+            <p class="font-semibold text-slate-100">${window.AthleteInsights.formatPainZoneLabel(row.zone)}</p>
             <p class="text-[11px] text-slate-500">${Number(row.students_affected || 0)} atletas · dolor prom ${Number(row.avg_pain || 0).toFixed(1)}</p>
           </div>
           <span class="px-2 py-1 rounded-lg text-[10px] font-bold ${badgeClass}">${Number(row.intensity_pct || 0).toFixed(1)}%</span>
@@ -460,7 +417,7 @@ function setupPainRegionInteractions() {
   document.querySelectorAll('.muscle-region[data-zone]').forEach((regionEl) => {
     const zone = regionEl.dataset.zone;
     const row = painSummaryByZone.get(zone);
-    const severity = getPainSeverity(Number(row?.intensity_pct || 0));
+    const severity = window.AthleteInsights.getPainSeverity(Number(row?.intensity_pct || 0));
     regionEl.onclick = null;
     if (severity !== 'high' && severity !== 'critical') return;
     regionEl.onclick = () => {
@@ -475,7 +432,7 @@ async function loadPainZoneDetails(zone) {
   if (!detailEl || !labelEl) return;
 
   selectedPainZone = zone;
-  labelEl.textContent = formatPainZoneLabel(zone);
+  labelEl.textContent = window.AthleteInsights.formatPainZoneLabel(zone);
   detailEl.innerHTML = '<li class="text-slate-500">Cargando detalle…</li>';
 
   try {
@@ -492,7 +449,7 @@ async function loadPainZoneDetails(zone) {
 
     const byStudent = new Map();
     (data || []).forEach((log) => {
-      const logZone = normalizePainZone(log.pain_zone);
+      const logZone = window.AthleteInsights.normalizePainZone(log.pain_zone);
       if (logZone !== zone) return;
       const previous = byStudent.get(log.student_id);
       if (!previous || Number(log.pain || 0) > Number(previous.pain || 0))
@@ -520,7 +477,7 @@ function renderPainZoneDetailList(zone, rows) {
   const labelEl = document.getElementById('pain-selected-zone-label');
   if (!detailEl || !labelEl) return;
 
-  labelEl.textContent = formatPainZoneLabel(zone);
+  labelEl.textContent = window.AthleteInsights.formatPainZoneLabel(zone);
   if (!rows?.length) {
     detailEl.innerHTML =
       '<li class="text-slate-500">No hay registros recientes para esta zona.</li>';
@@ -551,7 +508,7 @@ async function renderPriorityAttention(summaryRows) {
   const criticalZones = new Set(
     (summaryRows || [])
       .map((row) => ({
-        zone: normalizePainZone(row.pain_zone),
+        zone: window.AthleteInsights.normalizePainZone(row.pain_zone),
         avgPain: Number(row.avg_pain || 0),
         intensity: Number(row.intensity_pct || 0)
       }))
@@ -590,7 +547,7 @@ async function renderPriorityAttention(summaryRows) {
     );
     const candidates = new Map();
     (painRes.data || []).forEach((row) => {
-      const zone = normalizePainZone(row.pain_zone);
+      const zone = window.AthleteInsights.normalizePainZone(row.pain_zone);
       if (!criticalZones.has(zone)) return;
       if (!stagnationStudents.has(row.student_id)) return;
       const prev = candidates.get(row.student_id);
@@ -614,7 +571,7 @@ async function renderPriorityAttention(summaryRows) {
         const intensity = Number(painSummaryByZone.get(row.zone)?.intensity_pct || 0).toFixed(1);
         return `<li class="rounded-lg border border-danger/30 bg-danger/5 p-2.5">
           <p class="font-semibold text-slate-100">${studentName}</p>
-          <p class="text-[11px] text-slate-300">${formatPainZoneLabel(row.zone)} · dolor ${Number(row.pain || 0)}/5 · intensidad ${intensity}%</p>
+          <p class="text-[11px] text-slate-300">${window.AthleteInsights.formatPainZoneLabel(row.zone)} · dolor ${Number(row.pain || 0)}/5 · intensidad ${intensity}%</p>
         </li>`;
       })
       .join('');
@@ -838,7 +795,6 @@ function setupModals() {
   alertForm?.addEventListener('submit', handleAlertSubmit);
 }
 
-
 // ─── MODAL NUEVA MEMBRESÍA ────────────────────────────────
 const DEFAULT_PLAN_META = {
   mensual: { label: 'Mensual', duration_days: 30, amount: 30000 },
@@ -993,7 +949,7 @@ async function saveMembresia() {
     if (error) throw error;
     toast('Membresía registrada');
     window.closeModalMembresia();
-    await Promise.all([loadKPIs(), loadRecentStudents()]);
+    await Promise.all([loadDashboardIndicators(), loadRecentStudents()]);
   } catch (err) {
     if (errorEl) {
       errorEl.textContent = 'Error: ' + err.message;

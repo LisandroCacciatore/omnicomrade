@@ -8,26 +8,16 @@
   if (!session) return;
 
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata?.gym_id;
+  const gymId = session.user.app_metadata?.gym_id || session.gymId;
+  if (!gymId) {
+    window.tfUiUtils.toast?.('Error: gym_id no definido', 'error');
+    return;
+  }
   const role = session.user.app_metadata?.role;
-  function escHtml(s) {
-    return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
-  }
-  function toast(m, t) {
-    window.tfUtils?.toast?.(m, t);
-  }
-  function debounce(f, w) {
-    return window.tfUtils?.debounce?.(f, w) || f;
-  }
 
   let selectedStudentId = null;
   let expandChart = null;
   let activeExRow = null;
-
-  function repsToNumber(value) {
-    const match = String(value ?? '').match(/\d+/);
-    return match ? parseInt(match[0], 10) : 0;
-  }
 
   const urlStudentId = new URLSearchParams(window.location.search).get('student');
 
@@ -154,7 +144,7 @@
     return `
     <div class="gauge-card ${isPR ? 'is-pr' : ''}">
       <!-- Muscle name -->
-      <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-3 truncate">${escHtml(name)}</p>
+      <p class="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-3 truncate">${window.tfUiUtils.escHtml(name)}</p>
 
       <!-- Big weight number -->
       <div class="flex items-end gap-1.5 mb-1">
@@ -229,7 +219,7 @@
     <div class="ex-row" data-idx="${idx}" id="ex-row-${idx}">
       <div class="dot" style="background:${color}"></div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-bold text-white truncate">${escHtml(ex.name)}</p>
+        <p class="text-sm font-bold text-white truncate">${window.tfUiUtils.escHtml(ex.name)}</p>
         <p class="text-[10px] text-slate-500">${ex.data.length} sesión${ex.data.length !== 1 ? 'es' : ''} · ${ex.muscle}</p>
       </div>
       <div class="flex items-center gap-4 shrink-0">
@@ -362,13 +352,12 @@
     <div class="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
       <span class="material-symbols-rounded text-amber-400 text-[16px]" style="font-variation-settings:'FILL' 1">warning</span>
       <div class="flex-1 min-w-0">
-        <p class="text-xs font-bold text-white truncate">${escHtml(ex.exercise_name)}</p>
+        <p class="text-xs font-bold text-white truncate">${window.tfUiUtils.escHtml(ex.exercise_name)}</p>
         <p class="text-[10px] text-slate-500">${ex.sessions_tracked} sesiones sin mejora</p>
       </div>
       <span class="text-[10px] font-mono text-amber-400 shrink-0">${ex.progress_pct > 0 ? '+' : ''}${(ex.progress_pct || 0).toFixed(1)}%</span>
     </div>`;
   }
-
 
   function showSkeletons() {
     const gauges = document.getElementById('gauges-grid');
@@ -377,11 +366,24 @@
     const consistencyRing = document.getElementById('consistency-ring-wrap');
     const consistencyDots = document.getElementById('consistency-dots');
 
-    if (gauges) gauges.innerHTML = [1, 2, 3, 4].map(() => '<div class="skeleton rounded-[18px] h-52"></div>').join('');
-    if (exerciseList) exerciseList.innerHTML = [1, 2, 3].map(() => '<div class="skeleton rounded-[14px] h-14"></div>').join('');
-    if (stagnationList) stagnationList.innerHTML = [1, 2].map(() => '<div class="skeleton rounded-xl h-10"></div>').join('');
-    if (consistencyRing) consistencyRing.innerHTML = '<div class="skeleton rounded-full w-[88px] h-[88px]"></div>';
-    if (consistencyDots) consistencyDots.innerHTML = [1,2,3,4,5].map(() => '<div class="skeleton w-6 h-6 rounded-md"></div>').join('');
+    if (gauges)
+      gauges.innerHTML = [1, 2, 3, 4]
+        .map(() => '<div class="skeleton rounded-[18px] h-52"></div>')
+        .join('');
+    if (exerciseList)
+      exerciseList.innerHTML = [1, 2, 3]
+        .map(() => '<div class="skeleton rounded-[14px] h-14"></div>')
+        .join('');
+    if (stagnationList)
+      stagnationList.innerHTML = [1, 2]
+        .map(() => '<div class="skeleton rounded-xl h-10"></div>')
+        .join('');
+    if (consistencyRing)
+      consistencyRing.innerHTML = '<div class="skeleton rounded-full w-[88px] h-[88px]"></div>';
+    if (consistencyDots)
+      consistencyDots.innerHTML = [1, 2, 3, 4, 5]
+        .map(() => '<div class="skeleton w-6 h-6 rounded-md"></div>')
+        .join('');
 
     document.getElementById('analytics-content')?.classList.remove('hidden');
     document.getElementById('empty-state')?.classList.add('hidden');
@@ -418,6 +420,8 @@
     try {
       const { data: sessionIdsRaw, error: sessionIdsError } = await db
         .from('workout_sessions')
+        // FIXED: tenant filter
+        .eq('gym_id', gymId)
         .select('id')
         .eq('student_id', studentId)
         .not('completed_at', 'is', null);
@@ -427,6 +431,8 @@
       const results = await Promise.allSettled([
         db
           .from('workout_sessions')
+          // FIXED: tenant filter
+          .eq('gym_id', gymId)
           .select('id, completed_at')
           .eq('student_id', studentId)
           .not('completed_at', 'is', null)
@@ -490,7 +496,7 @@
       const msg = queryFailed
         ? 'No pudimos cargar datos reales. Mostrando ejemplo para que puedas visualizar progreso.'
         : 'Mostrando datos de ejemplo — completá sesiones para ver datos reales';
-      toast(msg, 'info');
+      window.tfUiUtils.toast(msg, 'info');
     }
 
     /* ─── KPIs en header ────────────────────────────────── */
@@ -511,17 +517,19 @@
 
     /* ─── ZONA 3: Consistency + Stagnation ──────────────── */
     renderConsistency(weekDone, weekGoal, sessData, useMock);
-    const derivedStagnation = deriveStagnationFromExerciseLogs(exerciseLogsData);
-    renderStagnation(useMock
-      ? [
-          {
-            exercise_name: 'Press de Banco',
-            is_stagnant: true,
-            progress_pct: 0,
-            sessions_tracked: 3
-          }
-        ]
-      : [...stagData, ...derivedStagnation]);
+    const derivedStagnation = window.AthleteInsights.deriveStagnation(exerciseLogsData);
+    renderStagnation(
+      useMock
+        ? [
+            {
+              exercise_name: 'Press de Banco',
+              is_stagnant: true,
+              progress_pct: 0,
+              sessions_tracked: 3
+            }
+          ]
+        : [...stagData, ...derivedStagnation]
+    );
   }
 
   function renderSessionTonnageTrend(exerciseLogsData) {
@@ -531,7 +539,7 @@
       const day = String(log.performed_at || '').slice(0, 10);
       if (!day) return;
       const weight = Number(log.actual_weight_kg || 0);
-      const reps = repsToNumber(log.actual_reps);
+      const reps = window.AthleteInsights.repsToNumber(log.actual_reps);
       byDay[day] = (byDay[day] || 0) + weight * reps;
     });
     const points = Object.entries(byDay)
@@ -541,7 +549,8 @@
 
     document.getElementById('expand-chart-wrap')?.classList.remove('hidden');
     document.getElementById('expand-chart-title').textContent = 'Evolución de tonelaje por sesión';
-    document.getElementById('expand-chart-pr').textContent = `Máximo: ${Math.max(...points.map((p) => p.total)).toLocaleString('es-AR')} kg`;
+    document.getElementById('expand-chart-pr').textContent =
+      `Máximo: ${Math.max(...points.map((p) => p.total)).toLocaleString('es-AR')} kg`;
     if (expandChart) expandChart.destroy();
     const ctx = document.getElementById('expand-chart').getContext('2d');
     expandChart = new Chart(ctx, {
@@ -568,41 +577,6 @@
         }
       }
     });
-  }
-
-  function deriveStagnationFromExerciseLogs(exerciseLogsData) {
-    if (!Array.isArray(exerciseLogsData) || !exerciseLogsData.length) return [];
-    const byExerciseSession = {};
-    exerciseLogsData.forEach((log) => {
-      const ex = log.exercise_name;
-      const day = String(log.performed_at || '').slice(0, 10);
-      if (!ex || !day) return;
-      const key = `${ex}__${day}`;
-      byExerciseSession[key] = (byExerciseSession[key] || 0) + Number(log.actual_weight_kg || 0) * repsToNumber(log.actual_reps);
-    });
-
-    const byExercise = {};
-    Object.entries(byExerciseSession).forEach(([key, total]) => {
-      const [exercise, day] = key.split('__');
-      byExercise[exercise] ||= [];
-      byExercise[exercise].push({ day, total });
-    });
-
-    return Object.entries(byExercise)
-      .map(([exercise_name, sessions]) => {
-        const sorted = sessions.sort((a, b) => b.day.localeCompare(a.day)).slice(0, 3);
-        if (sorted.length < 3) return null;
-        const [s1, s2, s3] = sorted;
-        const stagnant = s1.total <= s2.total && s2.total <= s3.total;
-        if (!stagnant) return null;
-        return {
-          exercise_name,
-          is_stagnant: true,
-          progress_pct: s3.total > 0 ? ((s1.total - s3.total) / s3.total) * 100 : 0,
-          sessions_tracked: 3
-        };
-      })
-      .filter(Boolean);
   }
 
   /* ─── Build exercise data from v_exercise_progress ────────── */
@@ -741,7 +715,7 @@
       <div class="flex items-start gap-2 p-2.5 rounded-xl bg-[#0B1218] border border-[#1E293B] mt-1">
         <span class="material-symbols-rounded text-[#3B82F6] text-[14px] mt-0.5" style="font-variation-settings:'FILL' 1">auto_fix</span>
         <p class="text-[10px] text-slate-400">
-          <span class="font-bold text-slate-200">${escHtml(ex.exercise_name)}:</span>
+          <span class="font-bold text-slate-200">${window.tfUiUtils.escHtml(ex.exercise_name)}:</span>
           Intentá cambiar el rango de repeticiones o bajar 5–10% de carga y buscar fatiga real.
         </p>
       </div>`
@@ -811,7 +785,7 @@
         document.getElementById('student-picker-label').textContent = preselected.full_name;
         await loadAnalytics(preselected.id);
       } else {
-        toast('Alumno no encontrado', 'error');
+        window.tfUiUtils.toast('Alumno no encontrado', 'error');
       }
     }
   }
@@ -837,7 +811,7 @@
   });
   searchInp?.addEventListener(
     'input',
-    debounce((e) => {
+    window.tfUiUtils.debounce((e) => {
       const q = e.target.value.toLowerCase();
       renderPickerList(allStudents.filter((s) => s.full_name.toLowerCase().includes(q)));
     }, 200)
@@ -855,11 +829,11 @@
     listEl.innerHTML = students
       .map(
         (s) => `
-      <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[#1E293B] transition-colors" data-id="${s.id}" data-name="${escHtml(s.full_name)}">
+      <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[#1E293B] transition-colors" data-id="${s.id}" data-name="${window.tfUiUtils.escHtml(s.full_name)}">
         <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-black shrink-0">
           ${s.full_name.charAt(0).toUpperCase()}
         </div>
-        <span class="text-sm font-bold text-slate-200">${escHtml(s.full_name)}</span>
+        <span class="text-sm font-bold text-slate-200">${window.tfUiUtils.escHtml(s.full_name)}</span>
       </div>`
       )
       .join('');
@@ -974,16 +948,21 @@
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(71, 85, 105);
-        doc.text(`TechFitness · Generado el ${dateStr} · Página ${i} de ${totalPages}`, W / 2, 290, {
-          align: 'center'
-        });
+        doc.text(
+          `TechFitness · Generado el ${dateStr} · Página ${i} de ${totalPages}`,
+          W / 2,
+          290,
+          {
+            align: 'center'
+          }
+        );
       }
 
       const safeName = String(studentName || 'alumno').replace(/[^a-zA-Z0-9áéíóúñ ]/gi, '_');
       doc.save(`progreso_${safeName}_${new Date().toLocaleDateString('en-CA')}.pdf`);
     } catch (err) {
       console.error('PDF export error:', err);
-      toast('Error al generar el PDF', 'error');
+      window.tfUiUtils.toast('Error al generar el PDF', 'error');
     } finally {
       window.tfUtils?.setBtnLoading?.(btn, false);
       if (btn) btn.textContent = 'Exportar PDF';
@@ -992,11 +971,10 @@
 
   document.getElementById('btn-export-pdf')?.addEventListener('click', async () => {
     if (!selectedStudentId) {
-      toast('Seleccioná un alumno primero', 'error');
+      window.tfUiUtils.toast('Seleccioná un alumno primero', 'error');
       return;
     }
     const studentName = document.getElementById('student-picker-label')?.textContent || 'Atleta';
     await exportProgressPDF(selectedStudentId, studentName);
   });
-
 })();

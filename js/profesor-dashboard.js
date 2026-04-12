@@ -3,7 +3,7 @@
  * TechFitness — Dashboard del Profesor con semáforo de riesgo
  */
 
-await import('./auth-guard.js');
+// FIXED: use window.authGuard directly (loaded as script in HTML)
 
 (async () => {
   const session = await window.authGuard(['profesor', 'gim_admin']);
@@ -28,7 +28,6 @@ await import('./auth-guard.js');
   document.getElementById('user-name').textContent =
     session.user.user_metadata?.full_name || 'Profesor';
 
-
   await window.TFMessages?.init({
     gymId,
     user: { id: session.user.id, role: 'profesor' },
@@ -43,7 +42,6 @@ await import('./auth-guard.js');
   document.getElementById('btn-notifications')?.addEventListener('click', () => {
     window.TFNotifications?.openInbox();
   });
-
 
   /* ─── State ──────────────────────────────────────────────── */
   let riskData = [];

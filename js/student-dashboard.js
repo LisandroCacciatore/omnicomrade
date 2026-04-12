@@ -11,12 +11,6 @@
   const gymId = session.user.app_metadata?.gym_id;
   const userId = session.user.id;
   const role = session.user.app_metadata?.role;
-  const isStaff = role === 'gim_admin' || role === 'profesor';
-  const urlParams = new URLSearchParams(window.location.search);
-  const targetId = urlParams.get('id');
-  function escHtml(s) {
-    return window.tfUtils?.escHtml?.(s) ?? (s ? String(s) : '');
-  }
   function logout() {
     if (!confirm('¿Cerrar sesión?')) return;
     window.tfUtils?.logout?.();
@@ -42,6 +36,8 @@
   if (isStaff && targetId) {
     const { data } = await db
       .from('students')
+      // FIXED: tenant filter
+      .eq('gym_id', gymId)
       .select(STUDENT_SELECT)
       .eq('id', targetId)
       .is('deleted_at', null)
@@ -51,6 +47,7 @@
     const { data: byProfile } = await db
       .from('students')
       .select(STUDENT_SELECT)
+      .eq('gym_id', gymId)
       .eq('profile_id', userId)
       .is('deleted_at', null)
       .maybeSingle();
@@ -70,6 +67,7 @@
           db.from('students')
             .update({ profile_id: userId })
             .eq('id', byEmail.id)
+            .eq('gym_id', gymId)
             .is('profile_id', null)
             .then(() => {});
         } catch (_) {}
@@ -87,7 +85,6 @@
   /* ─── Header ───────────────────────────────────────────── */
   document.getElementById('gym-name').textContent = student.gyms?.name || 'TechFitness';
   document.getElementById('student-name').textContent = student.full_name || 'Mi Dashboard';
-
 
   let assignedCoachProfileId = null;
   let assignedCoachName = 'Tu Coach';
@@ -118,7 +115,7 @@
 
   document.getElementById('btn-messages')?.addEventListener('click', () => {
     if (!assignedCoachProfileId) {
-      window.tfUtils?.toast?.('Tu cuenta aún no tiene coach asignado', 'error');
+      window.tfUiUtils.toast('Tu cuenta aún no tiene coach asignado', 'error');
       return;
     }
     window.TFMessages?.openChat(assignedCoachProfileId, assignedCoachName);
@@ -271,7 +268,9 @@
 
   const btnEntrenar = document.getElementById('btn-entrenar');
   if (btnEntrenar) {
-    const hasAssignedRoutine = Boolean(activeProg || routine?.data?.id || routine?.id || student.routine_id);
+    const hasAssignedRoutine = Boolean(
+      activeProg || routine?.data?.id || routine?.id || student.routine_id
+    );
     if (!hasAssignedRoutine) {
       const ctaTitle = btnEntrenar.querySelector('#cta-routine-name');
       const ctaSubtitle = btnEntrenar.querySelector('#cta-day-info');
@@ -283,7 +282,9 @@
       btnEntrenar.disabled = true;
       btnEntrenar.style.cursor = 'wait';
 
-      const hasAssignedRoutine = Boolean(activeProg || routine?.data?.id || routine?.id || student.routine_id);
+      const hasAssignedRoutine = Boolean(
+        activeProg || routine?.data?.id || routine?.id || student.routine_id
+      );
       if (!hasAssignedRoutine) {
         window.location.href = 'student-profile.html?empty_state=no-routine';
         return;
@@ -426,7 +427,7 @@
           });
           return `<div class="session-row cursor-pointer hover:bg-slate-800/50 p-2 rounded-lg transition-colors" onclick="openSessionDetail('${s.id}')">
           <div>
-            <p class="text-xs font-bold text-slate-300">${escHtml(s.day_name || 'Sesión')}</p>
+            <p class="text-xs font-bold text-slate-300">${window.tfUiUtils.escHtml(s.day_name || 'Sesión')}</p>
             <p class="text-[10px] text-slate-500">${dateStr}</p>
           </div>
           <span class="text-[10px] font-mono text-slate-500 bg-[#0B1218] px-2 py-0.5 rounded-md border border-[#1E293B]">
@@ -437,16 +438,16 @@
         .join('');
   }
 
-  window.openSessionDetail = async function(sessionId) {
-    const session = sessData.find(s => s.id === sessionId);
+  window.openSessionDetail = async function (sessionId) {
+    const session = sessData.find((s) => s.id === sessionId);
     if (!session) return;
-    
+
     const modalHtml = `
       <div id="modal-session-detail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onclick="if(event.target === this) closeSessionDetail()">
         <div class="bg-surface-dark border border-border-dark rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
           <div class="px-5 py-4 border-b border-border-dark flex items-center justify-between">
             <div>
-              <h3 class="text-base font-bold text-white">${escHtml(session.day_name || 'Sesión')}</h3>
+              <h3 class="text-base font-bold text-white">${window.tfUiUtils.escHtml(session.day_name || 'Sesión')}</h3>
               <p class="text-xs text-slate-500">${new Date(session.completed_at).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
             <button onclick="closeSessionDetail()" class="text-slate-400 hover:text-white">
@@ -462,36 +463,41 @@
         </div>
       </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     try {
       const { data: logs } = await db
         .from('workout_exercise_logs')
         .select('*, exercises(name, muscle_group)')
         .eq('session_id', sessionId);
-      
-      const logsHtml = (logs && logs.length > 0) 
-        ? logs.map(log => `
+
+      const logsHtml =
+        logs && logs.length > 0
+          ? logs
+              .map(
+                (log) => `
           <div class="border border-border-dark rounded-lg p-3 mb-2">
-            <p class="text-sm font-bold text-slate-200">${escHtml(log.exercise_name || log.exercises?.name || 'Ejercicio')}</p>
+            <p class="text-sm font-bold text-slate-200">${window.tfUiUtils.escHtml(log.exercise_name || log.exercises?.name || 'Ejercicio')}</p>
             <p class="text-xs text-slate-500 mt-1">
               ${log.reps_actual ? `${log.reps_actual} reps` : ''} 
               ${log.weight_used_kg ? `· ${log.weight_used_kg} kg` : ''}
               ${log.effort_level ? `· ${log.effort_level.replace('_', ' ')}` : ''}
             </p>
           </div>
-        `).join('')
-        : '<p class="text-slate-500 text-center py-4">No hay ejercicios registrados</p>';
-      
+        `
+              )
+              .join('')
+          : '<p class="text-slate-500 text-center py-4">No hay ejercicios registrados</p>';
+
       document.querySelector('#modal-session-detail .overflow-y-auto').innerHTML = logsHtml;
     } catch (err) {
-      document.querySelector('#modal-session-detail .overflow-y-auto').innerHTML = 
+      document.querySelector('#modal-session-detail .overflow-y-auto').innerHTML =
         '<p class="text-danger text-center py-4">Error al cargar detalles</p>';
     }
   };
 
-  window.closeSessionDetail = function() {
+  window.closeSessionDetail = function () {
     document.getElementById('modal-session-detail')?.remove();
   };
 
@@ -575,7 +581,10 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    if (student.medical_certificate_url && !confirm('Ya existe un certificado. ¿Reemplazar el actual?')) {
+    if (
+      student.medical_certificate_url &&
+      !confirm('Ya existe un certificado. ¿Reemplazar el actual?')
+    ) {
       e.target.value = '';
       return;
     }
@@ -608,10 +617,14 @@
 
       const url = urlData?.signedUrl;
       if (url) {
-        await db.from('students').update({ medical_certificate_url: url }).eq('id', student.id);
+        await db
+          .from('students')
+          .update({ medical_certificate_url: url })
+          .eq('id', student.id)
+          .eq('gym_id', gymId);
         student.medical_certificate_url = url;
         renderCert(url);
-        window.tfUtils.toast('Certificado subido correctamente');
+        window.tfUiUtils.toast('Certificado subido correctamente');
       }
     } catch (err) {
       errorEl.textContent = 'Error al subir: ' + err.message;

@@ -479,6 +479,115 @@ window.AthleteInsights = (() => {
     return Math.floor(Math.abs(a - b) / (1000 * 60 * 60 * 24));
   }
 
+  /* ══════════════════════════════════════════════════════════
+      DERIVACIÓN DE ESTANCAMIENTO DESDE EXERCISE LOGS
+   ══════════════════════════════════════════════════════════ */
+  function repsToNumber(value) {
+    const match = String(value ?? '').match(/\d+/);
+    return match ? parseInt(match[0], 10) : 0;
+  }
+
+  function deriveStagnation(exerciseLogsData) {
+    if (!Array.isArray(exerciseLogsData) || !exerciseLogsData.length) return [];
+
+    const byExerciseSession = {};
+    exerciseLogsData.forEach((log) => {
+      const ex = log.exercise_name;
+      const day = String(log.performed_at || '').slice(0, 10);
+      if (!ex || !day) return;
+      const key = `${ex}__${day}`;
+      byExerciseSession[key] =
+        (byExerciseSession[key] || 0) +
+        Number(log.actual_weight_kg || 0) * repsToNumber(log.actual_reps);
+    });
+
+    const byExercise = {};
+    Object.entries(byExerciseSession).forEach(([key, total]) => {
+      const [exercise, day] = key.split('__');
+      byExercise[exercise] ||= [];
+      byExercise[exercise].push({ day, total });
+    });
+
+    return Object.entries(byExercise)
+      .map(([exercise_name, sessions]) => {
+        const sorted = sessions.sort((a, b) => b.day.localeCompare(a.day)).slice(0, 3);
+        if (sorted.length < 3) return null;
+        const [s1, s2, s3] = sorted;
+        const stagnant = s1.total <= s2.total && s2.total <= s3.total;
+        if (!stagnant) return null;
+        return {
+          exercise_name,
+          is_stagnant: true,
+          progress_pct: s3.total > 0 ? ((s1.total - s3.total) / s3.total) * 100 : 0,
+          sessions_tracked: 3
+        };
+      })
+      .filter(Boolean);
+  }
+
+  /* ══════════════════════════════════════════════════════════
+      HELPERS DE ZONAS DE DOLOR (PAIN HEATMAP)
+   ══════════════════════════════════════════════════════════ */
+  const PAIN_ZONE_ALIASES = {
+    cervical: ['cervical', 'cuello'],
+    hombro_izquierdo: ['hombro_izquierdo', 'hombro izquierdo'],
+    hombro_derecho: ['hombro_derecho', 'hombro derecho'],
+    espalda_alta: ['espalda_alta', 'dorsal', 'espalda alta'],
+    lumbar: ['lumbar', 'espalda_baja', 'espalda baja'],
+    cadera: ['cadera', 'caderas', 'gluteo', 'glúteo'],
+    rodilla_izquierda: ['rodilla_izquierda', 'rodilla izquierda'],
+    rodilla_derecha: ['rodilla_derecha', 'rodilla derecha'],
+    tobillo_izquierdo: ['tobillo_izquierdo', 'tobillo izquierdo'],
+    tobillo_derecho: ['tobillo_derecho', 'tobillo derecho'],
+    muneca_izquierda: ['muneca_izquierda', 'muñeca_izquierda', 'muñeca izquierda'],
+    muneca_derecha: ['muneca_derecha', 'muñeca_derecha', 'muñeca derecha'],
+    brazo_izquierdo: [
+      'brazo_izquierdo',
+      'brazo izquierdo',
+      'biceps_izquierdo',
+      'triceps_izquierdo'
+    ],
+    brazo_derecho: ['brazo_derecho', 'brazo derecho', 'biceps_derecho', 'triceps_derecho']
+  };
+
+  function normalizePainZone(zoneRaw) {
+    if (!zoneRaw) return '';
+    const zone = String(zoneRaw)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    for (const [canonical, aliases] of Object.entries(PAIN_ZONE_ALIASES)) {
+      if (aliases.some((alias) => zone === alias)) return canonical;
+    }
+    return zone.replace(/\s+/g, '_');
+  }
+
+  function getPainSeverity(intensityPct = 0) {
+    if (intensityPct >= 22) return 'critical';
+    if (intensityPct >= 12) return 'high';
+    if (intensityPct >= 5) return 'medium';
+    return 'low';
+  }
+
+  function formatPainZoneLabel(zone) {
+    return (zone || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
   // ── Public API ──────────────────────────────────────────
-  return { calcAthleteScore, getScoreLevel, predictSessionQuality, calcRisks, calcAutoProgression };
+  return {
+    calcAthleteScore,
+    getScoreLevel,
+    predictSessionQuality,
+    calcRisks,
+    calcAutoProgression,
+    deriveStagnation,
+    repsToNumber,
+    normalizePainZone,
+    getPainSeverity,
+    formatPainZoneLabel
+  };
 })();

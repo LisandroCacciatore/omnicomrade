@@ -1,7 +1,7 @@
 /**
  * workout-session.js
  * TechFitness — Sesión de entrenamiento
- * 
+ *
  * UX v2:
  * - +/- grande inline para peso (sin modal)
  * - Carry-over de delta al siguiente set del mismo ejercicio
@@ -10,9 +10,15 @@
  * - Timer con vibración
  */
 
-const getStudentHomeUrl = () => {
-  const role = localStorage.getItem('tf_role') || 'alumno';
-  const routes = { 'gim_admin': 'admin-dashboard.html', 'profesor': 'profesor-dashboard.html', 'alumno': 'student-profile.html' };
+const getStudentHomeUrl = async () => {
+  // FIXED: read role from JWT, not localStorage
+  const session = await window.tfSession.get();
+  const role = session?.user?.app_metadata?.role || 'alumno';
+  const routes = {
+    gim_admin: 'admin-dashboard.html',
+    profesor: 'profesor-dashboard.html',
+    alumno: 'student-profile.html'
+  };
   return routes[role] || 'student-profile.html';
 };
 
@@ -20,41 +26,64 @@ const getStudentHomeUrl = () => {
   const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
   if (!session) return;
 
-  const db    = window.supabaseClient;
+  const db = window.supabaseClient;
   const gymId = session.user.app_metadata.gym_id;
   const apiHeaders = {
     'Content-Type': 'application/json',
-    'x-actor-id': session.user.id,
+    'x-actor-id': session.user.id
   };
 
   /* ─── Resolver student_id ─────────────────────────────── */
   const workoutDataRaw = sessionStorage.getItem('activeWorkout');
-  if (!workoutDataRaw) { window.location.href = getStudentHomeUrl(); return; }
+  if (!workoutDataRaw) {
+    window.location.href = await getStudentHomeUrl();
+    return;
+  }
   const workoutData = JSON.parse(workoutDataRaw);
 
   let studentId = workoutData.studentId || null;
   if (!studentId) {
-    const { data: byProfile } = await db.from('students').select('id')
-      .eq('profile_id', session.user.id).is('deleted_at', null).maybeSingle();
+    const { data: byProfile } = await db
+      .from('students')
+      // FIXED: tenant filter
+      .eq('gym_id', gymId)
+      .select('id')
+      .eq('profile_id', session.user.id)
+      .is('deleted_at', null)
+      .maybeSingle();
     studentId = byProfile?.id || null;
   }
   if (!studentId && gymId && session.user.email) {
-    const { data: byEmail } = await db.from('students').select('id')
-      .eq('gym_id', gymId).eq('email', session.user.email)
-      .is('deleted_at', null).maybeSingle();
+    const { data: byEmail } = await db
+      .from('students')
+      .select('id')
+      .eq('gym_id', gymId)
+      .eq('email', session.user.email)
+      .is('deleted_at', null)
+      .maybeSingle();
     if (byEmail) {
       studentId = byEmail.id;
-      db.from('students').update({ profile_id: session.user.id })
-        .eq('id', byEmail.id).is('profile_id', null).then(() => {});
+      db.from('students')
+        .update({ profile_id: session.user.id })
+        .eq('id', byEmail.id)
+        .eq('gym_id', gymId)
+        .is('profile_id', null)
+        .then(() => {});
     }
   }
 
   /* ─── Sets — array mutable para carry-over de peso ──── */
   // Cada item: { name, muscle, setNum, totalSets, reps, weight_kg, rpe_target, rir_target, is_amrap, rest }
   // weight_kg se modifica en tiempo real cuando el usuario ajusta
-  const sets = (workoutData.exercises || []).map(s => ({ ...s, weight_kg: parseFloat(s.weight_kg) || 0 }));
+  const sets = (workoutData.exercises || []).map((s) => ({
+    ...s,
+    weight_kg: parseFloat(s.weight_kg) || 0
+  }));
   const totalSets = sets.length;
-  if (!totalSets) { window.location.href = getStudentHomeUrl(); return; }
+  if (!totalSets) {
+    window.location.href = await getStudentHomeUrl();
+    return;
+  }
 
   // Dynamic Load Factor por bienestar: si readiness está en rojo, sugerir -15%.
   const readinessScore = Number(workoutData?.wellbeing?.score || 0);
@@ -71,22 +100,25 @@ const getStudentHomeUrl = () => {
   if (studentId) {
     try {
       // Buscar la última sesión completada por este alumno
-      const { data: lastSess } = await db.from('workout_sessions')
+      const { data: lastSess } = await db
+        .from('workout_sessions')
         .select('id')
         .eq('student_id', studentId)
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
-        .limit(1).maybeSingle();
+        .limit(1)
+        .maybeSingle();
 
       if (lastSess) {
-        const exNames = [...new Set(sets.map(s => s.name))];
-        const { data: prevLogs } = await db.from('workout_exercise_logs')
+        const exNames = [...new Set(sets.map((s) => s.name))];
+        const { data: prevLogs } = await db
+          .from('workout_exercise_logs')
           .select('exercise_name, weight_used, reps_actual, set_number')
           .eq('session_id', lastSess.id)
           .in('exercise_name', exNames)
           .gt('weight_used', 0);
 
-        (prevLogs || []).forEach(l => {
+        (prevLogs || []).forEach((l) => {
           const ex = l.exercise_name;
           if (!lastWeightByEx[ex] || l.weight_used > lastWeightByEx[ex].weight) {
             lastWeightByEx[ex] = { weight: l.weight_used, reps: l.reps_actual };
@@ -97,12 +129,12 @@ const getStudentHomeUrl = () => {
   }
 
   /* ─── State ───────────────────────────────────────────── */
-  let currentIndex     = 0;
-  let workoutLogs      = [];
+  let currentIndex = 0;
+  let workoutLogs = [];
   let sessionStartTime = new Date().toISOString();
   let startedSessionId = workoutData.sessionId || null;
   let restTimerInterval = null;
-  let heavySetsCount   = 0;
+  let heavySetsCount = 0;
   let readinessOverride = false;
 
   function repsToNumber(repsValue) {
@@ -112,13 +144,13 @@ const getStudentHomeUrl = () => {
   }
 
   /* ─── DOM ─────────────────────────────────────────────── */
-  const deckEl      = document.getElementById('exercise-deck');
+  const deckEl = document.getElementById('exercise-deck');
   const progressBar = document.getElementById('workout-progress');
-  const timerEl     = document.getElementById('rest-timer');
+  const timerEl = document.getElementById('rest-timer');
   const timerDisplay = document.getElementById('timer-display');
 
   document.getElementById('session-routine-name').textContent = workoutData.routineName || '';
-  document.getElementById('session-day-name').textContent     = workoutData.dayName || '';
+  document.getElementById('session-day-name').textContent = workoutData.dayName || '';
 
   function showWellbeingBanner(wellbeing) {
     if (!wellbeing) return;
@@ -181,8 +213,8 @@ const getStudentHomeUrl = () => {
   }
 
   function buildCard(s, index) {
-    const isFirst  = index === 0;
-    const classes  = isFirst
+    const isFirst = index === 0;
+    const classes = isFirst
       ? 'translate-x-0 scale-100 opacity-100 z-10'
       : 'translate-x-[110%] scale-95 opacity-50 z-0 pointer-events-none';
 
@@ -246,11 +278,12 @@ const getStudentHomeUrl = () => {
 
           <!-- Peso actual -->
           <div class="flex-1 text-center">
-            ${weight > 0
-              ? `<span id="weight-display-${index}" class="block text-5xl font-black font-mono tracking-tighter text-[#60A5FA]">${weight}</span>
+            ${
+              weight > 0
+                ? `<span id="weight-display-${index}" class="block text-5xl font-black font-mono tracking-tighter text-[#60A5FA]">${weight}</span>
                  <span class="text-xl text-slate-500">kg</span>
                  <p id="weight-delta-${index}" class="text-[10px] font-bold text-[#F59E0B] mt-1 min-h-[14px]"></p>`
-              : `<span id="weight-display-${index}" class="block text-4xl font-black text-slate-600">Peso libre</span>
+                : `<span id="weight-display-${index}" class="block text-4xl font-black text-slate-600">Peso libre</span>
                  <p id="weight-delta-${index}" class="text-[10px] font-bold text-[#F59E0B] mt-1 min-h-[14px]"></p>`
             }
           </div>
@@ -280,19 +313,17 @@ const getStudentHomeUrl = () => {
   function updateWeightDisplay(cardIndex) {
     const s = sets[cardIndex];
     const displayEl = document.getElementById(`weight-display-${cardIndex}`);
-    const deltaEl   = document.getElementById(`weight-delta-${cardIndex}`);
+    const deltaEl = document.getElementById(`weight-delta-${cardIndex}`);
     if (!displayEl) return;
 
     const originalWeight = parseFloat(workoutData.exercises[cardIndex]?.weight_kg) || 0;
-    const currentWeight  = s.weight_kg;
-    const delta          = Math.round((currentWeight - originalWeight) * 10) / 10;
+    const currentWeight = s.weight_kg;
+    const delta = Math.round((currentWeight - originalWeight) * 10) / 10;
 
     if (originalWeight > 0) {
       displayEl.textContent = currentWeight;
       if (deltaEl) {
-        deltaEl.textContent = delta !== 0
-          ? `${delta > 0 ? '+' : ''}${delta} vs plan`
-          : '';
+        deltaEl.textContent = delta !== 0 ? `${delta > 0 ? '+' : ''}${delta} vs plan` : '';
       }
     }
   }
@@ -324,7 +355,7 @@ const getStudentHomeUrl = () => {
   }
 
   /* ─── Event: botones de peso ──────────────────────────── */
-  deckEl.addEventListener('click', e => {
+  deckEl.addEventListener('click', (e) => {
     const wBtn = e.target.closest('.btn-weight-adj');
     if (wBtn) {
       const cardIdx = parseInt(wBtn.dataset.card);
@@ -357,9 +388,9 @@ const getStudentHomeUrl = () => {
 
   /* ─── Guardar set y avanzar ───────────────────────────── */
   function saveLogAndNext(index, status, effort) {
-    const s            = sets[index];
+    const s = sets[index];
     const plannedWeight = parseFloat(workoutData.exercises[index]?.weight_kg) || 0;
-    const actualWeight  = s.weight_kg > 0 ? s.weight_kg : null;
+    const actualWeight = s.weight_kg > 0 ? s.weight_kg : null;
 
     const actualReps = repsToNumber(s.reps);
     workoutLogs.push({
@@ -381,29 +412,35 @@ const getStudentHomeUrl = () => {
       weight_target: plannedWeight > 0 ? plannedWeight : null,
       weight_used: actualWeight,
       status,
-      effort_level: effort,
+      effort_level: effort
     });
 
     // Animar salida
     const currentCard = document.getElementById(`card-${index}`);
     if (currentCard) {
-      currentCard.className = currentCard.className
-        .replace('translate-x-0 scale-100 opacity-100 z-10', '')
-        + ' transform -translate-x-[120%] opacity-0 pointer-events-none z-0';
+      currentCard.className =
+        currentCard.className.replace('translate-x-0 scale-100 opacity-100 z-10', '') +
+        ' transform -translate-x-[120%] opacity-0 pointer-events-none z-0';
     }
 
     // Auto-suggest esfuerzo elevado
     if (effort === 'muy_pesado' || effort === 'al_fallo') {
       heavySetsCount++;
-      if (heavySetsCount >= 2) { showLoadSuggestion(); heavySetsCount = 0; }
-    } else { heavySetsCount = 0; }
+      if (heavySetsCount >= 2) {
+        showLoadSuggestion();
+        heavySetsCount = 0;
+      }
+    } else {
+      heavySetsCount = 0;
+    }
 
     currentIndex++;
 
     if (currentIndex < totalSets) {
       const nextCard = document.getElementById(`card-${currentIndex}`);
       if (nextCard) {
-        nextCard.className = 'absolute inset-x-5 top-5 bottom-5 bg-[#161E26] border border-[#1E293B] rounded-3xl flex flex-col p-5 shadow-2xl transition-all duration-300 ease-out translate-x-0 scale-100 opacity-100 z-10';
+        nextCard.className =
+          'absolute inset-x-5 top-5 bottom-5 bg-[#161E26] border border-[#1E293B] rounded-3xl flex flex-col p-5 shadow-2xl transition-all duration-300 ease-out translate-x-0 scale-100 opacity-100 z-10';
       }
 
       // Timer si cambia ejercicio o terminó los sets del ejercicio actual
@@ -430,7 +467,7 @@ const getStudentHomeUrl = () => {
     timerEl.classList.add('flex');
 
     const update = () => {
-      timerDisplay.textContent = `${String(Math.floor(timeLeft / 60)).padStart(2,'0')}:${String(timeLeft % 60).padStart(2,'0')}`;
+      timerDisplay.textContent = `${String(Math.floor(timeLeft / 60)).padStart(2, '0')}:${String(timeLeft % 60).padStart(2, '0')}`;
     };
     update();
 
@@ -446,7 +483,9 @@ const getStudentHomeUrl = () => {
           timerEl.classList.remove('flex', 'animate-bounce');
           timerEl.classList.add('hidden');
         }, 3000);
-      } else { update(); }
+      } else {
+        update();
+      }
     }, 1000);
   }
 
@@ -461,12 +500,15 @@ const getStudentHomeUrl = () => {
     const el = document.getElementById('load-suggestion');
     if (!el || el.dataset.shown) return;
     el.dataset.shown = '1';
-    el.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);margin-bottom:8px';
+    el.style.cssText =
+      'display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;border:1px solid rgba(245,158,11,.3);background:rgba(245,158,11,.08);margin-bottom:8px';
     el.innerHTML = `
       <span style="font-size:16px">⚠️</span>
       <p style="flex:1;font-size:11px;font-weight:700;color:#F59E0B">Esfuerzo elevado — considerá bajar 5-10%</p>
       <button onclick="this.parentElement.style.display='none'" style="color:#475569;font-size:18px;background:none;border:none;cursor:pointer">×</button>`;
-    setTimeout(() => { if (el) el.style.display = 'none'; }, 7000);
+    setTimeout(() => {
+      if (el) el.style.display = 'none';
+    }, 7000);
   }
 
   if (isLowReadiness) {
@@ -521,14 +563,14 @@ const getStudentHomeUrl = () => {
           body: JSON.stringify({
             intent_id: workoutData.intentId || null,
             duration_minutes: durationMinutes,
-            logs: workoutLogs.map(log => ({ ...log, logged_at: new Date().toISOString() })),
-          }),
+            logs: workoutLogs.map((log) => ({ ...log, logged_at: new Date().toISOString() }))
+          })
         });
         if (!completeRes.ok) {
           throw new Error(`Complete API failed (${completeRes.status})`);
         }
 
-        const exerciseLogRows = workoutLogs.map(log => ({
+        const exerciseLogRows = workoutLogs.map((log) => ({
           gym_id: gymId,
           student_id: studentId,
           routine_id: workoutData.routineId || null,
@@ -549,18 +591,22 @@ const getStudentHomeUrl = () => {
         const { error: exLogErr } = await db.from('exercise_logs').insert(exerciseLogRows);
         if (exLogErr) throw exLogErr;
       } else {
-        const { data: sessionData, error: sessionErr } = await db.from('workout_sessions').insert({
-          gym_id:           gymId,
-          student_id:       studentId,
-          routine_name:     workoutData.routineName,
-          day_name:         workoutData.dayName,
-          started_at:       sessionStartTime,
-          completed_at:     endTime.toISOString(),
-          duration_minutes: durationMinutes,
-        }).select('id').single();
+        const { data: sessionData, error: sessionErr } = await db
+          .from('workout_sessions')
+          .insert({
+            gym_id: gymId,
+            student_id: studentId,
+            routine_name: workoutData.routineName,
+            day_name: workoutData.dayName,
+            started_at: sessionStartTime,
+            completed_at: endTime.toISOString(),
+            duration_minutes: durationMinutes
+          })
+          .select('id')
+          .single();
         if (sessionErr) throw sessionErr;
 
-        const exerciseLogRows = workoutLogs.map(log => ({
+        const exerciseLogRows = workoutLogs.map((log) => ({
           gym_id: gymId,
           student_id: studentId,
           routine_id: workoutData.routineId || null,
@@ -594,8 +640,9 @@ const getStudentHomeUrl = () => {
       </div>`;
 
       if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
-      setTimeout(() => { window.location.href = getStudentHomeUrl(); }, 2000);
-
+      setTimeout(async () => {
+        window.location.href = await getStudentHomeUrl();
+      }, 2000);
     } catch (err) {
       console.error(err);
       deckEl.innerHTML = `
@@ -613,7 +660,7 @@ const getStudentHomeUrl = () => {
     try {
       const startRes = await fetch(`/api/workouts/intents/${workoutData.intentId}/start`, {
         method: 'POST',
-        headers: apiHeaders,
+        headers: apiHeaders
       });
       if (!startRes.ok) return;
       const payload = await startRes.json();
@@ -625,14 +672,13 @@ const getStudentHomeUrl = () => {
     } catch (_) {}
   }
 
-  document.getElementById('btn-cancel-workout').addEventListener('click', () => {
+  document.getElementById('btn-cancel-workout').addEventListener('click', async () => {
     if (confirm('¿Cancelar entrenamiento? No se guardará el progreso.')) {
       sessionStorage.removeItem('activeWorkout');
-      window.location.href = getStudentHomeUrl();
+      window.location.href = await getStudentHomeUrl();
     }
   });
 
   /* ─── Init ─────────────────────────────────────────────── */
   renderDeck();
-
 })();
