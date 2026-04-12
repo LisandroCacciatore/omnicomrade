@@ -15,17 +15,16 @@
 
   // ─── INIT ─────────────────────────────────────────────────
   async function init() {
-    const session = await window.authGuard(['gim_admin']);
-    if (!session) return;
+    const ctx = await window.authGuard(['gim_admin']);
+    if (!ctx) return;
+    const { gymId, userId: authUserId } = ctx;
 
     supabase = window.supabaseClient;
-    gymId = session.user.app_metadata.gym_id;
-    authUserId = session.user.id;
 
     await resumeProgress();
     setupEventListeners();
     updateValidation(1);
-    
+
     // Step 4: Load programs from engine
     renderPrograms();
   }
@@ -36,7 +35,8 @@
   async function resumeProgress() {
     try {
       const { data: gym } = await supabase.from('gyms').select('*').eq('id', gymId).single();
-      const { data: students } = await supabase.from('students')
+      const { data: students } = await supabase
+        .from('students')
         .select('id, full_name, membership_status')
         .eq('gym_id', gymId)
         .order('created_at', { ascending: false })
@@ -50,7 +50,8 @@
         document.getElementById('membership-student-preview').textContent = latestStudent.full_name;
         document.getElementById('summary-name').textContent = latestStudent.full_name;
 
-        const { data: membership } = await supabase.from('memberships')
+        const { data: membership } = await supabase
+          .from('memberships')
           .select('id, plan, amount')
           .eq('student_id', studentId)
           .maybeSingle();
@@ -58,29 +59,30 @@
         if (membership) {
           document.getElementById('summary-plan').textContent = membership.plan;
           document.getElementById('summary-amount').textContent = membership.amount;
-          
-          const { data: program } = await supabase.from('student_programs')
+
+          const { data: program } = await supabase
+            .from('student_programs')
             .select('id')
             .eq('student_id', studentId)
             .maybeSingle();
-            
-          if (program) goStep(4); // Si ya tiene programa, está en el último paso
+
+          if (program)
+            goStep(4); // Si ya tiene programa, está en el último paso
           else goStep(3); // Tiene membresía pero no programa
         } else {
           goStep(2); // Tiene atleta pero no membresía
         }
       } else if (gym.name !== 'Mi Gimnasio' || gym.logo_url) {
-          // Si cambió el nombre pero no tiene atletas, asumimos paso 2
-          goStep(2);
+        // Si cambió el nombre pero no tiene atletas, asumimos paso 2
+        goStep(2);
       }
-      
+
       // Update Step 1 View with DB data
       document.getElementById('gym-name').value = gym.name;
       document.getElementById('preview-gym-name').textContent = gym.name;
       if (gym.logo_url) {
         updateLogoPreview(gym.logo_url);
       }
-
     } catch (err) {
       console.warn('No se pudo reanudar el progreso:', err);
     }
@@ -90,32 +92,36 @@
 
   function goStep(n) {
     if (n > 4) {
-        showCelebration();
-        return;
+      showCelebration();
+      return;
     }
-    
+
     currentStep = n;
-    document.querySelectorAll('.wizard-step').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('.wizard-step').forEach((s) => s.classList.add('hidden'));
     document.getElementById(`step-${n}`).classList.remove('hidden');
 
     // Update Progress Bar
-    document.querySelectorAll('#onboarding-nav [data-step]').forEach(el => {
+    document.querySelectorAll('#onboarding-nav [data-step]').forEach((el) => {
       const stepNum = parseInt(el.dataset.step);
       const circle = el.querySelector('.step-circle');
       const text = el.querySelector('span');
 
       if (stepNum < n) {
-        circle.className = 'step-circle w-10 h-10 rounded-full border-2 border-success flex items-center justify-center font-bold font-mono text-success';
+        circle.className =
+          'step-circle w-10 h-10 rounded-full border-2 border-success flex items-center justify-center font-bold font-mono text-success';
         circle.innerHTML = '<span class="material-symbols-rounded text-sm">check</span>';
         text.className = 'text-[10px] uppercase tracking-widest font-bold text-success';
       } else if (stepNum === n) {
-        circle.className = 'step-circle w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center font-bold font-mono text-white ring-4 ring-primary/10';
+        circle.className =
+          'step-circle w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center font-bold font-mono text-white ring-4 ring-primary/10';
         circle.textContent = stepNum;
         text.className = 'text-[10px] uppercase tracking-widest font-bold text-primary';
       } else {
-        circle.className = 'step-circle w-10 h-10 rounded-full border-2 border-slate-800 flex items-center justify-center font-bold font-mono text-slate-700 opacity-30';
+        circle.className =
+          'step-circle w-10 h-10 rounded-full border-2 border-slate-800 flex items-center justify-center font-bold font-mono text-slate-700 opacity-30';
         circle.textContent = stepNum;
-        text.className = 'text-[10px] uppercase tracking-widest font-bold text-slate-700 opacity-30';
+        text.className =
+          'text-[10px] uppercase tracking-widest font-bold text-slate-700 opacity-30';
       }
     });
 
@@ -129,15 +135,18 @@
     const validate = () => {
       let isValid = false;
       if (n === 1) isValid = !!document.getElementById('gym-name').value.trim();
-      if (n === 2) isValid = !!document.getElementById('student-name').value.trim() && !!document.getElementById('student-email').value.trim();
+      if (n === 2)
+        isValid =
+          !!document.getElementById('student-name').value.trim() &&
+          !!document.getElementById('student-email').value.trim();
       if (n === 3) isValid = !!document.getElementById('membership-amount').value;
-      
+
       btn.disabled = !isValid;
     };
 
     // Listeners for real-time validation
     const inputs = document.querySelectorAll(`#step-${n} input, #step-${n} select`);
-    inputs.forEach(i => i.oninput = validate);
+    inputs.forEach((i) => (i.oninput = validate));
     validate();
   }
 
@@ -160,7 +169,9 @@
           .upload(fileName, logoFile);
 
         if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('gym-logos').getPublicUrl(fileName);
+        const {
+          data: { publicUrl }
+        } = supabase.storage.from('gym-logos').getPublicUrl(fileName);
         logoUrl = publicUrl;
       }
 
@@ -187,14 +198,18 @@
 
     setBtnLoading(btn, true);
     try {
-      const { data, error } = await supabase.from('students').insert({
-        gym_id: gymId,
-        full_name: name,
-        email,
-        phone,
-        objetivo: goal,
-        membership_status: 'pendiente'
-      }).select().single();
+      const { data, error } = await supabase
+        .from('students')
+        .insert({
+          gym_id: gymId,
+          full_name: name,
+          email,
+          phone,
+          objetivo: goal,
+          membership_status: 'pendiente'
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -202,7 +217,7 @@
       document.getElementById('membership-student-preview').textContent = name;
       document.getElementById('summary-name').textContent = name;
       document.getElementById('summary-goal').textContent = goal.replace('_', ' ');
-      
+
       goStep(3);
     } catch (err) {
       toast('Error al crear atleta: ' + err.message, 'error');
@@ -215,7 +230,8 @@
     const plan = document.getElementById('membership-plan').value;
     const amount = parseFloat(document.getElementById('membership-amount').value);
     const method = document.getElementById('membership-method').value;
-    const startDate = document.getElementById('membership-date').value || new Date().toISOString().split('T')[0];
+    const startDate =
+      document.getElementById('membership-date').value || new Date().toISOString().split('T')[0];
     const btn = document.getElementById('btn-next-3');
 
     setBtnLoading(btn, true);
@@ -249,33 +265,37 @@
     try {
       // 1. Recolectar RMs
       const rms = {};
-      document.querySelectorAll('.rm-input').forEach(input => {
+      document.querySelectorAll('.rm-input').forEach((input) => {
         rms[input.dataset.exercise] = parseFloat(input.value) || 0;
       });
 
       // 2. Insertar Student Program
-      const { data: progData, error: progErr } = await supabase.from('student_programs').insert({
-        student_id: studentId,
-        gym_id: gymId,
-        program_id: selectedProgramId,
-        status: 'active',
-        rm_values: rms
-      }).select().single();
+      const { data: progData, error: progErr } = await supabase
+        .from('student_programs')
+        .insert({
+          student_id: studentId,
+          gym_id: gymId,
+          program_id: selectedProgramId,
+          status: 'active',
+          rm_values: rms
+        })
+        .select()
+        .single();
 
       if (progErr) throw progErr;
 
       // 3. Generar Rutina usando el Motor
       const weeks = window.tfTrainingEngine.generateProgram(selectedProgramId, rms);
-      
+
       // Upsert de la rutina (una por semana/fase)
       for (const week of weeks) {
-          await supabase.from('routines').insert({
-              gym_id: gymId,
-              name: `${week.label} - ${week.phase}`,
-              source_program: selectedProgramId,
-              student_program_id: progData.id,
-              data: week // Guardamos el JSON completo generado
-          });
+        await supabase.from('routines').insert({
+          gym_id: gymId,
+          name: `${week.label} - ${week.phase}`,
+          source_program: selectedProgramId,
+          student_program_id: progData.id,
+          data: week // Guardamos el JSON completo generado
+        });
       }
 
       // 4. Marcar Onboarding como completado
@@ -291,13 +311,18 @@
   }
 
   async function skipOnboarding() {
-      if (!confirm('¿Estás seguro de saltar el onboarding? Podrás configurar todo luego desde el dashboard.')) return;
-      try {
-          await supabase.from('gyms').update({ onboarding_completed: true }).eq('id', gymId);
-          window.location.href = 'admin-dashboard.html';
-      } catch (err) {
-          toast('Error al saltar', 'error');
-      }
+    if (
+      !confirm(
+        '¿Estás seguro de saltar el onboarding? Podrás configurar todo luego desde el dashboard.'
+      )
+    )
+      return;
+    try {
+      await supabase.from('gyms').update({ onboarding_completed: true }).eq('id', gymId);
+      window.location.href = 'admin-dashboard.html';
+    } catch (err) {
+      toast('Error al saltar', 'error');
+    }
   }
 
   // ─── RENDERING & UI ──────────────────────────────────────
@@ -306,7 +331,9 @@
     const grid = document.getElementById('program-grid');
     const programs = window.tfTrainingEngine.PROGRAMS;
 
-    grid.innerHTML = programs.map(p => `
+    grid.innerHTML = programs
+      .map(
+        (p) => `
       <div class="program-card glass-panel rounded-2xl p-6 cursor-pointer hover:border-primary/50 transition-all group" data-id="${p.id}">
         <div class="flex items-start justify-between mb-4">
            <span class="text-3xl">${p.icon}</span>
@@ -315,27 +342,31 @@
         <h4 class="font-display font-bold text-lg mb-1">${p.name}</h4>
         <p class="text-xs text-slate-500 line-clamp-2">${p.description}</p>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
-    grid.querySelectorAll('.program-card').forEach(card => {
+    grid.querySelectorAll('.program-card').forEach((card) => {
       card.onclick = () => selectProgram(card.dataset.id);
     });
   }
 
   function selectProgram(id) {
     selectedProgramId = id;
-    document.querySelectorAll('.program-card').forEach(c => {
+    document.querySelectorAll('.program-card').forEach((c) => {
       c.classList.remove('ring-2', 'ring-primary', 'bg-primary/5', 'border-primary');
     });
     const selected = document.querySelector(`.program-card[data-id="${id}"]`);
     selected.classList.add('ring-2', 'ring-primary', 'bg-primary/5', 'border-primary');
 
-    const program = window.tfTrainingEngine.PROGRAMS.find(p => p.id === id);
+    const program = window.tfTrainingEngine.PROGRAMS.find((p) => p.id === id);
     document.getElementById('selected-program-tag').textContent = program.name;
-    
+
     // Render 1RM Inputs
     const inputsGrid = document.getElementById('rms-inputs-grid');
-    inputsGrid.innerHTML = program.inputs.map(inp => `
+    inputsGrid.innerHTML = program.inputs
+      .map(
+        (inp) => `
       <div class="space-y-1">
         <label class="text-[10px] font-bold text-slate-500 uppercase">${inp.label}</label>
         <div class="relative">
@@ -343,15 +374,17 @@
             <span class="absolute right-3 top-2 text-[10px] text-slate-600">kg</span>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     document.getElementById('rms-container').classList.remove('hidden');
     document.getElementById('rms-container').scrollIntoView({ behavior: 'smooth' });
   }
 
   function updateLogoPreview(url) {
-      const circle = document.getElementById('preview-logo-circle');
-      circle.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+    const circle = document.getElementById('preview-logo-circle');
+    circle.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
   }
 
   function setupEventListeners() {
@@ -366,9 +399,13 @@
       const color = btn.dataset.color;
       document.getElementById('preview-accent-bar').style.backgroundColor = color;
       document.getElementById('preview-color-code').textContent = color;
-      
+
       // Update rings
-      document.querySelectorAll('#color-presets button').forEach(b => b.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-surface-base'));
+      document
+        .querySelectorAll('#color-presets button')
+        .forEach((b) =>
+          b.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-surface-base')
+        );
       btn.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-surface-base');
     };
 
@@ -387,8 +424,8 @@
     document.getElementById('btn-next-2').onclick = handleStep2;
     document.getElementById('btn-next-3').onclick = handleStep3;
     document.getElementById('btn-finish').onclick = finishOnboarding;
-    
-    document.querySelectorAll('.btn-skip').forEach(b => b.onclick = skipOnboarding);
+
+    document.querySelectorAll('.btn-skip').forEach((b) => (b.onclick = skipOnboarding));
     document.getElementById('btn-skip-students').onclick = () => goStep(4);
 
     // Initial Date
@@ -396,12 +433,11 @@
   }
 
   function showCelebration() {
-    document.querySelectorAll('.wizard-step').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('.wizard-step').forEach((s) => s.classList.add('hidden'));
     document.getElementById('celebration').classList.remove('hidden');
     document.getElementById('onboarding-nav').classList.add('hidden');
   }
 
   // Start
   document.addEventListener('DOMContentLoaded', init);
-
 })();

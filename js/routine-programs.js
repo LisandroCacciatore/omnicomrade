@@ -6,10 +6,11 @@
 
 (async () => {
   /* ─── Auth ──────────────────────────────────────────────── */
-  const session = await window.authGuard(['gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor']);
+  if (!ctx) return;
 
   const db = window.supabaseClient;
+  const { gymId } = ctx;
   const { toast, escHtml, PROGRAMS } = window.tfUtils;
 
   /* ─── State ──────────────────────────────────────────────── */
@@ -261,10 +262,10 @@
   });
 
   /* ─── Assign / Save ──────────────────────────────────────── */
-  function getOrCreateModal(session, db) {
+  function getOrCreateModal(ctx, db) {
     if (!assignModal) {
       assignModal = new window.ProgramAssignModal({
-        gymId: session.user.app_metadata.gym_id,
+        gymId: ctx.gymId,
         db,
         onSuccess: ({ student, program }) => {
           toast(`${program.name} asignado a ${student.full_name} ✓`);
@@ -276,14 +277,14 @@
 
   document.getElementById('btn-assign').addEventListener('click', () => {
     if (!currentProgram) return;
-    const modal = getOrCreateModal(session, db);
+    const modal = getOrCreateModal(ctx, db);
     modal.open({ preProgram: currentProgram });
   });
 
   document.getElementById('btn-save-template')?.addEventListener('click', async () => {
     if (!currentProgram) return;
     const btn = document.getElementById('btn-save-template');
-    const gymId = session.user.app_metadata.gym_id;
+    const gymId = ctx.gymId;
 
     btn.disabled = true;
     btn.innerHTML = `<span class="material-symbols-rounded text-[17px] animate-spin">progress_activity</span>Guardando...`;

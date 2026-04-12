@@ -1,12 +1,11 @@
 (async () => {
-  const session = await window.authGuard(['gim_admin']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin']);
+  if (!ctx) return;
+  const { gymId, userId: actorId } = ctx;
 
   const bodyEl = document.getElementById('requests-body');
   const filterEl = document.getElementById('filter-status');
   const reloadBtn = document.getElementById('reload-btn');
-  const actorId = session.user.id;
-  const gymId = session.user.app_metadata?.gym_id;
   if (!gymId) {
     window.tfUiUtils?.toast('Error: no se pudo determinar el gimnasio', 'error');
     return;
