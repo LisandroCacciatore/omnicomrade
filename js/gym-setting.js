@@ -6,12 +6,12 @@
 
 (async () => {
   /* ─── Auth guard ─────────────────────────────────────────── */
-  const session = await window.authGuard(['gim_admin']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin']);
+  if (!ctx) return;
 
+  const { gymId, userId, email } = ctx;
   const db = window.supabaseClient;
-  const user = session.user;
-  const gymId = user.app_metadata.gym_id;
+  const user = { id: userId, email };
 
   /* ─── State ──────────────────────────────────────────────── */
   let logoFile = null;

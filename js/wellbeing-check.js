@@ -16,12 +16,11 @@ const getStudentHomeUrl = async () => {
 };
 
 (async () => {
-  const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId, userId } = ctx;
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata.gym_id;
-  const userId = session.user.id;
   const apiHeaders = {
     'Content-Type': 'application/json',
     'x-actor-id': userId

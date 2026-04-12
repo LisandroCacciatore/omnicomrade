@@ -6,17 +6,16 @@
 // FIXED: use window.authGuard directly (loaded as script in HTML)
 
 (async () => {
-  const session = await window.authGuard(['profesor', 'gim_admin']);
-  if (!session) return;
+  const ctx = await window.authGuard(['profesor', 'gim_admin']);
+  if (!ctx) return;
 
-  const role = session.user.raw_app_meta_data?.role || session.user.app_metadata?.role;
+  const { gymId, role, userId, email } = ctx;
   if (role === 'gim_admin') {
     window.location.href = 'admin-dashboard.html';
     return;
   }
 
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata.gym_id;
   const { toast, escHtml, debounce, logout } = window.tfUtils;
 
   /* ─── Header Setup ───────────────────────────────────────── */
@@ -25,18 +24,19 @@
     'es-AR',
     options
   );
+  const session = await window.tfSession.get();
   document.getElementById('user-name').textContent =
-    session.user.user_metadata?.full_name || 'Profesor';
+    session?.user?.user_metadata?.full_name || email || 'Profesor';
 
   await window.TFMessages?.init({
     gymId,
-    user: { id: session.user.id, role: 'profesor' },
+    user: { id: userId, role: 'profesor' },
     badgeSelector: null
   });
 
   await window.TFNotifications?.init({
     gymId,
-    userId: session.user.id
+    userId
   });
 
   document.getElementById('btn-notifications')?.addEventListener('click', () => {

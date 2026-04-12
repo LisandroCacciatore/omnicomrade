@@ -4,16 +4,16 @@
  */
 
 (async () => {
-  const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId, role, userId, email } = ctx;
   const db = window.supabaseClient;
   const { round, pct, escHtml, logout } = window.tfUtils;
 
   // HU 4: Soporte para vista de admin/entrenador (por student.id o profile_id)
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('id');
-  const role = session.user.app_metadata?.role;
   const isStaff = role === 'gim_admin' || role === 'profesor';
 
   let student = null;
@@ -94,23 +94,21 @@
   if (isStaff && targetId) {
     student = await fetchStudent({ id: targetId });
   } else {
-    student = await fetchStudent({ profile_id: session.user.id });
+    student = await fetchStudent({ profile_id: userId });
 
     // Fallback por email+gym_id si profile_id no estaba vinculado
     if (!student) {
-      const gymId = session.user.app_metadata?.gym_id;
-      const userEmail = session.user.email;
-      if (gymId && userEmail) {
-        const byEmail = await fetchStudent({ gym_id: gymId, email: userEmail });
+      if (gymId && email) {
+        const byEmail = await fetchStudent({ gym_id: gymId, email });
         if (byEmail) {
           // Auto-link silencioso — fire and forget
           db.from('students')
-            .update({ profile_id: session.user.id })
+            .update({ profile_id: userId })
             .eq('id', byEmail.id)
             .is('profile_id', null)
             .then(() => {});
           // ignore 409 conflict — another auth user may already be linked
-          student = { ...byEmail, profile_id: session.user.id };
+          student = { ...byEmail, profile_id: userId };
         }
       }
     }

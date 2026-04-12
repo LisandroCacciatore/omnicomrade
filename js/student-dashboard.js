@@ -4,13 +4,11 @@
  */
 
 (async () => {
-  const session = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
-  if (!session) return;
+  const ctx = await window.authGuard(['alumno', 'gim_admin', 'profesor']);
+  if (!ctx) return;
 
+  const { gymId, userId, role, email } = ctx;
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata?.gym_id;
-  const userId = session.user.id;
-  const role = session.user.app_metadata?.role;
   function logout() {
     if (!confirm('¿Cerrar sesión?')) return;
     window.tfUtils?.logout?.();
@@ -53,12 +51,12 @@
       .maybeSingle();
     student = byProfile;
 
-    if (!student && gymId && session.user.email) {
+    if (!student && gymId && email) {
       const { data: byEmail } = await db
         .from('students')
         .select(STUDENT_SELECT)
         .eq('gym_id', gymId)
-        .eq('email', session.user.email)
+        .eq('email', email)
         .is('deleted_at', null)
         .maybeSingle();
       if (byEmail) {

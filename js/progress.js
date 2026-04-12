@@ -4,16 +4,15 @@
  */
 
 (async () => {
-  const session = await window.authGuard(['gim_admin', 'profesor', 'alumno']);
-  if (!session) return;
+  const ctx = await window.authGuard(['gim_admin', 'profesor', 'alumno']);
+  if (!ctx) return;
 
+  const { gymId, role } = ctx;
   const db = window.supabaseClient;
-  const gymId = session.user.app_metadata?.gym_id || session.gymId;
   if (!gymId) {
     window.tfUiUtils.toast?.('Error: gym_id no definido', 'error');
     return;
   }
-  const role = session.user.app_metadata?.role;
 
   let selectedStudentId = null;
   let expandChart = null;

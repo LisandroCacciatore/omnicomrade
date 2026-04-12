@@ -128,9 +128,7 @@ document.head.appendChild(style);
 
 // Check if already logged in
 async function checkCurrentSession() {
-  const {
-    data: { session }
-  } = await window.supabaseClient.auth.getSession();
+  const session = await window.tfSession.get();
   if (session) {
     const postAuthOk = await runPostAuthHook(session);
     if (!postAuthOk) return;
@@ -234,10 +232,8 @@ async function handleGoogleLogin() {
 async function handleOAuthCallback() {
   const hash = window.location.hash;
   if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-    const {
-      data: { session },
-      error
-    } = await window.supabaseClient.auth.getSession();
+    const session = await window.tfSession.get();
+    const error = session ? null : new Error('Session not found');
 
     if (error || !session) {
       const params = new URLSearchParams(hash.substring(1));

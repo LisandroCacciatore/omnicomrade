@@ -29,27 +29,10 @@ let showSensitiveWellbeingNotes = true;
 
 // ─── INIT ─────────────────────────────────────────────────
 async function initDashboard() {
-  const session = await window.authGuard(['gim_admin']);
-  if (!session) return;
-
-  // Resolve gym_id with fallbacks
-  gymId =
-    session.user.app_metadata?.gym_id ||
-    session.user.raw_app_meta_data?.gym_id ||
-    window.gymId ||
-    localStorage.getItem('gym_id');
-
-  if (!gymId && window.supabaseClient) {
-    const { data: profile } = await window.supabaseClient
-      .from('profiles')
-      .select('gym_id')
-      .eq('id', session.user.id)
-      .maybeSingle();
-    if (profile?.gym_id) {
-      gymId = profile.gym_id;
-      localStorage.setItem('gym_id', gymId);
-    }
-  }
+  const ctx = await window.authGuard(['gim_admin']);
+  if (!ctx) return;
+  const { gymId: ctxGymId, userId, email } = ctx;
+  gymId = ctxGymId;
 
   if (!gymId) {
     console.error('❌ No se pudo resolver gym_id');
@@ -57,10 +40,12 @@ async function initDashboard() {
     return;
   }
 
-  authUserId = session.user.id;
+  authUserId = userId;
   window.gymId = gymId;
 
-  userNameEl.textContent = session.user.user_metadata?.full_name || session.user.email;
+  const session = await window.tfSession.get();
+  const displayName = session?.user?.user_metadata?.full_name || email || '';
+  userNameEl.textContent = displayName;
 
   // Skeleton
   recentStudentsTable.innerHTML = `
