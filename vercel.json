@@ -1,18 +1,17 @@
 {
-    "cleanUrls": true,
-    "trailingSlash": false,
-    "outputDirectory": "dist",
-    "redirects": [
-        {
-            "source": "/",
-            "destination": "/login",
-            "permanent": false
-        }
-    ],
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/$1"
-        }
-    ]
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/login.html",
+      "permanent": false
+    },
+    {
+      "source": "/app",
+      "destination": "/login.html",
+      "permanent": false
+    }
+  ]
 }
