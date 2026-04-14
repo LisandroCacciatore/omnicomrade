@@ -5,18 +5,19 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/login.html",
-      "permanent": false
-    },
-    {
-      "source": "/login",
-      "destination": "/login.html",
+      "destination": "/login",
       "permanent": false
     },
     {
       "source": "/app",
-      "destination": "/login.html",
+      "destination": "/login",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/login",
+      "destination": "/login.html"
     }
   ]
 }
