@@ -1,10 +1,15 @@
 {
-  "cleanUrls": true,
+  "cleanUrls": false,
   "trailingSlash": false,
   "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/",
+      "destination": "/login.html",
+      "permanent": false
+    },
+    {
+      "source": "/login",
       "destination": "/login.html",
       "permanent": false
     },
