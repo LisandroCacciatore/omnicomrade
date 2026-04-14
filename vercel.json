@@ -1,18 +1,5 @@
 {
-    "cleanUrls": true,
-    "trailingSlash": false,
-    "outputDirectory": "dist",
-    "redirects": [
-        {
-            "source": "/",
-            "destination": "/login",
-            "permanent": false
-        }
-    ],
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/$1"
-        }
-    ]
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "outputDirectory": "dist"
 }
