@@ -23,6 +23,7 @@
   const btnSubmit = document.getElementById('btn-submit-checkin');
   const logsContainer = document.getElementById('today-logs');
   const countEl = document.getElementById('today-count');
+  const duplicateWarningEl = document.getElementById('duplicate-warning');
 
   function sanitizeImageSrc(url) {
     if (!url) return '';
@@ -49,7 +50,7 @@
     // 1. Cargar alumnos para búsqueda instantánea
     const { data: students, error: errSt } = await db
       .from('students')
-      .select('id, full_name, membership_status, avatar_url')
+      .select('id, full_name, membership_status, avatar_url, dni, email')
       .eq('gym_id', gymId)
       .is('deleted_at', null)
       .order('full_name');
@@ -69,6 +70,42 @@
 
     if (!errLogs) todayLogs = logs || [];
     renderLogs();
+    await loadPeriodMetrics();
+  }
+
+  async function loadPeriodMetrics() {
+    const now = new Date();
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(dayStart);
+    weekStart.setDate(dayStart.getDate() - dayStart.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [{ count: dayCount }, { count: weekCount }, { count: monthCount }] = await Promise.all([
+      db
+        .from('attendance_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('gym_id', gymId)
+        .gte('check_in_time', dayStart.toISOString()),
+      db
+        .from('attendance_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('gym_id', gymId)
+        .gte('check_in_time', weekStart.toISOString()),
+      db
+        .from('attendance_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('gym_id', gymId)
+        .gte('check_in_time', monthStart.toISOString())
+    ]);
+
+    const setMetric = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value || 0;
+    };
+    setMetric('metric-day', dayCount);
+    setMetric('metric-week', weekCount);
+    setMetric('metric-month', monthCount);
   }
 
   /* ─── Search Logic ───────────────────────────────────────── */
@@ -101,6 +138,7 @@
       pendiente: { label: 'Pendiente', classes: 'bg-slate-800 text-slate-400 border-slate-700' }
     };
 
+    renderDuplicateWarning(students);
     resultsContainer.innerHTML = students
       .map((s) => {
         const initials = s.full_name.substring(0, 2).toUpperCase();
@@ -124,6 +162,26 @@
             </div>`;
       })
       .join('');
+  }
+
+  function renderDuplicateWarning(students) {
+    if (!duplicateWarningEl) return;
+    const byName = new Map();
+    students.forEach((s) => {
+      const key = (s.full_name || '').trim().toLowerCase();
+      if (!key) return;
+      if (!byName.has(key)) byName.set(key, []);
+      byName.get(key).push(s);
+    });
+    const duplicates = Array.from(byName.entries()).filter(([, list]) => list.length > 1);
+    if (!duplicates.length) {
+      duplicateWarningEl.classList.add('hidden');
+      duplicateWarningEl.textContent = '';
+      return;
+    }
+    duplicateWarningEl.classList.remove('hidden');
+    duplicateWarningEl.textContent =
+      'Detectamos posibles duplicados por nombre. Validá con nombre completo y DNI antes de registrar asistencia.';
   }
 
   /* ─── Event Delegation para la selección ─────────────────── */
@@ -208,6 +266,7 @@
         students: { full_name: selectedStudent.full_name, avatar_url: selectedStudent.avatar_url }
       });
       renderLogs();
+      loadPeriodMetrics();
 
       // Limpiar buscador para el próximo alumno
       searchInput.value = '';
