@@ -103,6 +103,7 @@
   let filterGoal = 'all';
   let filterPattern = 'all';
   let filterOrigin = 'all';
+  let filterEquipment = 'all';
   let filterFavsOnly = false;
   let filterCompatibleOnly = true;
   const availableEquipment = new Set();
@@ -225,6 +226,45 @@
   }
 
   // NOTE: loadGymEquipment removed - table gyms.available_equipment does not exist
+  function setupCompactFilterSelects() {
+    const mount = document.getElementById('compact-filter-selects');
+    if (!mount) return;
+    ['cat-filters', 'goal-filters', 'pattern-filters', 'available-equipment-filters'].forEach((id) => {
+      document.getElementById(id)?.classList.add('hidden');
+    });
+    mount.innerHTML = `
+      <select id="filter-select-muscle" class="form-input py-2 text-xs"><option value="all">Músculo: todos</option>${MUSCLES.map((m) => `<option value="${m.key}">${m.label}</option>`).join('')}</select>
+      <select id="filter-select-cat" class="form-input py-2 text-xs"><option value="all">Categoría: todas</option>${Object.entries(CAT_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <select id="filter-select-goal" class="form-input py-2 text-xs"><option value="all">Objetivo: todos</option>${Object.entries(GOAL_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <select id="filter-select-pattern" class="form-input py-2 text-xs"><option value="all">Patrón: todos</option>${Object.entries(PATTERN_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <select id="filter-select-origin" class="form-input py-2 text-xs"><option value="all">Origen: todos</option><option value="preset">Preset</option><option value="custom">Propios</option></select>
+      <select id="filter-select-equipment" class="form-input py-2 text-xs"><option value="all">Equipamiento: todos</option><option value="barra">Barra</option><option value="mancuernas">Mancuernas</option><option value="maquina">Máquina</option><option value="cable">Cable</option><option value="peso_corporal">Peso corporal</option><option value="banda">Banda</option><option value="kettlebell">Kettlebell</option><option value="otros">Otros</option></select>
+    `;
+    mount.querySelector('#filter-select-muscle')?.addEventListener('change', (e) => {
+      filterMuscle = e.target.value === 'all' ? null : e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-cat')?.addEventListener('change', (e) => {
+      filterCat = e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-goal')?.addEventListener('change', (e) => {
+      filterGoal = e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-pattern')?.addEventListener('change', (e) => {
+      filterPattern = e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-origin')?.addEventListener('change', (e) => {
+      filterOrigin = e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-equipment')?.addEventListener('change', (e) => {
+      filterEquipment = e.target.value;
+      renderGrid();
+    });
+  }
 
   // NOTE: loadFavorites removed - table exercise_favorites does not exist
 
@@ -369,6 +409,7 @@
 
   const recBtn = document.getElementById('btn-generate-recs');
   if (recBtn) recBtn.addEventListener('click', generateRecommendations);
+  setupCompactFilterSelects();
 
   /* ─── Search (Optimizado con Debounce) ──────────────────── */
   const handleSearch = debounce((e) => {
@@ -426,6 +467,7 @@
         filterOrigin === 'all' ||
         (filterOrigin === 'preset' && ex.is_global) ||
         (filterOrigin === 'custom' && !ex.is_global);
+      const matchEquipment = filterEquipment === 'all' || ex.equipment === filterEquipment;
       // NOTE: favorites feature disabled - table exercise_favorites removed
       const matchFav = true;
       const matchCompat =
@@ -448,6 +490,7 @@
         matchGoal &&
         matchPattern &&
         matchOrigin &&
+        matchEquipment &&
         matchFav &&
         matchCompat &&
         matchSearch

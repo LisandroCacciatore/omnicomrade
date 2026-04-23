@@ -81,6 +81,7 @@ async function loadStudents(filters = {}) {
 
   allStudents = data || [];
   updateSubtitle();
+  renderRelationshipChart(allStudents);
   const hasActiveFilters = Boolean(filters.search || filters.status || filters.objetivo);
   renderTable(allStudents, hasActiveFilters);
 }
@@ -235,8 +236,56 @@ function renderCards(students) {
               ${statusInfo.label}
             </span>
             ${latestM ? `<span class="text-[10px] text-slate-500 capitalize">${window.tfUtils.escHtml(latestM.plan)}</span>` : ''}
+            <div class="flex items-center gap-1 mt-1">
+              <button data-action="edit" data-id="${s.id}" class="size-7 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-warning hover:bg-slate-800 transition-colors" title="Editar">
+                <span class="material-symbols-rounded text-[14px]">edit</span>
+              </button>
+              <button data-action="sell" data-id="${s.id}" data-name="${window.tfUtils.escHtml(s.full_name)}" class="size-7 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-success hover:bg-slate-800 transition-colors" title="Nueva membresía">
+                <span class="material-symbols-rounded text-[14px]">sell</span>
+              </button>
+              <button data-action="delete" data-id="${s.id}" data-name="${window.tfUtils.escHtml(s.full_name)}" class="size-7 rounded-lg border border-border-dark flex items-center justify-center text-slate-400 hover:text-danger hover:bg-slate-800 transition-colors" title="Eliminar">
+                <span class="material-symbols-rounded text-[14px]">delete</span>
+              </button>
+            </div>
           </div>
         </div>`;
+    })
+    .join('');
+}
+
+function renderRelationshipChart(students) {
+  const el = document.getElementById('student-relationship-chart');
+  if (!el) return;
+  if (!students?.length) {
+    el.innerHTML =
+      '<p class="text-slate-500">Sin datos para mostrar. Cargá alumnos y membresías para visualizar patrones.</p>';
+    return;
+  }
+  const counts = new Map();
+  students.forEach((s) => {
+    const latestMembership = s.memberships?.sort((a, b) => new Date(b.end_date) - new Date(a.end_date))[0];
+    const key = `${s.objetivo || 'sin_objetivo'}|${s.membership_status || 'sin_estado'}|${latestMembership?.plan || 'sin_plan'}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  const top = Array.from(counts.entries())
+    .map(([key, total]) => ({ key, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+  const max = Math.max(...top.map((x) => x.total), 1);
+  el.innerHTML = top
+    .map(({ key, total }) => {
+      const [objetivo, estado, plan] = key.split('|');
+      const pct = Math.max(8, Math.round((total / max) * 100));
+      return `
+      <div class="rounded-lg border border-border-dark p-2 bg-slate-900/40">
+        <div class="flex items-center justify-between gap-3 mb-1">
+          <p class="truncate">${window.tfUtils.escHtml(objetivo)} · ${window.tfUtils.escHtml(estado)} · ${window.tfUtils.escHtml(plan)}</p>
+          <span class="font-bold text-primary">${total}</span>
+        </div>
+        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div class="h-full bg-primary/80" style="width:${pct}%"></div>
+        </div>
+      </div>`;
     })
     .join('');
 }
@@ -258,6 +307,17 @@ function setupTableEvents() {
       return;
     }
     if (row) openProfilePanel(row.dataset.id, row);
+  });
+
+  const cards = document.getElementById('students-cards');
+  cards?.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    e.stopPropagation();
+    const { action, id, name } = actionBtn.dataset;
+    if (action === 'edit') openEditAtleta(id);
+    if (action === 'sell') openMembresiaForStudent(id, name);
+    if (action === 'delete') openEliminar(id, name);
   });
 }
 

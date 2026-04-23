@@ -270,21 +270,6 @@ async function runSchemaHealthCheck() {
   }
 }
 
-function paintRegion(regionEl, row) {
-  const classes = ['pain-level-low', 'pain-level-medium', 'pain-level-high', 'pain-level-critical'];
-  regionEl.classList.remove(...classes, 'pain-interactive');
-  if (!row) {
-    regionEl.classList.add('pain-level-low');
-    regionEl.removeAttribute('title');
-    return;
-  }
-  const severity = window.AthleteInsights.getPainSeverity(Number(row.intensity_pct || 0));
-  regionEl.classList.add(`pain-level-${severity}`);
-  const isActionable = severity === 'high' || severity === 'critical';
-  if (isActionable) regionEl.classList.add('pain-interactive');
-  regionEl.title = `${window.AthleteInsights.formatPainZoneLabel(row.zone)} · ${Number(row.intensity_pct || 0).toFixed(1)}% intensidad`;
-}
-
 async function initPainMap() {
   const statusEl = document.getElementById('pain-map-status');
   const zoneListEl = document.getElementById('pain-zone-risk-list');
@@ -331,7 +316,6 @@ async function initPainMap() {
 function renderAnatomicalMap(rows) {
   const statusEl = document.getElementById('pain-map-status');
   const zoneListEl = document.getElementById('pain-zone-risk-list');
-  const regions = document.querySelectorAll('.muscle-region[data-zone]');
   painSummaryByZone = new Map();
 
   (rows || []).forEach((row) => {
@@ -343,15 +327,10 @@ function renderAnatomicalMap(rows) {
     }
   });
 
-  regions.forEach((regionEl) => {
-    const zone = regionEl.dataset.zone;
-    const row = painSummaryByZone.get(zone);
-    paintRegion(regionEl, row);
-  });
-
   const sortedZones = Array.from(painSummaryByZone.values()).sort(
     (a, b) => Number(b.intensity_pct || 0) - Number(a.intensity_pct || 0)
   );
+  renderPainHeatChart(sortedZones);
 
   const totalReports = sortedZones.reduce((sum, z) => sum + Number(z.reports || 0), 0);
   const badgeEl = document.getElementById('pain-report-badge');
@@ -398,17 +377,38 @@ function renderAnatomicalMap(rows) {
   setupPainRegionInteractions();
 }
 
-function setupPainRegionInteractions() {
-  document.querySelectorAll('.muscle-region[data-zone]').forEach((regionEl) => {
-    const zone = regionEl.dataset.zone;
-    const row = painSummaryByZone.get(zone);
-    const severity = window.AthleteInsights.getPainSeverity(Number(row?.intensity_pct || 0));
-    regionEl.onclick = null;
-    if (severity !== 'high' && severity !== 'critical') return;
-    regionEl.onclick = () => {
-      loadPainZoneDetails(zone);
-    };
+function renderPainHeatChart(sortedZones) {
+  const chartEl = document.getElementById('pain-heat-chart');
+  if (!chartEl) return;
+  if (!sortedZones?.length) {
+    chartEl.innerHTML =
+      '<p class="text-slate-500 text-xs">Sin datos de dolor en los últimos 30 días.</p>';
+    return;
+  }
+  const max = Math.max(...sortedZones.map((z) => Number(z.intensity_pct || 0)), 1);
+  chartEl.innerHTML = sortedZones
+    .slice(0, 10)
+    .map((row) => {
+      const intensity = Number(row.intensity_pct || 0);
+      const pct = Math.max(6, Math.round((intensity / max) * 100));
+      return `<button type="button" data-zone-chart="${row.zone}" class="w-full text-left rounded-lg border border-border-dark p-2 bg-slate-900/40 hover:border-primary/60 transition-colors">
+        <div class="flex items-center justify-between gap-3 mb-1">
+          <p class="font-semibold text-slate-100">${window.AthleteInsights.formatPainZoneLabel(row.zone)}</p>
+          <span class="text-[10px] font-bold text-primary">${intensity.toFixed(1)}%</span>
+        </div>
+        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-blue-500 via-amber-500 to-red-500" style="width:${pct}%"></div>
+        </div>
+      </button>`;
+    })
+    .join('');
+  chartEl.querySelectorAll('[data-zone-chart]').forEach((btn) => {
+    btn.addEventListener('click', () => loadPainZoneDetails(btn.dataset.zoneChart));
   });
+}
+
+function setupPainRegionInteractions() {
+  // Conservado para compatibilidad (interacciones ahora viven en el gráfico de barras).
 }
 
 async function loadPainZoneDetails(zone) {
