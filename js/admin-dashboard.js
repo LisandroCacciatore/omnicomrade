@@ -98,16 +98,19 @@ async function loadDashboardIndicators() {
         db
           .from('students')
           .select('*', { count: 'exact', head: true })
+          .eq('gym_id', gymId)
           .is('deleted_at', null)
           .eq('membership_status', 'activa'),
         db
           .from('memberships')
           .select('*', { count: 'exact', head: true })
+          .eq('gym_id', gymId)
           .gte('end_date', today.toISOString().split('T')[0])
           .lte('end_date', sevenDaysFromNow),
         db
           .from('memberships')
           .select('amount')
+          .eq('gym_id', gymId)
           .gte('start_date', startOfMonth)
           .lte('start_date', endOfMonth)
       ]);
@@ -199,6 +202,8 @@ function setupQuickActions() {
   document
     .querySelector('[data-action="asignar-programa"]')
     ?.addEventListener('click', async () => {
+      const btn = document.querySelector('[data-action="asignar-programa"]');
+      btn?.classList.add('opacity-70');
       // Lazy init: esperar a que ProgramAssignModal esté disponible
       if (!window.ProgramAssignModal) {
         console.warn('⏳ Esperando a que ProgramAssignModal cargue...');
@@ -209,6 +214,7 @@ function setupQuickActions() {
         }
         if (!window.ProgramAssignModal) {
           toast('Error: no se pudo cargar el módulo de asignación', 'error');
+          btn?.classList.remove('opacity-70');
           return;
         }
       }
@@ -224,7 +230,14 @@ function setupQuickActions() {
           }
         });
       }
-      assignProgramModal.open();
+      try {
+        assignProgramModal.open();
+      } catch (err) {
+        console.error('Error opening assign program flow:', err);
+        toast('No se pudo abrir el flujo de asignación de programa', 'error');
+      } finally {
+        btn?.classList.remove('opacity-70');
+      }
     });
 
   document.querySelector('[data-action="nueva-membresia"]')?.addEventListener('click', () => {

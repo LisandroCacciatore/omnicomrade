@@ -15,6 +15,8 @@
   let allStudents = [];
   let todayLogs = [];
   let selectedStudent = null;
+  let duplicateNameKeys = new Set();
+  let trendRangeDays = 15;
 
   /* ─── DOM Elements ───────────────────────────────────────── */
   const searchInput = document.getElementById('search-student');
@@ -48,14 +50,26 @@
   /* ─── Initialization ─────────────────────────────────────── */
   async function loadInitialData() {
     // 1. Cargar alumnos para búsqueda instantánea
-    const { data: students, error: errSt } = await db
+    let studentsResult = await db
       .from('students')
       .select('id, full_name, membership_status, avatar_url, dni, email')
       .eq('gym_id', gymId)
       .is('deleted_at', null)
       .order('full_name');
-
-    if (!errSt) allStudents = students || [];
+    if (studentsResult.error && String(studentsResult.error.code || '') === '42703') {
+      studentsResult = await db
+        .from('students')
+        .select('id, full_name, membership_status, avatar_url, email')
+        .eq('gym_id', gymId)
+        .is('deleted_at', null)
+        .order('full_name');
+    }
+    if (studentsResult.error) {
+      console.error('Error cargando alumnos:', studentsResult.error);
+      toast('No se pudieron cargar alumnos para asistencia', 'error');
+    } else {
+      allStudents = studentsResult.data || [];
+    }
 
     // 2. Cargar ingresos de hoy
     const todayStart = new Date();
@@ -71,6 +85,7 @@
     if (!errLogs) todayLogs = logs || [];
     renderLogs();
     await loadPeriodMetrics();
+    await renderAttendanceTrend(trendRangeDays);
   }
 
   async function loadPeriodMetrics() {
@@ -106,6 +121,69 @@
     setMetric('metric-day', dayCount);
     setMetric('metric-week', weekCount);
     setMetric('metric-month', monthCount);
+    setGauge('metric-day-gauge', dayCount, 30);
+    setGauge('metric-week-gauge', weekCount, 180);
+    setGauge('metric-month-gauge', monthCount, 800);
+  }
+
+  async function renderAttendanceTrend(days = 15) {
+    const chart = document.getElementById('attendance-trend-chart');
+    const line = document.getElementById('attendance-trend-line');
+    const area = document.getElementById('attendance-trend-area');
+    const empty = document.getElementById('attendance-trend-empty');
+    if (!chart || !line || !area || !empty) return;
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    from.setDate(from.getDate() - (days - 1));
+
+    const { data, error } = await db
+      .from('attendance_logs')
+      .select('check_in_time')
+      .eq('gym_id', gymId)
+      .gte('check_in_time', from.toISOString())
+      .order('check_in_time', { ascending: true });
+    if (error) {
+      empty.classList.remove('hidden');
+      chart.classList.add('hidden');
+      return;
+    }
+    const bucket = new Map();
+    for (let i = 0; i < days; i++) {
+      const d = new Date(from);
+      d.setDate(from.getDate() + i);
+      bucket.set(d.toISOString().slice(0, 10), 0);
+    }
+    (data || []).forEach((row) => {
+      const key = new Date(row.check_in_time).toISOString().slice(0, 10);
+      if (bucket.has(key)) bucket.set(key, (bucket.get(key) || 0) + 1);
+    });
+    const points = Array.from(bucket.values());
+    const maxY = Math.max(...points, 1);
+    if (points.every((x) => x === 0)) {
+      empty.classList.remove('hidden');
+      chart.classList.add('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+    chart.classList.remove('hidden');
+    const w = 600;
+    const h = 160;
+    const px = points.map((val, idx) => {
+      const x = (idx / Math.max(1, points.length - 1)) * (w - 24) + 12;
+      const y = h - 16 - (val / maxY) * (h - 36);
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    });
+    line.setAttribute('d', `M ${px.join(' L ')}`);
+    area.setAttribute('d', `M 12,${h - 16} L ${px.join(' L ')} L ${w - 12},${h - 16} Z`);
+  }
+
+  function setGauge(id, value, max) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = Number(value || 0);
+    const pct = Math.max(0, Math.min(100, Math.round((v / Math.max(1, max)) * 100)));
+    el.textContent = `${pct}%`;
+    el.style.background = `conic-gradient(#3B82F6 ${pct}%, #1E293B ${pct}% 100%)`;
   }
 
   /* ─── Search Logic ───────────────────────────────────────── */
@@ -120,6 +198,19 @@
 
     const filtered = allStudents.filter((s) => s.full_name.toLowerCase().includes(query));
     renderResults(filtered);
+  });
+
+  document.querySelectorAll('.attendance-range-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      document.querySelectorAll('.attendance-range-btn').forEach((b) => {
+        b.classList.remove('bg-primary/20', 'text-primary');
+        b.classList.add('bg-[#1E293B]', 'text-slate-300');
+      });
+      btn.classList.remove('bg-[#1E293B]', 'text-slate-300');
+      btn.classList.add('bg-primary/20', 'text-primary');
+      trendRangeDays = Number(btn.dataset.range || 15);
+      await renderAttendanceTrend(trendRangeDays);
+    });
   });
 
   function renderResults(students) {
@@ -174,14 +265,25 @@
       byName.get(key).push(s);
     });
     const duplicates = Array.from(byName.entries()).filter(([, list]) => list.length > 1);
+    duplicateNameKeys = new Set(duplicates.map(([name]) => name));
     if (!duplicates.length) {
       duplicateWarningEl.classList.add('hidden');
       duplicateWarningEl.textContent = '';
       return;
     }
+    const missingDniCount = duplicates.reduce(
+      (acc, [, list]) => acc + list.filter((s) => !String(s.dni || '').trim()).length,
+      0
+    );
     duplicateWarningEl.classList.remove('hidden');
-    duplicateWarningEl.textContent =
-      'Detectamos posibles duplicados por nombre. Validá con nombre completo y DNI antes de registrar asistencia.';
+    duplicateWarningEl.textContent = `Detectamos ${duplicates.length} posibles duplicados por nombre. Validá por nombre completo + DNI antes de registrar asistencia. ${missingDniCount > 0 ? `Hay ${missingDniCount} registros sin DNI.` : ''}`;
+  }
+
+  function isSelectedStudentDuplicateWithoutDni() {
+    if (!selectedStudent) return false;
+    const key = (selectedStudent.full_name || '').trim().toLowerCase();
+    if (!duplicateNameKeys.has(key)) return false;
+    return !String(selectedStudent.dni || '').trim();
   }
 
   /* ─── Event Delegation para la selección ─────────────────── */
@@ -205,6 +307,14 @@
   /* ─── Check-in Form Logic ────────────────────────────────── */
   function showCheckinForm() {
     if (!selectedStudent) return;
+
+    if (isSelectedStudentDuplicateWithoutDni()) {
+      toast(
+        'Este alumno tiene nombre repetido y no tiene DNI cargado. Completá DNI para evitar duplicados.',
+        'error'
+      );
+      return;
+    }
 
     document.getElementById('selected-student-id').value = selectedStudent.id;
     document.getElementById('selected-student-name').textContent = selectedStudent.full_name;
@@ -266,7 +376,8 @@
         students: { full_name: selectedStudent.full_name, avatar_url: selectedStudent.avatar_url }
       });
       renderLogs();
-      loadPeriodMetrics();
+      await loadPeriodMetrics();
+      await renderAttendanceTrend(trendRangeDays);
 
       // Limpiar buscador para el próximo alumno
       searchInput.value = '';

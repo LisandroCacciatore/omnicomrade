@@ -288,32 +288,6 @@ function setupPlanPricing() {
         is_active: true
       };
     });
-    // Ensure profile exists before upserting (FK on changed_by)
-    const fullSession = await window.tfSession.get();
-    const user = fullSession?.user;
-    if (user?.id) {
-      const role = user.app_metadata?.role || 'gim_admin';
-      const fullName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        (user.email ? user.email.split('@')[0] : 'Administrador');
-      const { error: profileError } = await window.supabaseClient.from('profiles').upsert(
-        {
-          id: user.id,
-          gym_id: gymId,
-          full_name: fullName,
-          role
-        },
-        { onConflict: 'id' }
-      );
-      if (profileError && feedback) {
-        feedback.textContent =
-          'No se pudo validar tu perfil de usuario para registrar cambios de planes.';
-        feedback.className = 'text-xs font-bold text-danger';
-        feedback.classList.remove('hidden');
-        return;
-      }
-    }
     const { data, error } = await window.supabaseClient
       .from('gym_membership_plans')
       .upsert(rows, { onConflict: 'gym_id,plan_key' })
