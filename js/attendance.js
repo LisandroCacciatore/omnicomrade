@@ -15,6 +15,7 @@
   let allStudents = [];
   let todayLogs = [];
   let selectedStudent = null;
+  let duplicateNameKeys = new Set();
 
   /* ─── DOM Elements ───────────────────────────────────────── */
   const searchInput = document.getElementById('search-student');
@@ -106,6 +107,18 @@
     setMetric('metric-day', dayCount);
     setMetric('metric-week', weekCount);
     setMetric('metric-month', monthCount);
+    setGauge('metric-day-gauge', dayCount, 30);
+    setGauge('metric-week-gauge', weekCount, 180);
+    setGauge('metric-month-gauge', monthCount, 800);
+  }
+
+  function setGauge(id, value, max) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = Number(value || 0);
+    const pct = Math.max(0, Math.min(100, Math.round((v / Math.max(1, max)) * 100)));
+    el.textContent = `${pct}%`;
+    el.style.background = `conic-gradient(#3B82F6 ${pct}%, #1E293B ${pct}% 100%)`;
   }
 
   /* ─── Search Logic ───────────────────────────────────────── */
@@ -174,14 +187,25 @@
       byName.get(key).push(s);
     });
     const duplicates = Array.from(byName.entries()).filter(([, list]) => list.length > 1);
+    duplicateNameKeys = new Set(duplicates.map(([name]) => name));
     if (!duplicates.length) {
       duplicateWarningEl.classList.add('hidden');
       duplicateWarningEl.textContent = '';
       return;
     }
+    const missingDniCount = duplicates.reduce(
+      (acc, [, list]) => acc + list.filter((s) => !String(s.dni || '').trim()).length,
+      0
+    );
     duplicateWarningEl.classList.remove('hidden');
-    duplicateWarningEl.textContent =
-      'Detectamos posibles duplicados por nombre. Validá con nombre completo y DNI antes de registrar asistencia.';
+    duplicateWarningEl.textContent = `Detectamos ${duplicates.length} posibles duplicados por nombre. Validá por nombre completo + DNI antes de registrar asistencia. ${missingDniCount > 0 ? `Hay ${missingDniCount} registros sin DNI.` : ''}`;
+  }
+
+  function isSelectedStudentDuplicateWithoutDni() {
+    if (!selectedStudent) return false;
+    const key = (selectedStudent.full_name || '').trim().toLowerCase();
+    if (!duplicateNameKeys.has(key)) return false;
+    return !String(selectedStudent.dni || '').trim();
   }
 
   /* ─── Event Delegation para la selección ─────────────────── */
@@ -205,6 +229,14 @@
   /* ─── Check-in Form Logic ────────────────────────────────── */
   function showCheckinForm() {
     if (!selectedStudent) return;
+
+    if (isSelectedStudentDuplicateWithoutDni()) {
+      toast(
+        'Este alumno tiene nombre repetido y no tiene DNI cargado. Completá DNI para evitar duplicados.',
+        'error'
+      );
+      return;
+    }
 
     document.getElementById('selected-student-id').value = selectedStudent.id;
     document.getElementById('selected-student-name').textContent = selectedStudent.full_name;

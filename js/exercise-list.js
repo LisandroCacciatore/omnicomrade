@@ -229,8 +229,14 @@
   function setupCompactFilterSelects() {
     const mount = document.getElementById('compact-filter-selects');
     if (!mount) return;
-    ['cat-filters', 'goal-filters', 'pattern-filters', 'available-equipment-filters'].forEach((id) => {
-      document.getElementById(id)?.classList.add('hidden');
+    document.getElementById('body-diagram')?.classList.add('hidden');
+    document.getElementById('muscle-list')?.classList.add('hidden');
+    document.getElementById('clear-muscle')?.classList.add('hidden');
+    ['cat-filters', 'goal-filters', 'pattern-filters', 'available-equipment-filters'].forEach((id) =>
+      document.getElementById(id)?.classList.add('hidden')
+    );
+    document.querySelectorAll('[data-origin], [data-favs-only], [data-compatible-only], [data-avail-equip]').forEach((el) => {
+      el.classList.add('hidden');
     });
     mount.innerHTML = `
       <select id="filter-select-muscle" class="form-input py-2 text-xs"><option value="all">Músculo: todos</option>${MUSCLES.map((m) => `<option value="${m.key}">${m.label}</option>`).join('')}</select>
@@ -239,6 +245,8 @@
       <select id="filter-select-pattern" class="form-input py-2 text-xs"><option value="all">Patrón: todos</option>${Object.entries(PATTERN_LABELS).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}</select>
       <select id="filter-select-origin" class="form-input py-2 text-xs"><option value="all">Origen: todos</option><option value="preset">Preset</option><option value="custom">Propios</option></select>
       <select id="filter-select-equipment" class="form-input py-2 text-xs"><option value="all">Equipamiento: todos</option><option value="barra">Barra</option><option value="mancuernas">Mancuernas</option><option value="maquina">Máquina</option><option value="cable">Cable</option><option value="peso_corporal">Peso corporal</option><option value="banda">Banda</option><option value="kettlebell">Kettlebell</option><option value="otros">Otros</option></select>
+      <select id="filter-select-favs" class="form-input py-2 text-xs"><option value="all">Preferencias: todas</option><option value="only">Solo favoritos</option></select>
+      <select id="filter-select-compatible" class="form-input py-2 text-xs"><option value="only">Compatibilidad: solo compatibles</option><option value="all">Compatibilidad: todos</option></select>
     `;
     mount.querySelector('#filter-select-muscle')?.addEventListener('change', (e) => {
       filterMuscle = e.target.value === 'all' ? null : e.target.value;
@@ -262,6 +270,14 @@
     });
     mount.querySelector('#filter-select-equipment')?.addEventListener('change', (e) => {
       filterEquipment = e.target.value;
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-favs')?.addEventListener('change', (e) => {
+      filterFavsOnly = e.target.value === 'only';
+      renderGrid();
+    });
+    mount.querySelector('#filter-select-compatible')?.addEventListener('change', (e) => {
+      filterCompatibleOnly = e.target.value === 'only';
       renderGrid();
     });
   }

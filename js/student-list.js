@@ -301,12 +301,23 @@ function setupTableEvents() {
     if (actionBtn) {
       e.stopPropagation();
       const { action, id, name } = actionBtn.dataset;
-      if (action === 'edit') openEditAtleta(id);
-      if (action === 'sell') openMembresiaForStudent(id, name);
-      if (action === 'delete') openEliminar(id, name);
+      if (action === 'edit') window.openEditAtleta?.(id);
+      if (action === 'sell') window.openMembresiaForStudent?.(id, name);
+      if (action === 'delete') window.openEliminar?.(id, name);
       return;
     }
-    if (row) openProfilePanel(row.dataset.id, row);
+    if (row) window.openProfilePanel?.(row.dataset.id, row);
+  });
+
+  const cards = document.getElementById('students-cards');
+  cards?.addEventListener('click', (e) => {
+    const actionBtn = e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    e.stopPropagation();
+    const { action, id, name } = actionBtn.dataset;
+    if (action === 'edit') window.openEditAtleta?.(id);
+    if (action === 'sell') window.openMembresiaForStudent?.(id, name);
+    if (action === 'delete') window.openEliminar?.(id, name);
   });
 
   const cards = document.getElementById('students-cards');
@@ -629,13 +640,13 @@ function setupProfilePanel() {
   });
 
   document.getElementById('panel-btn-editar')?.addEventListener('click', () => {
-    if (activePanelStudentId) openEditAtleta(activePanelStudentId);
+    if (activePanelStudentId) window.openEditAtleta?.(activePanelStudentId);
   });
 
   document.getElementById('panel-btn-membresia')?.addEventListener('click', () => {
     if (!activePanelStudentId) return;
     const s = allStudents.find((x) => x.id === activePanelStudentId);
-    if (s) openMembresiaForStudent(s.id, s.full_name);
+    if (s) window.openMembresiaForStudent?.(s.id, s.full_name);
   });
 
   // Guardar notas

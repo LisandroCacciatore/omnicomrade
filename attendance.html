@@ -58,17 +58,26 @@
 
         <main class="flex-1 p-6 flex flex-col lg:flex-row gap-6 items-start">
             <section class="w-full grid grid-cols-1 md:grid-cols-3 gap-3">
-                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3">
-                    <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Asistencias hoy</p>
-                    <p id="metric-day" class="text-2xl font-black text-white">0</p>
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-day-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Asistencias hoy</p>
+                        <p id="metric-day" class="text-xl font-black text-white">0</p>
+                    </div>
                 </article>
-                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3">
-                    <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Semana actual</p>
-                    <p id="metric-week" class="text-2xl font-black text-white">0</p>
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-week-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Semana actual</p>
+                        <p id="metric-week" class="text-xl font-black text-white">0</p>
+                    </div>
                 </article>
-                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3">
-                    <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Mes actual</p>
-                    <p id="metric-month" class="text-2xl font-black text-white">0</p>
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-month-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Mes actual</p>
+                        <p id="metric-month" class="text-xl font-black text-white">0</p>
+                    </div>
                 </article>
             </section>
             
@@ -133,7 +142,6 @@
     <script type="module" src="js/attendance.js"></script>
 </body>
 </html>
-
 
 
 
