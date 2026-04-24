@@ -56,15 +56,56 @@
             </div>
         </header>
 
-        <main class="flex-1 p-6 flex flex-col lg:flex-row gap-6 items-start">
-            
-            <div class="w-full lg:w-3/5 bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col h-[calc(100vh-112px)]">
+        <main class="flex-1 p-6 space-y-6 overflow-y-auto">
+            <section class="w-full grid grid-cols-1 md:grid-cols-3 gap-3">
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-day-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Asistencias hoy</p>
+                        <p id="metric-day" class="text-xl font-black text-white">0</p>
+                    </div>
+                </article>
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-week-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Semana actual</p>
+                        <p id="metric-week" class="text-xl font-black text-white">0</p>
+                    </div>
+                </article>
+                <article class="bg-[#161E26] border border-[#1E293B] rounded-xl p-3 flex items-center gap-3">
+                    <div id="metric-month-gauge" class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-[11px] font-black text-white border border-[#1E293B] bg-[#0B1218]">0</div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-widest text-slate-500 font-bold">Mes actual</p>
+                        <p id="metric-month" class="text-xl font-black text-white">0</p>
+                    </div>
+                </article>
+            </section>
+
+            <section class="w-full bg-[#161E26] border border-[#1E293B] rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3 gap-3">
+                    <h3 class="text-sm font-bold text-white">Evolución de asistencias</h3>
+                    <div class="flex items-center gap-2">
+                        <button data-range="7" class="attendance-range-btn px-2.5 py-1 rounded-lg text-xs bg-[#1E293B] text-slate-300">7d</button>
+                        <button data-range="15" class="attendance-range-btn px-2.5 py-1 rounded-lg text-xs bg-primary/20 text-primary">15d</button>
+                        <button data-range="30" class="attendance-range-btn px-2.5 py-1 rounded-lg text-xs bg-[#1E293B] text-slate-300">30d</button>
+                    </div>
+                </div>
+                <div id="attendance-trend-empty" class="hidden text-xs text-slate-500 py-6 text-center">Sin datos para graficar.</div>
+                <svg id="attendance-trend-chart" viewBox="0 0 600 160" class="w-full h-40">
+                    <path id="attendance-trend-area" fill="rgba(59,130,246,.18)" stroke="none"></path>
+                    <path id="attendance-trend-line" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"></path>
+                </svg>
+            </section>
+
+            <section class="w-full grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+            <div class="xl:col-span-3 w-full bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col min-h-[520px]">
                 <div class="search-wrap mb-4 shrink-0">
                     <span class="material-symbols-rounded">search</span>
                     <input id="search-student" type="text" class="w-full bg-[#0B1218] border border-[#1E293B] rounded-xl pl-12 pr-4 py-4 text-base font-semibold text-white focus:border-[#3B82F6] outline-none transition-colors" placeholder="Buscar alumno por nombre..." autocomplete="off" autofocus />
                 </div>
                 
                 <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 shrink-0">Resultados de bíºsqueda</p>
+                <div id="duplicate-warning" class="hidden mb-3 text-xs rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 px-3 py-2"></div>
                 
                 <div id="search-results" class="flex-1 overflow-y-auto pr-2">
                     <div class="text-center py-10 text-slate-500 text-sm">Empezá a escribir para buscar un alumno...</div>
@@ -86,7 +127,7 @@
                 </form>
             </div>
 
-            <div class="w-full lg:w-2/5 bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col h-[calc(100vh-112px)]">
+            <div class="xl:col-span-2 w-full bg-[#161E26] border border-[#1E293B] rounded-2xl p-6 flex flex-col min-h-[520px]">
                 <div class="flex items-center justify-between mb-6 shrink-0">
                     <div>
                         <h2 class="text-base font-bold text-white">Ingresos de hoy</h2>
@@ -101,6 +142,7 @@
                     <div class="text-center py-10 text-slate-500 text-sm">Todaví­a no hay ingresos registrados hoy.</div>
                 </div>
             </div>
+            </section>
         </main>
     </div>
 
@@ -110,17 +152,15 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="js/supabase.js"></script></script>
+    <script type="module" src="js/supabase.js"></script>
     <script type="module" src="js/session.js"></script>
     <script type="module" src="js/auth-guard.js"></script>
-    <script type="module" src="js/training-engine.js"></script>`n<script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/training-engine.js"></script>
+    <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/sidebar.js"></script>
     <script type="module" src="js/attendance.js"></script>
 </body>
 </html>
-
-
-
 
 
 

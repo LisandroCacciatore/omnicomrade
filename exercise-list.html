@@ -648,6 +648,7 @@
 
             <div class="flex flex-1 min-h-0">
                 <div id="filter-panel">
+                    <div class="px-4 pt-4 pb-2 space-y-2" id="compact-filter-selects"></div>
                     <div class="px-4 pt-4 pb-2 lg:hidden search-wrap">
                         <span class="material-symbols-rounded">search</span>
                         <input id="search-mobile" type="text" class="form-input py-2 text-xs" placeholder="Buscar..." />
@@ -659,7 +660,7 @@
                             class="text-[10px] font-700 text-primary hidden hover:underline">Limpiar</button>
                     </div>
 
-                    <div id="body-diagram">
+                    <div id="body-diagram" class="hidden">
                         <svg id="body-svg" viewBox="0 0 140 340" xmlns="http://www.w3.org/2000/svg">
                             <ellipse class="body-outline" cx="70" cy="24" rx="18" ry="21" />
                             <path class="body-outline" d="M62,43 L78,43 L76,56 L64,56 Z" />
@@ -790,7 +791,7 @@
                 </div>
 
                 <div class="flex-1 p-5 overflow-y-auto min-w-0">
-                    <div class="bg-[#161E26] border border-[#1E293B] rounded-2xl p-3 mb-4">
+                    <div id="recommendation-block" class="hidden bg-[#161E26] border border-[#1E293B] rounded-2xl p-3 mb-4">
                         <div class="flex items-center justify-between gap-3 mb-2">
                             <p class="text-xs font-bold text-white">Asistente de recomendación (P2)</p>
                             <button id="btn-generate-recs" type="button" class="cat-chip active">Sugerir 5</button>
@@ -1045,7 +1046,6 @@
 </body>
 
 </html>
-
 
 
 

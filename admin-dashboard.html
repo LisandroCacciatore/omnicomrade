@@ -277,12 +277,12 @@
         </div>
       </div>
 
-      <!-- Dashboard de Prevención: Mapa de Dolor -->
+      <!-- Dashboard de Prevención: Gráfico de Dolor -->
       <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <article class="xl:col-span-2 bg-surface-dark border border-border-dark rounded-2xl p-6 space-y-5">
           <div class="flex items-center justify-between gap-3">
             <div>
-              <h3 class="text-lg font-bold">Mapa de dolor (30 días)</h3>
+              <h3 class="text-lg font-bold">Gráfico de dolor (30 días)</h3>
               <p class="text-xs text-slate-500">
                 Zonas con más reportes de dolor por intensidad relativa.
               </p>
@@ -296,46 +296,9 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div class="border border-border-dark rounded-xl bg-slate-950/40 p-3">
-              <svg viewBox="0 0 220 360" class="w-full max-w-[260px] mx-auto filter drop-shadow-2xl">
-                <!-- Cabeza / Cervical -->
-                <path d="M110,18 C122,18 130,26 130,38 C130,50 122,58 110,58 C98,58 90,50 90,38 C90,26 98,18 110,18 Z"
-                  class="muscle-region" data-zone="cervical" />
-
-                <!-- Hombros -->
-                <path d="M78,62 Q90,55 98,68 L95,82 Q82,78 78,82 Z" class="muscle-region"
-                  data-zone="hombro_izquierdo" />
-                <path d="M142,62 Q130,55 122,68 L125,82 Q138,78 142,82 Z" class="muscle-region"
-                  data-zone="hombro_derecho" />
-
-                <!-- Espalda alta / Pecho -->
-                <path d="M96,66 L124,66 L128,108 L92,108 Z" class="muscle-region" data-zone="espalda_alta" />
-
-                <!-- Lumbar -->
-                <path d="M94,112 L126,112 L124,150 L96,150 Z" class="muscle-region" data-zone="lumbar" />
-
-                <!-- Cadera -->
-                <path d="M92,154 L128,154 L130,180 L90,180 Z" class="muscle-region" data-zone="cadera" />
-
-                <!-- Brazos (bloque unificado: brazo + antebrazo) -->
-                <path d="M66,92 Q56,108 54,130 Q52,145 58,148 L70,148 Q74,130 76,108 Z" class="muscle-region"
-                  data-zone="brazo_izquierdo" />
-                <path d="M154,92 Q164,108 166,130 Q168,145 162,148 L150,148 Q146,130 144,108 Z" class="muscle-region"
-                  data-zone="brazo_derecho" />
-
-                <!-- Muñecas -->
-                <path d="M62,124 Q58,132 60,140 L68,140 Q70,132 68,124 Z" class="muscle-region"
-                  data-zone="muneca_izquierda" />
-                <path d="M158,124 Q162,132 160,140 L152,140 Q150,132 152,124 Z" class="muscle-region"
-                  data-zone="muneca_derecha" />
-
-                <!-- Rodillas -->
-                <path d="M90,186 L108,186 L106,238 L92,238 Z" class="muscle-region" data-zone="rodilla_izquierda" />
-                <path d="M112,186 L130,186 L128,238 L114,238 Z" class="muscle-region" data-zone="rodilla_derecha" />
-
-                <!-- Tobillos -->
-                <path d="M92,244 L106,244 L104,272 L94,272 Z" class="muscle-region" data-zone="tobillo_izquierdo" />
-                <path d="M114,244 L128,244 L126,272 L116,272 Z" class="muscle-region" data-zone="tobillo_derecho" />
-              </svg>
+              <div id="pain-heat-chart" class="space-y-2 text-xs text-slate-300">
+                <p class="text-slate-500">Cargando gráfico…</p>
+              </div>
             </div>
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-2 text-[10px] font-bold uppercase tracking-wider">
