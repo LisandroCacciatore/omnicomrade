@@ -98,16 +98,19 @@ async function loadDashboardIndicators() {
         db
           .from('students')
           .select('*', { count: 'exact', head: true })
+          .eq('gym_id', gymId)
           .is('deleted_at', null)
           .eq('membership_status', 'activa'),
         db
           .from('memberships')
           .select('*', { count: 'exact', head: true })
+          .eq('gym_id', gymId)
           .gte('end_date', today.toISOString().split('T')[0])
           .lte('end_date', sevenDaysFromNow),
         db
           .from('memberships')
           .select('amount')
+          .eq('gym_id', gymId)
           .gte('start_date', startOfMonth)
           .lte('start_date', endOfMonth)
       ]);
@@ -199,6 +202,8 @@ function setupQuickActions() {
   document
     .querySelector('[data-action="asignar-programa"]')
     ?.addEventListener('click', async () => {
+      const btn = document.querySelector('[data-action="asignar-programa"]');
+      btn?.classList.add('opacity-70');
       // Lazy init: esperar a que ProgramAssignModal esté disponible
       if (!window.ProgramAssignModal) {
         console.warn('⏳ Esperando a que ProgramAssignModal cargue...');
@@ -209,6 +214,7 @@ function setupQuickActions() {
         }
         if (!window.ProgramAssignModal) {
           toast('Error: no se pudo cargar el módulo de asignación', 'error');
+          btn?.classList.remove('opacity-70');
           return;
         }
       }
@@ -224,7 +230,14 @@ function setupQuickActions() {
           }
         });
       }
-      assignProgramModal.open();
+      try {
+        assignProgramModal.open();
+      } catch (err) {
+        console.error('Error opening assign program flow:', err);
+        toast('No se pudo abrir el flujo de asignación de programa', 'error');
+      } finally {
+        btn?.classList.remove('opacity-70');
+      }
     });
 
   document.querySelector('[data-action="nueva-membresia"]')?.addEventListener('click', () => {
@@ -268,21 +281,6 @@ async function runSchemaHealthCheck() {
   } catch (err) {
     console.warn('Schema health-check error:', err?.message || err);
   }
-}
-
-function paintRegion(regionEl, row) {
-  const classes = ['pain-level-low', 'pain-level-medium', 'pain-level-high', 'pain-level-critical'];
-  regionEl.classList.remove(...classes, 'pain-interactive');
-  if (!row) {
-    regionEl.classList.add('pain-level-low');
-    regionEl.removeAttribute('title');
-    return;
-  }
-  const severity = window.AthleteInsights.getPainSeverity(Number(row.intensity_pct || 0));
-  regionEl.classList.add(`pain-level-${severity}`);
-  const isActionable = severity === 'high' || severity === 'critical';
-  if (isActionable) regionEl.classList.add('pain-interactive');
-  regionEl.title = `${window.AthleteInsights.formatPainZoneLabel(row.zone)} · ${Number(row.intensity_pct || 0).toFixed(1)}% intensidad`;
 }
 
 async function initPainMap() {
@@ -331,7 +329,6 @@ async function initPainMap() {
 function renderAnatomicalMap(rows) {
   const statusEl = document.getElementById('pain-map-status');
   const zoneListEl = document.getElementById('pain-zone-risk-list');
-  const regions = document.querySelectorAll('.muscle-region[data-zone]');
   painSummaryByZone = new Map();
 
   (rows || []).forEach((row) => {
@@ -343,15 +340,10 @@ function renderAnatomicalMap(rows) {
     }
   });
 
-  regions.forEach((regionEl) => {
-    const zone = regionEl.dataset.zone;
-    const row = painSummaryByZone.get(zone);
-    paintRegion(regionEl, row);
-  });
-
   const sortedZones = Array.from(painSummaryByZone.values()).sort(
     (a, b) => Number(b.intensity_pct || 0) - Number(a.intensity_pct || 0)
   );
+  renderPainHeatChart(sortedZones);
 
   const totalReports = sortedZones.reduce((sum, z) => sum + Number(z.reports || 0), 0);
   const badgeEl = document.getElementById('pain-report-badge');
@@ -398,17 +390,38 @@ function renderAnatomicalMap(rows) {
   setupPainRegionInteractions();
 }
 
-function setupPainRegionInteractions() {
-  document.querySelectorAll('.muscle-region[data-zone]').forEach((regionEl) => {
-    const zone = regionEl.dataset.zone;
-    const row = painSummaryByZone.get(zone);
-    const severity = window.AthleteInsights.getPainSeverity(Number(row?.intensity_pct || 0));
-    regionEl.onclick = null;
-    if (severity !== 'high' && severity !== 'critical') return;
-    regionEl.onclick = () => {
-      loadPainZoneDetails(zone);
-    };
+function renderPainHeatChart(sortedZones) {
+  const chartEl = document.getElementById('pain-heat-chart');
+  if (!chartEl) return;
+  if (!sortedZones?.length) {
+    chartEl.innerHTML =
+      '<p class="text-slate-500 text-xs">Sin datos de dolor en los últimos 30 días.</p>';
+    return;
+  }
+  const max = Math.max(...sortedZones.map((z) => Number(z.intensity_pct || 0)), 1);
+  chartEl.innerHTML = sortedZones
+    .slice(0, 10)
+    .map((row) => {
+      const intensity = Number(row.intensity_pct || 0);
+      const pct = Math.max(6, Math.round((intensity / max) * 100));
+      return `<button type="button" data-zone-chart="${row.zone}" class="w-full text-left rounded-lg border border-border-dark p-2 bg-slate-900/40 hover:border-primary/60 transition-colors">
+        <div class="flex items-center justify-between gap-3 mb-1">
+          <p class="font-semibold text-slate-100">${window.AthleteInsights.formatPainZoneLabel(row.zone)}</p>
+          <span class="text-[10px] font-bold text-primary">${intensity.toFixed(1)}%</span>
+        </div>
+        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div class="h-full bg-gradient-to-r from-blue-500 via-amber-500 to-red-500" style="width:${pct}%"></div>
+        </div>
+      </button>`;
+    })
+    .join('');
+  chartEl.querySelectorAll('[data-zone-chart]').forEach((btn) => {
+    btn.addEventListener('click', () => loadPainZoneDetails(btn.dataset.zoneChart));
   });
+}
+
+function setupPainRegionInteractions() {
+  // Conservado para compatibilidad (interacciones ahora viven en el gráfico de barras).
 }
 
 async function loadPainZoneDetails(zone) {

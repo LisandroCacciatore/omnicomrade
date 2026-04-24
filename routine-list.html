@@ -340,20 +340,20 @@
                         <input id="search-input" type="text" placeholder="Buscar rutina..."
                             class="w-full bg-bg-dark border border-border-dark rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:border-primary outline-none transition-colors" />
                     </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="filter-chip active" data-objetivo="all">Todos</button>
-                        <button class="filter-chip" data-objetivo="fuerza">Fuerza</button>
-                        <button class="filter-chip" data-objetivo="estetica">Estética</button>
-                        <button class="filter-chip" data-objetivo="rendimiento">Rendimiento</button>
-                        <button class="filter-chip" data-objetivo="rehabilitacion">Rehab.</button>
-                        <button class="filter-chip" data-objetivo="general">General</button>
-                    </div>
-                    <div class="flex gap-2 flex-wrap">
-                        <button class="filter-chip active" data-diff="all">Todos</button>
-                        <button class="filter-chip" data-diff="principiante">Principiante</button>
-                        <button class="filter-chip" data-diff="intermedio">Intermedio</button>
-                        <button class="filter-chip" data-diff="avanzado">Avanzado</button>
-                    </div>
+                    <select id="filter-objetivo" class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[190px]">
+                        <option value="all">Todos los objetivos</option>
+                        <option value="fuerza">Fuerza</option>
+                        <option value="estetica">Estética</option>
+                        <option value="rendimiento">Rendimiento</option>
+                        <option value="rehabilitacion">Rehab.</option>
+                        <option value="general">General</option>
+                    </select>
+                    <select id="filter-diff" class="bg-surface-dark border border-border-dark rounded-xl py-2.5 px-4 text-sm text-white focus:ring-2 focus:ring-primary transition-all min-w-[190px]">
+                        <option value="all">Todas las dificultades</option>
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
                 </div>
 
                 
@@ -611,7 +611,6 @@
 </body>
 
 </html>
-
 
 
 

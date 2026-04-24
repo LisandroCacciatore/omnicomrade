@@ -56,7 +56,7 @@ async function loadMemberships() {
         </tr>`;
   const { data, error } = await window.supabaseClient
     .from('memberships')
-    .select('*, students(full_name, email)')
+    .select('*, students(full_name, email, objetivo)')
     .order('created_at', { ascending: false });
   if (error) {
     console.error('Error cargando membresías:', error);
@@ -66,6 +66,7 @@ async function loadMemberships() {
   allMemberships = data || [];
   currentFilteredMemberships = [...allMemberships];
   updateKPIs();
+  renderRelationshipChart(allMemberships);
   renderTable(allMemberships);
 }
 async function ensurePlanCatalog() {
@@ -287,39 +288,16 @@ function setupPlanPricing() {
         is_active: true
       };
     });
-    // Ensure profile exists before upserting (FK on changed_by)
-    const fullSession = await window.tfSession.get();
-    const user = fullSession?.user;
-    if (user?.id) {
-      const role = user.app_metadata?.role || 'gim_admin';
-      const fullName =
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        (user.email ? user.email.split('@')[0] : 'Administrador');
-      const { error: profileError } = await window.supabaseClient.from('profiles').upsert(
-        {
-          id: user.id,
-          gym_id: gymId,
-          full_name: fullName,
-          role
-        },
-        { onConflict: 'id' }
-      );
-      if (profileError && feedback) {
-        feedback.textContent =
-          'No se pudo validar tu perfil de usuario para registrar cambios de planes.';
-        feedback.className = 'text-xs font-bold text-danger';
-        feedback.classList.remove('hidden');
-        return;
-      }
-    }
     const { data, error } = await window.supabaseClient
       .from('gym_membership_plans')
       .upsert(rows, { onConflict: 'gym_id,plan_key' })
       .select('id, gym_id, plan_key, label, duration_days, amount, is_active');
     if (feedback) {
       if (error) {
-        if (error.code === '23503' && error.message.includes('changed_by')) {
+        if (error.code === '42501' || /403|forbidden|permission/i.test(error.message || '')) {
+          feedback.textContent =
+            'No tenés permisos para guardar valores de planes. Verificá tu rol o iniciá sesión nuevamente.';
+        } else if (error.code === '23503' && error.message.includes('changed_by')) {
           feedback.textContent =
             'Error de configuración: perfil de usuario no encontrado en la base de datos.';
         } else {
@@ -334,6 +312,42 @@ function setupPlanPricing() {
       feedback.classList.remove('hidden');
     }
   });
+}
+
+function renderRelationshipChart(memberships) {
+  const el = document.getElementById('membership-relationship-chart');
+  if (!el) return;
+  if (!memberships?.length) {
+    el.innerHTML = '<p class="text-slate-500">Sin membresías para analizar.</p>';
+    return;
+  }
+  const grouped = new Map();
+  memberships.forEach((m) => {
+    const objetivo = m.students?.objetivo || 'sin_objetivo';
+    const plan = m.plan || 'sin_plan';
+    const key = `${objetivo}|${plan}`;
+    grouped.set(key, (grouped.get(key) || 0) + 1);
+  });
+  const top = Array.from(grouped.entries())
+    .map(([key, total]) => ({ key, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+  const max = Math.max(...top.map((i) => i.total), 1);
+  el.innerHTML = top
+    .map(({ key, total }) => {
+      const [objetivo, plan] = key.split('|');
+      const pct = Math.max(8, Math.round((total / max) * 100));
+      return `<div class="rounded-lg border border-border-dark p-2 bg-slate-900/40">
+        <div class="flex items-center justify-between mb-1">
+          <p class="truncate">${escHtml(objetivo)} · ${escHtml(plan)}</p>
+          <span class="font-bold text-primary">${total}</span>
+        </div>
+        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div class="h-full bg-primary/80" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+    })
+    .join('');
 }
 function getCurrentFilteredData() {
   return Array.isArray(currentFilteredMemberships) ? currentFilteredMemberships : [];
