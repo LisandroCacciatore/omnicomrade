@@ -320,16 +320,6 @@ function setupTableEvents() {
     if (action === 'delete') window.openEliminar?.(id, name);
   });
 
-  const cards = document.getElementById('students-cards');
-  cards?.addEventListener('click', (e) => {
-    const actionBtn = e.target.closest('[data-action]');
-    if (!actionBtn) return;
-    e.stopPropagation();
-    const { action, id, name } = actionBtn.dataset;
-    if (action === 'edit') openEditAtleta(id);
-    if (action === 'sell') openMembresiaForStudent(id, name);
-    if (action === 'delete') openEliminar(id, name);
-  });
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
