@@ -85,24 +85,53 @@
   async function loadRiskData(gymId) {
     const { data: students } = await db
       .from('students')
-      .select('id, profile_id')
+      .select('id, profile_id, full_name, avatar_url')
       .eq('gym_id', gymId)
       .is('deleted_at', null);
 
     const studentIds = students?.map((s) => s.id) || [];
-    const profileByStudentId = new Map((students || []).map((s) => [s.id, s.profile_id || null]));
+    const studentById = new Map((students || []).map((s) => [s.id, s]));
     if (!studentIds.length) return [];
 
-    const { data } = await db
+    const { data: riskRows } = await db
       .from('v_athlete_risk')
       .select('*')
       .in('student_id', studentIds)
-      .order('risk_score', { ascending: false });
+      .order('total_risk_score', { ascending: false });
 
-    return (data || []).map((row) => ({
-      ...row,
-      peer_profile_id: profileByStudentId.get(row.student_id) || null
-    }));
+    const { data: stagnation } = await db
+      .from('v_stagnation_check')
+      .select('student_id, is_stagnant')
+      .in('student_id', studentIds);
+
+    const stagnantByStudent = new Map();
+    (stagnation || []).forEach((row) => {
+      if (row.is_stagnant) {
+        stagnantByStudent.set(
+          row.student_id,
+          (stagnantByStudent.get(row.student_id) || 0) + 1
+        );
+      }
+    });
+
+    return (riskRows || []).map((row) => {
+      const stu = studentById.get(row.student_id) || {};
+      const daysInactive = row.last_session
+        ? Math.max(0, Math.floor((Date.now() - new Date(row.last_session).getTime()) / 86400000))
+        : 999;
+      const totalRisk = row.total_risk_score ?? 0;
+      return {
+        ...row,
+        peer_profile_id: stu.profile_id || null,
+        full_name: stu.full_name || null,
+        avatar_url: stu.avatar_url || null,
+        days_inactive: daysInactive,
+        risk_score: totalRisk,
+        risk_level: totalRisk >= 70 ? 'red' : totalRisk >= 40 ? 'yellow' : 'green',
+        wellbeing_score: row.wb_7d != null ? Math.round((row.wb_7d / 10) * 10) / 10 : null,
+        stagnant_exercises: stagnantByStudent.get(row.student_id) || 0
+      };
+    });
   }
 
   async function loadTodaySessions(gymId) {
